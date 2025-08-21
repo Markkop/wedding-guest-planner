@@ -8,10 +8,15 @@ This is a wedding guest planner application built with Next.js, TypeScript, and 
 
 ## Development Commands
 
-- `pnpm dev` - Start the development server with Turbopack
+- `pnpm dev` - Start the development server with Turbopack (NOTE: Do not run this command automatically)
 - `pnpm build` - Build the production application with Turbopack
 - `pnpm start` - Start the production server
 - `pnpm lint` - Run ESLint for code linting
+
+## Important Notes
+
+- **Never automatically run `pnpm dev`** - Always ask the user before starting the development server
+- The development server should only be started when explicitly requested by the user
 
 ## Tech Stack & Architecture
 

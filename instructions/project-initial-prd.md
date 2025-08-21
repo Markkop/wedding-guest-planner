@@ -2,7 +2,7 @@
 
 ## Overview
 
-A comprehensive wedding guest management tool with drag-and-drop reordering, organization-based access, and real-time data persistence using Supabase. Designed to support diverse weddings by allowing fully customizable partner roles and initials.
+A comprehensive wedding guest management tool with drag-and-drop reordering, organization-based access, and real-time data persistence using Neon. Designed to support diverse weddings by allowing fully customizable partner roles and initials.
 
 ---
 
@@ -114,7 +114,7 @@ Four compact stat cards displayed horizontally:
 
 ## Data Persistence
 
-- **Real-Time Sync**: All changes immediately saved to Supabase.
+- **Real-Time Sync**: All changes immediately saved to Neon.
 - **Offline Resilience**: Local state management prevents data loss.
 - **Order Preservation**: Drag-and-drop changes persist across sessions.
 - **Concurrent Access**: Multiple users can access simultaneously (avatars displayed for collaborators).
