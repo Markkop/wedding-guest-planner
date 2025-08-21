@@ -33,7 +33,7 @@ export function getStackServerApp(): StackServerApp {
 export async function safeGetUser() {
   try {
     // Check if cookies are available
-    const cookieStore = await cookies();
+    await cookies();
     
     // Try to get the user
     const stackApp = getStackServerApp();

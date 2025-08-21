@@ -28,12 +28,39 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface Guest {
+  id: string;
+  name: string;
+  category: 'partner1' | 'partner2';
+  age_group: 'adult' | '7years' | '11years';
+  food_preference: 'none' | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free';
+  confirmation_stage: number;
+  declined: boolean;
+  display_order: number;
+}
+
+interface VisibleColumns {
+  category: boolean;
+  age: boolean;
+  food: boolean;
+  confirmation: boolean;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  partner1_label?: string;
+  partner1_initial?: string;
+  partner2_label?: string;
+  partner2_initial?: string;
+}
+
 interface SortableRowProps {
-  guest: any;
+  guest: Guest;
   index: number;
-  visibleColumns: any;
-  organization: any;
-  onUpdate: (guestId: string, updates: any) => void;
+  visibleColumns: VisibleColumns;
+  organization: Organization;
+  onUpdate: (guestId: string, updates: Partial<Guest>) => void;
   onDelete: (guestId: string) => void;
 }
 
@@ -88,8 +115,7 @@ export function SortableRow({
     try {
       await fetch(`/api/guests/${guest.id}/move-to-end`, { method: 'POST' });
       window.location.reload();
-    } catch (error) {
-      console.error('Failed to move guest to end');
+    } catch {
     }
   };
 
@@ -103,13 +129,6 @@ export function SortableRow({
     }
   };
 
-  const getAgeIcon = (ageGroup: string) => {
-    switch (ageGroup) {
-      case '7years': return <span className="text-sm font-bold">7</span>;
-      case '11years': return <span className="text-sm font-bold">11</span>;
-      default: return <User className="h-4 w-4" />;
-    }
-  };
 
   return (
     <TableRow

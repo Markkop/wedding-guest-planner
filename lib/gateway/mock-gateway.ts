@@ -35,12 +35,12 @@ export class MockNotificationService implements NotificationService {
 }
 
 export class MockAnalyticsService implements AnalyticsService {
-  async trackEvent(event: string, properties: Record<string, any>): Promise<void> {
+  async trackEvent(event: string, properties: Record<string, unknown>): Promise<void> {
     console.log(`[MOCK ANALYTICS] Event: ${event}`, properties);
     await new Promise(resolve => setTimeout(resolve, 10));
   }
 
-  async trackUserAction(userId: string, action: string, properties?: Record<string, any>): Promise<void> {
+  async trackUserAction(userId: string, action: string, properties?: Record<string, unknown>): Promise<void> {
     console.log(`[MOCK ANALYTICS] User ${userId} - ${action}`, properties || {});
     await new Promise(resolve => setTimeout(resolve, 10));
   }

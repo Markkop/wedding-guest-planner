@@ -9,8 +9,8 @@ export interface NotificationService {
 }
 
 export interface AnalyticsService {
-  trackEvent(event: string, properties: Record<string, any>): Promise<void>;
-  trackUserAction(userId: string, action: string, properties?: Record<string, any>): Promise<void>;
+  trackEvent(event: string, properties: Record<string, unknown>): Promise<void>;
+  trackUserAction(userId: string, action: string, properties?: Record<string, unknown>): Promise<void>;
 }
 
 export interface StorageService {

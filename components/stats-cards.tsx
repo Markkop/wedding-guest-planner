@@ -1,12 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, Heart } from 'lucide-react';
 
+interface Organization {
+  id: string;
+  name: string;
+  partner1_label?: string;
+  partner1_initial?: string;
+  partner2_label?: string;
+  partner2_initial?: string;
+}
+
 interface StatsCardsProps {
   organizationId: string;
-  organization: any;
+  organization: Organization;
 }
 
 export function StatsCards({ organizationId, organization }: StatsCardsProps) {
@@ -17,21 +26,20 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
     partner2_count: 0,
   });
 
-  useEffect(() => {
-    fetchStats();
-  }, [organizationId]);
-
-  async function fetchStats() {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch(`/api/organizations/${organizationId}/stats`);
       const data = await response.json();
       if (response.ok) {
         setStats(data.stats);
       }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
+    } catch {
     }
-  }
+  }, [organizationId]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const confirmedPercentage = stats.total > 0 
     ? Math.round((stats.confirmed / stats.total) * 100) 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -19,7 +19,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -30,7 +29,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SortableRow } from './sortable-row';
@@ -50,7 +48,14 @@ interface Guest {
 
 interface GuestTableProps {
   organizationId: string;
-  organization: any;
+  organization: {
+    id: string;
+    name: string;
+    partner1_label?: string;
+    partner1_initial?: string;
+    partner2_label?: string;
+    partner2_initial?: string;
+  };
 }
 
 export function GuestTable({ organizationId, organization }: GuestTableProps) {
@@ -71,50 +76,75 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     })
   );
 
-  useEffect(() => {
-    fetchGuests();
-    const savedColumns = localStorage.getItem('visibleColumns');
-    if (savedColumns) {
-      setVisibleColumns(JSON.parse(savedColumns));
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  async function fetchGuests() {
+  const fetchGuests = useCallback(async () => {
     try {
       const response = await fetch(`/api/organizations/${organizationId}/guests`);
       const data = await response.json();
       if (response.ok) {
         setGuests(data.guests || []);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch guests');
     }
-  }
+  }, [organizationId]);
+
+  useEffect(() => {
+    fetchGuests();
+    const savedColumns = localStorage.getItem('visibleColumns');
+    if (savedColumns) {
+      setVisibleColumns(JSON.parse(savedColumns));
+    }
+  }, [organizationId, fetchGuests]);
+
+  useEffect(() => {
+    localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
   async function handleAddGuest() {
     if (!newGuestName.trim()) return;
     
+    // Optimistic update - add guest immediately
+    const tempId = `temp-${Date.now()}`;
+    const newGuest: Guest = {
+      id: tempId,
+      name: newGuestName,
+      organization_id: organizationId,
+      category: [],
+      age_group: [],
+      food_preference: [],
+      confirmations: {
+        save_the_date: false,
+        invitation: false,
+        attendance: false
+      },
+      order_index: guests.length
+    };
+    
+    setGuests([...guests, newGuest]);
+    setNewGuestName('');
     setLoading(true);
+    
     try {
       const response = await fetch(`/api/organizations/${organizationId}/guests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newGuestName }),
+        body: JSON.stringify({ name: newGuest.name }),
       });
       
       const data = await response.json();
       if (response.ok) {
-        setGuests([...guests, data.guest]);
-        setNewGuestName('');
-        toast.success('Guest added successfully');
+        // Replace temp guest with real one from server
+        setGuests(prev => prev.map(g => g.id === tempId ? data.guest : g));
       } else {
+        // Revert on failure
+        setGuests(prev => prev.filter(g => g.id !== tempId));
+        setNewGuestName(newGuest.name);
         toast.error(data.error || 'Failed to add guest');
       }
-    } catch (error) {
+    } catch {
+      // Revert on failure
+      setGuests(prev => prev.filter(g => g.id !== tempId));
+      setNewGuestName(newGuest.name);
       toast.error('Failed to add guest');
     } finally {
       setLoading(false);
@@ -122,8 +152,14 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   }
 
   async function handleUpdateGuest(guestId: string, updates: Partial<Guest>) {
+    // Store original guest for rollback
+    const originalGuest = guests.find(g => g.id === guestId);
+    if (!originalGuest) return;
+    
+    // Optimistic update - update immediately
+    setGuests(prev => prev.map(g => g.id === guestId ? { ...g, ...updates } : g));
+    
     try {
-      console.log('Updating guest:', guestId, 'with updates:', updates);
       const response = await fetch(`/api/guests/${guestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -131,32 +167,51 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       });
       
       const data = await response.json();
-      console.log('Update response:', response.status, data);
       if (response.ok) {
-        setGuests(guests.map(g => g.id === guestId ? { ...g, ...data.guest } : g));
-        toast.success('Guest updated successfully');
+        // Update with server response
+        setGuests(prev => prev.map(g => g.id === guestId ? { ...g, ...data.guest } : g));
       } else {
+        // Revert on failure
+        setGuests(prev => prev.map(g => g.id === guestId ? originalGuest : g));
         toast.error(data.error || 'Failed to update guest');
       }
-    } catch (error) {
-      console.error('Update error:', error);
+    } catch {
+      // Revert on failure
+      setGuests(prev => prev.map(g => g.id === guestId ? originalGuest : g));
       toast.error('Failed to update guest');
     }
   }
 
   async function handleDeleteGuest(guestId: string) {
+    // Store guest for rollback
+    const guestToDelete = guests.find(g => g.id === guestId);
+    const guestIndex = guests.findIndex(g => g.id === guestId);
+    if (!guestToDelete) return;
+    
+    // Optimistic update - remove immediately
+    setGuests(prev => prev.filter(g => g.id !== guestId));
+    
     try {
       const response = await fetch(`/api/guests/${guestId}`, {
         method: 'DELETE',
       });
       
-      if (response.ok) {
-        setGuests(guests.filter(g => g.id !== guestId));
-        toast.success('Guest deleted');
-      } else {
+      if (!response.ok) {
+        // Revert on failure - restore guest at original position
+        setGuests(prev => {
+          const newGuests = [...prev];
+          newGuests.splice(guestIndex, 0, guestToDelete);
+          return newGuests;
+        });
         toast.error('Failed to delete guest');
       }
-    } catch (error) {
+    } catch {
+      // Revert on failure - restore guest at original position
+      setGuests(prev => {
+        const newGuests = [...prev];
+        newGuests.splice(guestIndex, 0, guestToDelete);
+        return newGuests;
+      });
       toast.error('Failed to delete guest');
     }
   }
@@ -169,18 +224,29 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     const oldIndex = guests.findIndex(g => g.id === active.id);
     const newIndex = guests.findIndex(g => g.id === over.id);
     
+    // Store original order for rollback
+    const originalGuests = [...guests];
+    
+    // Optimistic update - reorder immediately
     const newGuests = arrayMove(guests, oldIndex, newIndex);
     setGuests(newGuests);
     
     try {
-      await fetch(`/api/organizations/${organizationId}/guests/reorder`, {
+      const response = await fetch(`/api/organizations/${organizationId}/guests/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ guestIds: newGuests.map(g => g.id) }),
       });
-    } catch (error) {
+      
+      if (!response.ok) {
+        // Revert on failure
+        setGuests(originalGuests);
+        toast.error('Failed to save order');
+      }
+    } catch {
+      // Revert on failure
+      setGuests(originalGuests);
       toast.error('Failed to save order');
-      fetchGuests();
     }
   }
 

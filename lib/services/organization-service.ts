@@ -2,7 +2,6 @@ import { nanoid } from 'nanoid';
 import { sql } from '@/lib/db';
 import { safeRequireUser, safeGetUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
-import type { Organization, OrganizationMember } from '@/lib/db';
 
 export class OrganizationService {
   static generateInviteCode(): string {
