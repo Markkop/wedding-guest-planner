@@ -1,10 +1,19 @@
 import { sql } from '@/lib/db';
 import { safeRequireUser } from '@/lib/auth/safe-stack';
+import { AuthService } from '@/lib/auth/auth-service';
 import type { Guest } from '@/lib/db';
 
 export class GuestService {
   static async getGuests(organizationId: string) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
@@ -34,6 +43,14 @@ export class GuestService {
     }
   ) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
@@ -85,6 +102,14 @@ export class GuestService {
   ) {
     const user = await safeRequireUser();
 
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
+
     const guestCheck = await sql`
       SELECT g.*, om.user_id
       FROM guests g
@@ -96,51 +121,36 @@ export class GuestService {
       throw new Error('Guest not found or access denied');
     }
 
-    const updates = [];
-    const values = [];
-    
-    if (data.name !== undefined) {
-      updates.push(`name = $${values.length + 2}`);
-      values.push(data.name);
-    }
-    if (data.category !== undefined) {
-      updates.push(`category = $${values.length + 2}`);
-      values.push(data.category);
-    }
-    if (data.age_group !== undefined) {
-      updates.push(`age_group = $${values.length + 2}`);
-      values.push(data.age_group);
-    }
-    if (data.food_preference !== undefined) {
-      updates.push(`food_preference = $${values.length + 2}`);
-      values.push(data.food_preference);
-    }
-    if (data.confirmation_stage !== undefined) {
-      updates.push(`confirmation_stage = $${values.length + 2}`);
-      values.push(data.confirmation_stage);
-    }
-    if (data.declined !== undefined) {
-      updates.push(`declined = $${values.length + 2}`);
-      values.push(data.declined);
-    }
-
-    if (updates.length === 0) {
+    if (Object.keys(data).length === 0) {
       return guestCheck[0];
     }
 
-    const query = `
+    const result = await sql`
       UPDATE guests
-      SET ${updates.join(', ')}
-      WHERE id = $1
+      SET 
+        name = COALESCE(${data.name}, name),
+        category = COALESCE(${data.category}, category),
+        age_group = COALESCE(${data.age_group}, age_group),
+        food_preference = COALESCE(${data.food_preference}, food_preference),
+        confirmation_stage = COALESCE(${data.confirmation_stage}, confirmation_stage),
+        declined = COALESCE(${data.declined}, declined),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${guestId}
       RETURNING *
     `;
-
-    const result = await sql(query, [guestId, ...values]);
     return result[0] as Guest;
   }
 
   static async deleteGuest(guestId: string) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const guestCheck = await sql`
       SELECT g.*, om.user_id
@@ -160,6 +170,14 @@ export class GuestService {
 
   static async reorderGuests(organizationId: string, guestIds: string[]) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
@@ -183,6 +201,14 @@ export class GuestService {
 
   static async moveGuestToEnd(guestId: string) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const guestCheck = await sql`
       SELECT g.*, om.user_id
@@ -216,6 +242,14 @@ export class GuestService {
 
   static async getGuestStatistics(organizationId: string) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const memberCheck = await sql`
       SELECT * FROM organization_members

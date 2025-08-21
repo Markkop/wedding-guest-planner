@@ -63,8 +63,9 @@ export function SortableRow({
   };
 
   const handleSaveName = () => {
-    if (editName.trim() && editName !== guest.name) {
-      onUpdate(guest.id, { name: editName });
+    const trimmedName = editName.trim();
+    if (trimmedName && trimmedName !== guest.name) {
+      onUpdate(guest.id, { name: trimmedName });
     }
     setIsEditing(false);
   };

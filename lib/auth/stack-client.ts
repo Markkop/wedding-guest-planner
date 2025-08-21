@@ -15,7 +15,7 @@ export function getStackClientApp(): StackClientApp {
     _stackClientApp = new StackClientApp({
       projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID!,
       publishableClientKey: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY!,
-      tokenStore: "memory", // Use memory store instead of cookie store for better reliability
+      tokenStore: "nextjs-cookie",
     });
   }
   return _stackClientApp;

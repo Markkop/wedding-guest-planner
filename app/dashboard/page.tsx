@@ -2,33 +2,23 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@stackframe/stack';
 import { GuestTable } from '@/components/guest-table';
 import { StatsCards } from '@/components/stats-cards';
 import { OrganizationSelector } from '@/components/organization-selector';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { LogOut, Settings } from 'lucide-react';
-import type { User, Organization } from '@/lib/types';
+import type { Organization } from '@/lib/types';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const user = useUser({ or: 'redirect' });
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = useCallback(async () => {
+  const loadOrganizations = useCallback(async () => {
     try {
-      const response = await fetch('/api/auth/me');
-      const data = await response.json();
-      
-      if (!response.ok) {
-        router.push('/login');
-        return;
-      }
-      
-      setUser(data.user);
-      
-      // Get user organizations
       const orgsResponse = await fetch('/api/organizations');
       const orgsData = await orgsResponse.json();
       
@@ -36,20 +26,21 @@ export default function DashboardPage() {
         setOrganization(orgsData.organizations[0]);
       }
     } catch {
-      toast.error('Failed to load user data');
-      router.push('/login');
+      toast.error('Failed to load organizations');
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    if (user) {
+      loadOrganizations();
+    }
+  }, [user, loadOrganizations]);
 
   async function handleLogout() {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await user.signOut();
       router.push('/login');
     } catch {
       toast.error('Failed to logout');
@@ -69,7 +60,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gray-50">
         <div className="mx-auto max-w-7xl px-4 py-8">
           <div className="mb-8 flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Welcome, {user?.name || user?.email}</h1>
+            <h1 className="text-3xl font-bold">Welcome, {user?.displayName || user?.primaryEmail}</h1>
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="mr-2 h-4 w-4" />
               Logout

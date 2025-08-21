@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 import { sql } from '@/lib/db';
 import { safeRequireUser, safeGetUser } from '@/lib/auth/safe-stack';
+import { AuthService } from '@/lib/auth/auth-service';
 import type { Organization, OrganizationMember } from '@/lib/db';
 
 export class OrganizationService {
@@ -16,6 +17,14 @@ export class OrganizationService {
     partner2Initial = 'G'
   ) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const inviteCode = this.generateInviteCode();
 
@@ -45,6 +54,14 @@ export class OrganizationService {
 
   static async joinOrganization(inviteCode: string) {
     const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     const orgResult = await sql`
       SELECT * FROM organizations WHERE invite_code = ${inviteCode}
@@ -178,6 +195,14 @@ export class OrganizationService {
   static async updateActiveSession(organizationId: string) {
     const user = await safeGetUser();
     if (!user) return;
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl
+    });
 
     await sql`
       INSERT INTO active_sessions (user_id, organization_id, last_activity)

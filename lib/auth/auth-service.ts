@@ -13,9 +13,10 @@ export class AuthService {
   static async syncUserToDatabase(stackUser: { id: string; primaryEmail: string; displayName?: string; profileImageUrl?: string }) {
     // Sync Stack Auth user to our local database if needed
     const result = await sql`
-      INSERT INTO users (id, email, name, avatar_url)
-      VALUES (${stackUser.id}, ${stackUser.primaryEmail}, ${stackUser.displayName}, ${stackUser.profileImageUrl})
-      ON CONFLICT (email) DO UPDATE SET
+      INSERT INTO users (id, email, name, avatar_url, password_hash)
+      VALUES (${stackUser.id}, ${stackUser.primaryEmail}, ${stackUser.displayName}, ${stackUser.profileImageUrl}, 'stack_auth_managed')
+      ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
         name = EXCLUDED.name,
         avatar_url = EXCLUDED.avatar_url,
         updated_at = CURRENT_TIMESTAMP

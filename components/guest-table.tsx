@@ -123,6 +123,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
 
   async function handleUpdateGuest(guestId: string, updates: Partial<Guest>) {
     try {
+      console.log('Updating guest:', guestId, 'with updates:', updates);
       const response = await fetch(`/api/guests/${guestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -130,12 +131,15 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       });
       
       const data = await response.json();
+      console.log('Update response:', response.status, data);
       if (response.ok) {
-        setGuests(guests.map(g => g.id === guestId ? { ...g, ...updates } : g));
+        setGuests(guests.map(g => g.id === guestId ? { ...g, ...data.guest } : g));
+        toast.success('Guest updated successfully');
       } else {
         toast.error(data.error || 'Failed to update guest');
       }
     } catch (error) {
+      console.error('Update error:', error);
       toast.error('Failed to update guest');
     }
   }
@@ -235,29 +239,29 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         </DropdownMenu>
       </div>
       
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12"></TableHead>
-            <TableHead className="w-12">#</TableHead>
-            <TableHead>Name</TableHead>
-            {visibleColumns.category && <TableHead className="w-24">Category</TableHead>}
-            {visibleColumns.age && <TableHead className="w-24">Age</TableHead>}
-            {visibleColumns.food && <TableHead className="w-32">Food</TableHead>}
-            {visibleColumns.confirmations && <TableHead className="w-32">Confirmations</TableHead>}
-            <TableHead className="w-32">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Name</TableHead>
+              {visibleColumns.category && <TableHead className="w-24">Category</TableHead>}
+              {visibleColumns.age && <TableHead className="w-24">Age</TableHead>}
+              {visibleColumns.food && <TableHead className="w-32">Food</TableHead>}
+              {visibleColumns.confirmations && <TableHead className="w-32">Confirmations</TableHead>}
+              <TableHead className="w-32">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <SortableContext
+            items={guests.map(g => g.id)}
+            strategy={verticalListSortingStrategy}
           >
-            <SortableContext
-              items={guests.map(g => g.id)}
-              strategy={verticalListSortingStrategy}
-            >
+            <TableBody>
               {guests.map((guest, index) => (
                 <SortableRow
                   key={guest.id}
@@ -269,10 +273,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   onDelete={handleDeleteGuest}
                 />
               ))}
-            </SortableContext>
-          </DndContext>
-        </TableBody>
-      </Table>
+            </TableBody>
+          </SortableContext>
+        </Table>
+      </DndContext>
       
       <div className="border-t p-4">
         <div className="flex gap-2">
