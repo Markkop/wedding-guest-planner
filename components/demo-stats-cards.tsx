@@ -22,10 +22,10 @@ export function DemoStatsCards() {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-2 gap-2">
       {/* Guests Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
           <CardTitle className="text-sm font-medium">Guests</CardTitle>
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
@@ -51,7 +51,7 @@ export function DemoStatsCards() {
       {/* Confirmations Card */}
       {organization.configuration?.confirmationStages?.enabled && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-sm font-medium">Invitations</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>

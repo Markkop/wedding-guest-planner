@@ -1,36 +1,36 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useUser } from '@stackframe/stack';
-import { GuestTable } from '@/components/guest-table';
-import { StatsCards } from '@/components/stats-cards';
-import { OrganizationSelector } from '@/components/organization-selector';
-import { OrganizationSwitcher } from '@/components/organization-switcher';
-import { InviteManager } from '@/components/invite-manager';
-import { SettingsDialog } from '@/components/settings-dialog';
-import { ExportDialog } from '@/components/export-dialog';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { LogOut } from 'lucide-react';
-import type { Organization } from '@/lib/types';
-import { LoadingContent } from '@/components/ui/loading-spinner';
-import { GuestProvider } from '@/lib/guest-context';
+import { useEffect, useState, useCallback } from "react";
+import { useUser } from "@stackframe/stack";
+import { GuestTable } from "@/components/guest-table";
+import { StatsCards } from "@/components/stats-cards";
+import { OrganizationSelector } from "@/components/organization-selector";
+import { OrganizationSwitcher } from "@/components/organization-switcher";
+import { InviteManager } from "@/components/invite-manager";
+import { SettingsDialog } from "@/components/settings-dialog";
+import { ExportDialog } from "@/components/export-dialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { LogOut } from "lucide-react";
+import type { Organization } from "@/lib/types";
+import { LoadingContent } from "@/components/ui/loading-spinner";
+import { GuestProvider } from "@/lib/guest-context";
 
 export default function DashboardPage() {
-  const user = useUser({ or: 'redirect' });
+  const user = useUser({ or: "redirect" });
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadOrganizations = useCallback(async () => {
     try {
-      const orgsResponse = await fetch('/api/organizations');
+      const orgsResponse = await fetch("/api/organizations");
       const orgsData = await orgsResponse.json();
-      
+
       if (orgsData.organizations && orgsData.organizations.length > 0) {
         setOrganization(orgsData.organizations[0]);
       }
     } catch {
-      toast.error('Failed to load organizations');
+      toast.error("Failed to load organizations");
     } finally {
       setLoading(false);
     }
@@ -45,9 +45,9 @@ export default function DashboardPage() {
   async function handleLogout() {
     try {
       await user.signOut();
-      window.location.href = '/login';
+      window.location.href = "/login";
     } catch {
-      toast.error('Failed to logout');
+      toast.error("Failed to logout");
     }
   }
 
@@ -62,15 +62,17 @@ export default function DashboardPage() {
   if (!organization) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 py-8">
-          <div className="mb-8 flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Welcome, {user?.displayName || user?.primaryEmail}</h1>
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h1 className="text-3xl font-bold">
+              Welcome, {user?.displayName || user?.primaryEmail}
+            </h1>
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="sm:mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
-          
+
           <OrganizationSelector onOrganizationSelect={setOrganization} />
         </div>
       </div>
@@ -80,26 +82,26 @@ export default function DashboardPage() {
   return (
     <GuestProvider>
       <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 py-8">
-          <div className="mb-8 flex items-center justify-between">
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <OrganizationSwitcher 
+              <OrganizationSwitcher
                 currentOrganization={organization}
                 onOrganizationChange={setOrganization}
               />
             </div>
             <div className="flex gap-2">
-              {organization.role === 'admin' && (
+              {organization.role === "admin" && (
                 <>
-                  <InviteManager 
-                    organization={organization} 
+                  <InviteManager
+                    organization={organization}
                     onInviteRefresh={loadOrganizations}
                   />
-                  <SettingsDialog 
+                  <SettingsDialog
                     organization={organization}
                     onSettingsChange={loadOrganizations}
                   />
-                  <ExportDialog 
+                  <ExportDialog
                     organization={organization}
                     onDataChange={loadOrganizations}
                   />
@@ -112,14 +114,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <StatsCards 
-            organization={organization} 
-          />
-          
-          <div className="mt-8">
-            <GuestTable 
-              organizationId={organization.id} 
-              organization={organization} 
+          <StatsCards organization={organization} />
+
+          <div className="mt-4">
+            <GuestTable
+              organizationId={organization.id}
+              organization={organization}
             />
           </div>
         </div>

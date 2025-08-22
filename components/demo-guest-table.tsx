@@ -153,7 +153,7 @@ export function DemoGuestTable() {
         </Table>
       </div>
 
-      <div className="sticky bottom-0 bg-white border-t shadow-lg z-20">
+      <div className="sticky bottom-0 bg-white border-t shadow-lg z-20 rounded-b-lg">
         <AddGuestSection onAddGuest={handleAddGuest} loading={addingGuest} />
       </div>
     </div>

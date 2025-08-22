@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useUser } from '@stackframe/stack';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { DemoGuestProvider } from '@/lib/demo-guest-context';
-import { DemoGuestTable } from '@/components/demo-guest-table';
-import { DemoStatsCards } from '@/components/demo-stats-cards';
-import { DemoResetButton } from '@/components/demo-reset-button';
-import { LoadingContent } from '@/components/ui/loading-spinner';
-import { Sparkles, ArrowRight, Users, Calendar, Settings } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useUser } from "@stackframe/stack";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { DemoGuestProvider } from "@/lib/demo-guest-context";
+import { DemoGuestTable } from "@/components/demo-guest-table";
+import { DemoStatsCards } from "@/components/demo-stats-cards";
+import { DemoResetButton } from "@/components/demo-reset-button";
+import { LoadingContent } from "@/components/ui/loading-spinner";
+import { Sparkles, ArrowRight, Users, Calendar, Settings } from "lucide-react";
+import Link from "next/link";
 
 function LandingContent() {
   const user = useUser();
@@ -32,7 +32,9 @@ function LandingContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="h-6 w-6 text-indigo-600" />
-              <span className="text-xl font-bold text-gray-900">Guest Planner</span>
+              <span className="text-xl font-bold text-gray-900">
+                Guest Planner
+              </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {user ? (
@@ -71,16 +73,17 @@ function LandingContent() {
             <Sparkles className="mr-1 h-3 w-3" />
             Interactive Demo Below
           </Badge>
-          
+
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
             Wedding Guest Management
             <br />
             <span className="text-indigo-600">Made Simple</span>
           </h1>
-          
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Organize your special event with ease. Manage RSVPs, dietary preferences, 
-            seating arrangements, and more. Try the interactive demo below!
+
+          <p className="text-xl text-gray-600 mb-4 max-w-3xl mx-auto">
+            Organize your special event with ease. Manage RSVPs, dietary
+            preferences, seating arrangements, and more. Try the interactive
+            demo below!
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 mb-12">
@@ -105,7 +108,7 @@ function LandingContent() {
         <div className="mx-auto max-w-7xl px-4">
           <DemoGuestProvider>
             {/* Demo Instructions */}
-            <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <div className="bg-white rounded-lg shadow-sm border p-6 mb-4">
               <h3 className="text-lg font-semibold mb-4 text-center">
                 🎯 Try These Features
               </h3>
@@ -144,15 +147,15 @@ function LandingContent() {
             </div>
 
             {/* Demo Stats */}
-            <div className="mb-8">
+            <div className="mb-4">
               <DemoStatsCards />
             </div>
-            
+
             {/* Demo Guest Table */}
             <div className="mb-12">
               <DemoGuestTable />
             </div>
-            
+
             {/* Demo Reset Button */}
             <DemoResetButton />
           </DemoGuestProvider>
@@ -165,13 +168,18 @@ function LandingContent() {
           <h2 className="text-3xl font-bold text-white mb-4">
             Ready to plan your event?
           </h2>
-          <p className="text-xl text-indigo-100 mb-8">
-            Create your free account and start managing your guest list in minutes.
+          <p className="text-xl text-indigo-100 mb-4">
+            Create your free account and start managing your guest list in
+            minutes.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user ? (
               <Link href="/dashboard">
-                <Button size="lg" variant="secondary" className="px-6 sm:px-8 w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="px-6 sm:px-8 w-full sm:w-auto"
+                >
                   Go to Your Dashboard
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -179,13 +187,21 @@ function LandingContent() {
             ) : (
               <>
                 <Link href="/handler/sign-up">
-                  <Button size="lg" variant="secondary" className="px-6 sm:px-8 w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    className="px-6 sm:px-8 w-full sm:w-auto"
+                  >
                     Get Started Free
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link href="/handler/sign-in">
-                  <Button size="lg" variant="outline" className="px-6 sm:px-8 w-full sm:w-auto text-white border-white hover:bg-white hover:text-indigo-600">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="px-6 sm:px-8 w-full sm:w-auto text-white border-white hover:bg-white hover:text-indigo-600"
+                  >
                     Login
                   </Button>
                 </Link>
