@@ -31,10 +31,6 @@ export default function InvitePage({ params }: InvitePageProps) {
   const [error, setError] = useState<string | null>(null);
   const [alreadyMember, setAlreadyMember] = useState(false);
 
-  useEffect(() => {
-    loadInviteInfo();
-  }, [loadInviteInfo]);
-
   const loadInviteInfo = useCallback(async () => {
     try {
       const { code } = await params;
@@ -54,6 +50,10 @@ export default function InvitePage({ params }: InvitePageProps) {
       setLoading(false);
     }
   }, [params]);
+
+  useEffect(() => {
+    loadInviteInfo();
+  }, [loadInviteInfo]);
 
   const joinOrganization = async () => {
     const { code } = await params;

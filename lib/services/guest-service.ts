@@ -12,8 +12,8 @@ export class GuestService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const memberCheck = await sql`
@@ -50,8 +50,8 @@ export class GuestService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const memberCheck = await sql`
@@ -126,8 +126,8 @@ export class GuestService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const guestCheck = await sql`
@@ -168,8 +168,8 @@ export class GuestService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const guestCheck = await sql`
@@ -195,8 +195,8 @@ export class GuestService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const memberCheck = await sql`
@@ -226,8 +226,8 @@ export class GuestService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const guestCheck = await sql`
@@ -267,8 +267,8 @@ export class GuestService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const memberCheck = await sql`

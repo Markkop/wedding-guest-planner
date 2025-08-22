@@ -21,8 +21,8 @@ export class OrganizationService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const inviteCode = this.generateInviteCode();
@@ -70,8 +70,8 @@ export class OrganizationService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const orgResult = await sql`
@@ -213,8 +213,8 @@ export class OrganizationService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     await sql`

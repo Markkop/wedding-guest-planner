@@ -32,8 +32,8 @@ export class EventConfigService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const result = await sql`
@@ -56,8 +56,8 @@ export class EventConfigService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     // Check if user is admin of the organization
@@ -90,8 +90,8 @@ export class EventConfigService {
     await AuthService.syncUserToDatabase({
       id: user.id,
       primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
     });
 
     const memberCheck = await sql`

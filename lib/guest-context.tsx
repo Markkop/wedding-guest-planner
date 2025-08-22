@@ -3,63 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { reorder } from '@atlaskit/pragmatic-drag-and-drop/reorder';
 import { toast } from 'sonner';
-
-interface Guest {
-  id: string;
-  name: string;
-  categories: string[];
-  age_group?: string;
-  food_preference?: string;
-  confirmation_stage: string;
-  custom_fields: Record<string, unknown>;
-  display_order: number;
-}
-
-interface Organization {
-  id: string;
-  name: string;
-  event_type: string;
-  configuration: {
-    categories: Array<{
-      id: string;
-      label: string;
-      initial: string;
-      color: string;
-    }>;
-    ageGroups: {
-      enabled: boolean;
-      groups: Array<{
-        id: string;
-        label: string;
-        minAge?: number;
-      }>;
-    };
-    foodPreferences: {
-      enabled: boolean;
-      options: Array<{
-        id: string;
-        label: string;
-      }>;
-    };
-    confirmationStages: {
-      enabled: boolean;
-      stages: Array<{
-        id: string;
-        label: string;
-        order: number;
-      }>;
-    };
-  };
-}
-
-interface GuestStatistics {
-  total: number;
-  confirmed: number;
-  invited: number;
-  declined: number;
-  byCategory: Record<string, number>;
-  byConfirmationStage: Record<string, number>;
-}
+import type { Guest, Organization, GuestStatistics } from '@/lib/types';
 
 type UpdateType = 'add' | 'update' | 'delete' | 'reorder';
 
@@ -312,13 +256,16 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     const config = organization.configuration;
     const newGuest: Guest = {
       id: tempId,
+      organization_id: organization.id,
       name,
       categories: [config.categories[0]?.id || ''],
       age_group: config.ageGroups.enabled ? config.ageGroups.groups[0]?.id : undefined,
       food_preference: config.foodPreferences.enabled ? config.foodPreferences.options[0]?.id : undefined,
       confirmation_stage: config.confirmationStages.enabled ? config.confirmationStages.stages[0]?.id : 'invited',
       custom_fields: {},
-      display_order: guests.length
+      display_order: guests.length,
+      created_at: new Date(),
+      updated_at: new Date()
     };
     
     // Optimistic update

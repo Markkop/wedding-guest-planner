@@ -3,6 +3,7 @@
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { stackClientApp } from "@/lib/auth/stack-client";
 import { Suspense } from "react";
+import type { StackClientApp } from "@stackframe/stack";
 
 function LoadingFallback() {
   return (
@@ -15,7 +16,7 @@ function LoadingFallback() {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <StackProvider app={stackClientApp}>
+      <StackProvider app={stackClientApp as StackClientApp<true, string>}>
         <StackTheme>
           {children}
         </StackTheme>
