@@ -1,91 +1,78 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, UserX, Clock } from 'lucide-react';
+import { Users, CheckCircle } from 'lucide-react';
 import { useDemoGuests } from '@/lib/demo-guest-context';
 
 export function DemoStatsCards() {
   const { stats, organization } = useDemoGuests();
 
+  const categories = organization.configuration?.categories || [];
+  const confirmationStages = organization.configuration?.confirmationStages?.stages || [];
+
+  // Default colors for confirmation stages
+  const getConfirmationColor = (stageId: string) => {
+    switch (stageId) {
+      case 'invited': return '#6B7280';    // Neutral/gray
+      case 'pending': return '#F59E0B';    // Yellow
+      case 'confirmed': return '#10B981';  // Green
+      case 'declined': return '#EF4444';   // Red
+      default: return '#6B7280';           // Default neutral
+    }
+  };
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Guests Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Guests</CardTitle>
+          <CardTitle className="text-sm font-medium">Guests</CardTitle>
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.total}</div>
-          <p className="text-xs text-muted-foreground">
-            people invited
-          </p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
-          <UserCheck className="h-4 w-4 text-green-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">{stats.confirmed}</div>
-          <p className="text-xs text-muted-foreground">
-            {stats.total > 0 ? Math.round((stats.confirmed / stats.total) * 100) : 0}% confirmed
-          </p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending</CardTitle>
-          <Clock className="h-4 w-4 text-amber-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-amber-600">{stats.invited}</div>
-          <p className="text-xs text-muted-foreground">
-            awaiting response
-          </p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Declined</CardTitle>
-          <UserX className="h-4 w-4 text-red-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats.declined}</div>
-          <p className="text-xs text-muted-foreground">
-            unable to attend
-          </p>
-        </CardContent>
-      </Card>
-      
-      {/* Category breakdown */}
-      <Card className="md:col-span-2 lg:col-span-4">
-        <CardHeader>
-          <CardTitle className="text-lg">Guest Categories</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {organization.configuration.categories.map(category => (
-              <Badge 
-                key={category.id} 
-                variant="outline"
-                className="px-3 py-1"
-                style={{ borderColor: category.color }}
-              >
-                <span 
-                  className="mr-2 h-2 w-2 rounded-full" 
-                  style={{ backgroundColor: category.color }}
-                />
-                {category.label}: {stats.byCategory[category.id] || 0}
-              </Badge>
+          <div className="text-2xl font-bold flex items-center gap-1">
+            {categories.map((category, index) => (
+              <span key={category.id}>
+                <span style={{ color: category.color }}>
+                  {stats.byCategory[category.id] || 0}
+                </span>
+                {index < categories.length - 1 && (
+                  <span className="text-muted-foreground mx-1">/</span>
+                )}
+              </span>
             ))}
+            {categories.length > 0 && (
+              <span className="text-muted-foreground ml-2">({stats.total})</span>
+            )}
           </div>
         </CardContent>
       </Card>
+      
+      {/* Confirmations Card */}
+      {organization.configuration?.confirmationStages?.enabled && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Invitations</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold flex items-center gap-1">
+              {confirmationStages
+                .sort((a, b) => a.order - b.order)
+                .map((stage, index) => (
+                  <span key={stage.id}>
+                    <span style={{ color: stage.color || getConfirmationColor(stage.id) }}>
+                      {stats.byConfirmationStage?.[stage.id] || 0}
+                    </span>
+                    {index < confirmationStages.length - 1 && (
+                      <span className="text-muted-foreground mx-1">/</span>
+                    )}
+                  </span>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
