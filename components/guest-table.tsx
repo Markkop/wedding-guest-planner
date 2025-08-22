@@ -66,9 +66,11 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       const data = await response.json();
       if (response.ok) {
         setGuests(data.guests || []);
+      } else {
+        toast.error(data.error || 'Failed to fetch guests');
       }
-    } catch {
-      toast.error('Failed to fetch guests');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to fetch guests');
     }
   }, [organizationId]);
 
@@ -121,11 +123,11 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         setNewGuestName(newGuest.name);
         toast.error(data.error || 'Failed to add guest');
       }
-    } catch {
+    } catch (error) {
       // Revert on failure
       setGuests(prev => prev.filter(g => g.id !== tempId));
       setNewGuestName(newGuest.name);
-      toast.error('Failed to add guest');
+      toast.error(error instanceof Error ? error.message : 'Failed to add guest');
     } finally {
       setLoading(false);
     }
@@ -155,10 +157,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         setGuests(prev => prev.map(g => g.id === guestId ? originalGuest : g));
         toast.error(data.error || 'Failed to update guest');
       }
-    } catch {
+    } catch (error) {
       // Revert on failure
       setGuests(prev => prev.map(g => g.id === guestId ? originalGuest : g));
-      toast.error('Failed to update guest');
+      toast.error(error instanceof Error ? error.message : 'Failed to update guest');
     }
   }
 
@@ -177,22 +179,23 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       });
       
       if (!response.ok) {
+        const data = await response.json();
         // Revert on failure - restore guest at original position
         setGuests(prev => {
           const newGuests = [...prev];
           newGuests.splice(guestIndex, 0, guestToDelete);
           return newGuests;
         });
-        toast.error('Failed to delete guest');
+        toast.error(data.error || 'Failed to delete guest');
       }
-    } catch {
+    } catch (error) {
       // Revert on failure - restore guest at original position
       setGuests(prev => {
         const newGuests = [...prev];
         newGuests.splice(guestIndex, 0, guestToDelete);
         return newGuests;
       });
-      toast.error('Failed to delete guest');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete guest');
     }
   }
 
@@ -229,14 +232,57 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       });
       
       if (!response.ok) {
+        const data = await response.json();
         // Revert on failure
         setGuests(originalGuests);
-        toast.error('Failed to save order');
+        toast.error(data.error || 'Failed to save order');
       }
-    } catch {
+    } catch (error) {
       // Revert on failure
       setGuests(originalGuests);
-      toast.error('Failed to save order');
+      toast.error(error instanceof Error ? error.message : 'Failed to save order');
+    }
+  }
+
+  async function handleMoveToEnd(guestId: string) {
+    // Find the guest to move
+    const guestIndex = guests.findIndex(g => g.id === guestId);
+    if (guestIndex === -1) return;
+    
+    // If already at the end, do nothing
+    if (guestIndex === guests.length - 1) return;
+    
+    // Store original order for rollback
+    const originalGuests = [...guests];
+    
+    // Optimistic update - move guest to end immediately
+    const guestToMove = guests[guestIndex];
+    const newGuests = [
+      ...guests.slice(0, guestIndex),
+      ...guests.slice(guestIndex + 1),
+      guestToMove
+    ];
+    setGuests(newGuests);
+    
+    try {
+      // Use the reorder endpoint with the new guest order
+      const response = await fetch(`/api/organizations/${organizationId}/guests/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestIds: newGuests.map(g => g.id) }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        // Revert on failure
+        setGuests(originalGuests);
+        toast.error(data.error || 'Failed to move guest to end');
+      }
+    } catch (error) {
+      // Revert on failure
+      setGuests(originalGuests);
+      console.error('Move to end error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to move guest to end');
     }
   }
 
@@ -321,6 +367,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
               onUpdate={handleUpdateGuest}
               onDelete={handleDeleteGuest}
               onReorder={handleReorder}
+              onMoveToEnd={handleMoveToEnd}
             />
           ))}
         </TableBody>

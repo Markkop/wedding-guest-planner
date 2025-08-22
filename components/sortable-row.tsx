@@ -68,6 +68,7 @@ interface SortableRowProps {
   onUpdate: (guestId: string, updates: Partial<Guest>) => void;
   onDelete: (guestId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
+  onMoveToEnd: (guestId: string) => void;
 }
 
 export function SortableRow({
@@ -80,6 +81,7 @@ export function SortableRow({
   onUpdate,
   onDelete,
   onReorder,
+  onMoveToEnd,
 }: SortableRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(guest.name);
@@ -167,12 +169,8 @@ export function SortableRow({
     onUpdate(guest.id, { declined: !guest.declined });
   };
 
-  const moveToEnd = async () => {
-    try {
-      await fetch(`/api/guests/${guest.id}/move-to-end`, { method: 'POST' });
-      window.location.reload();
-    } catch {
-    }
+  const handleMoveToEnd = () => {
+    onMoveToEnd(guest.id);
   };
 
   const getFoodIcon = (preference: string) => {
@@ -403,7 +401,7 @@ export function SortableRow({
                 <Button
                   size="icon"
                   variant="ghost"
-                  onClick={moveToEnd}
+                  onClick={handleMoveToEnd}
                   className="h-7 w-7"
                 >
                   <ArrowDown className="h-4 w-4" />
