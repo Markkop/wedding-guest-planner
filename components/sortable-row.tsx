@@ -122,26 +122,24 @@ export function SortableRow({
   const [isBeingDragged, setIsBeingDragged] = useState(false);
   
   const rowRef = useRef<HTMLTableRowElement | null>(null);
-  const dragHandleRef = useRef<HTMLDivElement | null>(null);
 
   const config = organization.configuration;
 
   useEffect(() => {
-    if (!rowRef.current || !dragHandleRef.current) return;
+    const rowElement = rowRef.current;
+    if (!rowElement) return;
 
-    // Make the row draggable using the drag handle
+    // Make the table row draggable
     const cleanupDraggable = draggable({
-      element: rowRef.current,
-      dragHandle: dragHandleRef.current,
+      element: rowElement,
       getInitialData: () => ({
         type: 'GUEST_ROW',
         guestId: guest.id,
         fromIndex: guestIndex,
       }),
       onGenerateDragPreview({ nativeSetDragImage }) {
-        // Create a better drag preview
-        const el = rowRef.current!;
-        nativeSetDragImage?.(el, 20, 20);
+        // Use the row element for the drag preview
+        nativeSetDragImage?.(rowElement, 20, 20);
       },
       onDragStart() {
         setIsBeingDragged(true);
@@ -153,7 +151,7 @@ export function SortableRow({
 
     // Make the row a drop target
     const cleanupDropTarget = dropTargetForElements({
-      element: rowRef.current,
+      element: rowElement,
       canDrop({ source }) {
         return source.data.type === 'GUEST_ROW' && source.data.guestId !== guest.id;
       },
@@ -255,16 +253,14 @@ export function SortableRow({
     <TableRow
       ref={rowRef}
       className={cn(
-        'transition-all',
+        'transition-all cursor-move hover:bg-gray-50',
         isBeingDragged && 'opacity-50',
         isDraggedOver && 'bg-indigo-50',
         isDeclined && 'bg-gray-50 opacity-60'
       )}
     >
-      <TableCell className="cursor-move">
-        <div ref={dragHandleRef} className="touch-none">
-          <GripVertical className="h-4 w-4 text-gray-400" />
-        </div>
+      <TableCell className="text-gray-400">
+        <GripVertical className="h-4 w-4" />
       </TableCell>
       
       <TableCell className="font-medium">{index}</TableCell>
@@ -282,10 +278,10 @@ export function SortableRow({
               className="h-8"
               autoFocus
             />
-            <Button size="icon" variant="ghost" onClick={handleSaveName}>
+            <Button size="icon" variant="ghost" onClick={handleSaveName} className="cursor-pointer">
               <Check className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="ghost" onClick={handleCancelEdit}>
+            <Button size="icon" variant="ghost" onClick={handleCancelEdit} className="cursor-pointer">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -298,7 +294,7 @@ export function SortableRow({
               size="icon"
               variant="ghost"
               onClick={() => setIsEditing(true)}
-              className="h-6 w-6"
+              className="h-6 w-6 cursor-pointer"
             >
               <Pencil className="h-3 w-3" />
             </Button>
@@ -317,7 +313,7 @@ export function SortableRow({
                       size="sm"
                       variant={guest.categories.includes(category.id) ? 'default' : 'outline'}
                       onClick={() => toggleCategory(category.id)}
-                      className="h-7 min-w-7 p-0"
+                      className="h-7 min-w-7 p-0 cursor-pointer"
                       style={{
                         backgroundColor: guest.categories.includes(category.id) ? category.color : undefined,
                         borderColor: category.color,
@@ -345,7 +341,7 @@ export function SortableRow({
                       size="sm"
                       variant={guest.age_group === ageGroup.id ? 'default' : 'outline'}
                       onClick={() => updateAgeGroup(ageGroup.id)}
-                      className="h-7 min-w-7 p-0 text-xs"
+                      className="h-7 min-w-7 p-0 text-xs cursor-pointer"
                     >
                       {ageGroup.minAge ? ageGroup.minAge : ageGroup.label.slice(0, 2)}
                     </Button>
@@ -369,7 +365,7 @@ export function SortableRow({
                       size="sm"
                       variant={guest.food_preference === foodPref.id ? 'default' : 'outline'}
                       onClick={() => updateFoodPreference(foodPref.id)}
-                      className="h-7 w-7 p-0"
+                      className="h-7 w-7 p-0 cursor-pointer"
                     >
                       {getFoodIcon(foodPref.id)}
                     </Button>
@@ -390,7 +386,7 @@ export function SortableRow({
                     guest.confirmation_stage === 'declined' ? 'destructive' : 'secondary'}
             onClick={cycleConfirmationStage}
             className={cn(
-              'h-8 min-w-20',
+              'h-8 min-w-20 cursor-pointer',
               guest.confirmation_stage === 'confirmed' && 'bg-green-600 hover:bg-green-700'
             )}
           >
@@ -408,7 +404,7 @@ export function SortableRow({
                   size="icon"
                   variant="ghost"
                   onClick={handleMoveToEnd}
-                  className="h-7 w-7"
+                  className="h-7 w-7 cursor-pointer"
                 >
                   <ArrowDown className="h-4 w-4" />
                 </Button>
@@ -424,7 +420,7 @@ export function SortableRow({
                   size="icon"
                   variant="ghost"
                   onClick={() => onDelete(guest.id)}
-                  className="h-7 w-7 text-red-600 hover:text-red-700"
+                  className="h-7 w-7 text-red-600 hover:text-red-700 cursor-pointer"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
