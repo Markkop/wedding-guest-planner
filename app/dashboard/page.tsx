@@ -6,6 +6,8 @@ import { useUser } from '@stackframe/stack';
 import { GuestTable } from '@/components/guest-table';
 import { StatsCards } from '@/components/stats-cards';
 import { OrganizationSelector } from '@/components/organization-selector';
+import { OrganizationSwitcher } from '@/components/organization-switcher';
+import { InviteManager } from '@/components/invite-manager';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { LogOut, Settings } from 'lucide-react';
@@ -77,16 +79,24 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{organization.name}</h1>
-            <p className="text-sm text-gray-600">Invite Code: {organization.invite_code}</p>
+          <div className="flex items-center gap-4">
+            <OrganizationSwitcher 
+              currentOrganization={organization}
+              onOrganizationChange={setOrganization}
+            />
           </div>
           <div className="flex gap-2">
             {organization.role === 'admin' && (
-              <Button onClick={() => router.push('/dashboard/settings')} variant="outline" size="sm">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </Button>
+              <>
+                <InviteManager 
+                  organization={organization} 
+                  onInviteRefresh={loadOrganizations}
+                />
+                <Button onClick={() => router.push('/dashboard/settings')} variant="outline" size="sm">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Button>
+              </>
             )}
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="mr-2 h-4 w-4" />

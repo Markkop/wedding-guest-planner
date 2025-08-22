@@ -47,6 +47,13 @@ export function EventConfigForm({
     fetchPresets();
   }, []);
 
+  const loadPresetConfig = useCallback(async (presetType: string) => {
+    const preset = presets.find(p => p.name === presetType);
+    if (preset) {
+      setConfig(preset.default_config);
+    }
+  }, [presets]);
+
   useEffect(() => {
     if (!initialConfig && presets.length > 0) {
       loadPresetConfig(eventType);
@@ -64,13 +71,6 @@ export function EventConfigForm({
       console.error('Failed to fetch presets:', error);
     }
   };
-
-  const loadPresetConfig = useCallback(async (presetType: string) => {
-    const preset = presets.find(p => p.name === presetType);
-    if (preset) {
-      setConfig(preset.default_config);
-    }
-  }, [presets]);
 
   const handleEventTypeChange = (newEventType: string) => {
     setEventType(newEventType);
