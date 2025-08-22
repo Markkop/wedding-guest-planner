@@ -1,21 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+  monitorForElements,
+} from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import { reorder } from '@atlaskit/pragmatic-drag-and-drop/reorder';
 import {
   Table,
   TableBody,
@@ -68,13 +57,8 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     confirmations: true,
   });
   const [loading, setLoading] = useState(false);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const [isDragging, setIsDragging] = useState(false);
+  const tableBodyRef = useRef<HTMLTableSectionElement | null>(null);
 
   const fetchGuests = useCallback(async () => {
     try {
@@ -108,16 +92,12 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     const newGuest: Guest = {
       id: tempId,
       name: newGuestName,
-      organization_id: organizationId,
-      category: [],
-      age_group: [],
-      food_preference: [],
-      confirmations: {
-        save_the_date: false,
-        invitation: false,
-        attendance: false
-      },
-      order_index: guests.length
+      category: 'partner1',
+      age_group: 'adult',
+      food_preference: 'none',
+      confirmation_stage: 0,
+      declined: false,
+      display_order: guests.length
     };
     
     setGuests([...guests, newGuest]);
@@ -216,19 +196,29 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     }
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    
-    if (!over || active.id === over.id) return;
-    
-    const oldIndex = guests.findIndex(g => g.id === active.id);
-    const newIndex = guests.findIndex(g => g.id === over.id);
-    
+  // Setup global drag monitor
+  useEffect(() => {
+    const cleanup = monitorForElements({
+      onDragStart() {
+        setIsDragging(true);
+      },
+      onDrop() {
+        setIsDragging(false);
+      },
+    });
+    return cleanup;
+  }, []);
+
+  async function handleReorder(fromIndex: number, toIndex: number) {
     // Store original order for rollback
     const originalGuests = [...guests];
     
     // Optimistic update - reorder immediately
-    const newGuests = arrayMove(guests, oldIndex, newIndex);
+    const newGuests = reorder({
+      list: guests,
+      startIndex: fromIndex,
+      finishIndex: toIndex,
+    });
     setGuests(newGuests);
     
     try {
@@ -305,44 +295,36 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         </DropdownMenu>
       </div>
       
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12"></TableHead>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>Name</TableHead>
-              {visibleColumns.category && <TableHead className="w-24">Category</TableHead>}
-              {visibleColumns.age && <TableHead className="w-24">Age</TableHead>}
-              {visibleColumns.food && <TableHead className="w-32">Food</TableHead>}
-              {visibleColumns.confirmations && <TableHead className="w-32">Confirmations</TableHead>}
-              <TableHead className="w-32">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <SortableContext
-            items={guests.map(g => g.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <TableBody>
-              {guests.map((guest, index) => (
-                <SortableRow
-                  key={guest.id}
-                  guest={guest}
-                  index={index + 1}
-                  visibleColumns={visibleColumns}
-                  organization={organization}
-                  onUpdate={handleUpdateGuest}
-                  onDelete={handleDeleteGuest}
-                />
-              ))}
-            </TableBody>
-          </SortableContext>
-        </Table>
-      </DndContext>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12"></TableHead>
+            <TableHead className="w-12">#</TableHead>
+            <TableHead>Name</TableHead>
+            {visibleColumns.category && <TableHead className="w-24">Category</TableHead>}
+            {visibleColumns.age && <TableHead className="w-24">Age</TableHead>}
+            {visibleColumns.food && <TableHead className="w-32">Food</TableHead>}
+            {visibleColumns.confirmations && <TableHead className="w-32">Confirmations</TableHead>}
+            <TableHead className="w-32">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody ref={tableBodyRef}>
+          {guests.map((guest, index) => (
+            <SortableRow
+              key={guest.id}
+              guest={guest}
+              index={index + 1}
+              guestIndex={index}
+              visibleColumns={visibleColumns}
+              organization={organization}
+              isDragging={isDragging}
+              onUpdate={handleUpdateGuest}
+              onDelete={handleDeleteGuest}
+              onReorder={handleReorder}
+            />
+          ))}
+        </TableBody>
+      </Table>
       
       <div className="border-t p-4">
         <div className="flex gap-2">

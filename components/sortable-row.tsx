@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useState, useEffect, useRef } from 'react';
+import {
+  draggable,
+  dropTargetForElements,
+} from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +45,8 @@ interface VisibleColumns {
   category: boolean;
   age: boolean;
   food: boolean;
-  confirmation: boolean;
+  confirmations: boolean;
+  confirmation?: boolean;
 }
 
 interface Organization {
@@ -58,36 +61,89 @@ interface Organization {
 interface SortableRowProps {
   guest: Guest;
   index: number;
+  guestIndex: number;
   visibleColumns: VisibleColumns;
   organization: Organization;
+  isDragging: boolean;
   onUpdate: (guestId: string, updates: Partial<Guest>) => void;
   onDelete: (guestId: string) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
 export function SortableRow({
   guest,
   index,
+  guestIndex,
   visibleColumns,
   organization,
+  isDragging,
   onUpdate,
   onDelete,
+  onReorder,
 }: SortableRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(guest.name);
+  const [isDraggedOver, setIsDraggedOver] = useState(false);
+  const [isBeingDragged, setIsBeingDragged] = useState(false);
   
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: guest.id });
+  const rowRef = useRef<HTMLTableRowElement | null>(null);
+  const dragHandleRef = useRef<HTMLDivElement | null>(null);
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  useEffect(() => {
+    if (!rowRef.current || !dragHandleRef.current) return;
+
+    // Make the row draggable using the drag handle
+    const cleanupDraggable = draggable({
+      element: rowRef.current,
+      dragHandle: dragHandleRef.current,
+      getInitialData: () => ({
+        type: 'GUEST_ROW',
+        guestId: guest.id,
+        fromIndex: guestIndex,
+      }),
+      onGenerateDragPreview({ nativeSetDragImage }) {
+        // Create a better drag preview
+        const el = rowRef.current!;
+        nativeSetDragImage(el, 20, 20);
+      },
+      onDragStart() {
+        setIsBeingDragged(true);
+      },
+      onDrop() {
+        setIsBeingDragged(false);
+      },
+    });
+
+    // Make the row a drop target
+    const cleanupDropTarget = dropTargetForElements({
+      element: rowRef.current,
+      canDrop({ source }) {
+        return source.data.type === 'GUEST_ROW' && source.data.guestId !== guest.id;
+      },
+      getData() {
+        return { toIndex: guestIndex };
+      },
+      onDragEnter() {
+        setIsDraggedOver(true);
+      },
+      onDragLeave() {
+        setIsDraggedOver(false);
+      },
+      onDrop({ source }) {
+        setIsDraggedOver(false);
+        const fromIndex = source.data.fromIndex as number;
+        const toIndex = guestIndex;
+        if (fromIndex !== toIndex) {
+          onReorder(fromIndex, toIndex);
+        }
+      },
+    });
+
+    return () => {
+      cleanupDraggable();
+      cleanupDropTarget();
+    };
+  }, [guest.id, guestIndex, onReorder]);
 
   const handleSaveName = () => {
     const trimmedName = editName.trim();
@@ -132,15 +188,16 @@ export function SortableRow({
 
   return (
     <TableRow
-      ref={setNodeRef}
-      style={style}
+      ref={rowRef}
       className={cn(
-        isDragging && 'opacity-50',
+        'transition-all',
+        isBeingDragged && 'opacity-50',
+        isDraggedOver && 'bg-indigo-50',
         guest.declined && 'bg-gray-50 opacity-60'
       )}
     >
       <TableCell className="cursor-move">
-        <div {...attributes} {...listeners}>
+        <div ref={dragHandleRef} className="touch-none">
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
       </TableCell>
@@ -286,7 +343,7 @@ export function SortableRow({
                     <Button
                       size="sm"
                       variant={guest.food_preference === pref ? 'default' : 'outline'}
-                      onClick={() => onUpdate(guest.id, { food_preference: pref })}
+                      onClick={() => onUpdate(guest.id, { food_preference: pref as any })}
                       className="h-7 w-7 p-0"
                     >
                       {getFoodIcon(pref)}
