@@ -44,10 +44,23 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
         organizationId,
       },
     }),
-    onFinish: () => {
-      // Trigger refresh after successful tool calls
-      onGuestsUpdate?.();
-      toast.success("Guest list updated");
+    onFinish: (message) => {
+      console.log("🔥 onFinish called with message:", message);
+      console.log("🔥 onFinish message.message:", message.message);
+      console.log("🔥 onFinish message.message.parts:", message.message.parts);
+      
+      // Check if any tools were called (indicates data changes)
+      const hasDataChanges = message.message.parts?.some((part) => 
+        part.type.startsWith("tool-")
+      ) || false;
+      
+      console.log("🔥 hasDataChanges:", hasDataChanges);
+      
+      // Only trigger refresh if data actually changed
+      if (hasDataChanges) {
+        onGuestsUpdate?.();
+        toast.success("Guest list updated");
+      }
     },
     onError: (error) => {
       console.error("Chat error:", error);
@@ -68,6 +81,16 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
   };
 
   useEffect(() => {
+    console.log("🚀 Messages updated:", messages);
+    console.log("🚀 Messages length:", messages.length);
+    messages.forEach((msg, i) => {
+      console.log(`🚀 Message ${i}:`, {
+        role: msg.role,
+        // content: msg.content, // content property doesn't exist on UIMessage
+        parts: msg.parts,
+        id: msg.id
+      });
+    });
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -226,41 +249,55 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
             </div>
           )}
 
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={cn(
-                "mb-4 flex gap-2",
-                message.role === "assistant" ? "justify-start" : "justify-end"
-              )}
-            >
-              {message.role === "assistant" && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="h-4 w-4" />
-                </div>
-              )}
+          {messages.map((message, index) => {
+            console.log(`💬 Rendering message ${index}:`, message);
+            const textContent = (() => {
+              // Handle message parts
+              if (message.parts) {
+                const textParts = message.parts
+                  .filter((part) => part.type === "text")
+                  .map((part) => (part as { text: string }).text)
+                  .join("");
+                console.log(`💬 Message ${index} text from parts:`, textParts);
+                return textParts;
+              }
+              console.log(`💬 Message ${index} no parts found`);
+              return "";
+            })();
+            
+            return (
               <div
+                key={index}
                 className={cn(
-                  "rounded-lg px-3 py-2 max-w-[80%]",
-                  message.role === "assistant"
-                    ? "bg-muted text-foreground"
-                    : "bg-primary text-primary-foreground"
+                  "mb-4 flex gap-2",
+                  message.role === "assistant" ? "justify-start" : "justify-end"
                 )}
               >
-                <p className="text-sm whitespace-pre-wrap">
-                  {message.parts
-                    ?.filter((part) => part.type === "text")
-                    .map((part) => (part as { text: string }).text)
-                    .join("")}
-                </p>
-              </div>
-              {message.role === "user" && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary-foreground" />
+                {message.role === "assistant" && (
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Bot className="h-4 w-4" />
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "rounded-lg px-3 py-2 max-w-[80%]",
+                    message.role === "assistant"
+                      ? "bg-muted text-foreground"
+                      : "bg-primary text-primary-foreground"
+                  )}
+                >
+                  <p className="text-sm whitespace-pre-wrap">
+                    {textContent}
+                  </p>
                 </div>
-              )}
-            </div>
-          ))}
+                {message.role === "user" && (
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {status !== "ready" && (
             <div className="flex gap-2 items-center text-muted-foreground">
@@ -269,7 +306,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
               </div>
               <div className="flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                <span className="text-sm">Thinking...</span>
+                <span className="text-sm">Processing your request...</span>
               </div>
             </div>
           )}
@@ -351,3 +388,4 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
     </>
   );
 }
+

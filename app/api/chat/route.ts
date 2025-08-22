@@ -171,8 +171,12 @@ When creating guests:
 - If age groups are enabled, default is "${config.ageGroups.groups[0]?.id}"
 - If food preferences are enabled, default is "${config.foodPreferences.options[0]?.id}"
 
-Be helpful and conversational. When users provide lists of names or images with guest information, help them create guests efficiently.`;
+Be helpful and conversational. When users provide lists of names or images with guest information, help them create guests efficiently.
 
+IMPORTANT: Always provide a natural language response to the user, even when using tools. Explain what you're doing or have done. If the user is just chatting and not requesting any data changes, respond conversationally without using any tools.`;
+
+    console.log("Processed messages for AI:", processedMessages);
+    
     const result = streamText({
       model: openai('gpt-4o-mini'),
       system: systemPrompt,
@@ -262,7 +266,8 @@ Be helpful and conversational. When users provide lists of names or images with 
       },
     });
 
-    return result.toTextStreamResponse();
+    console.log("Returning streaming result");
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error('Chat API error:', error);
     if (error instanceof Error && error.message === 'Not authenticated') {
