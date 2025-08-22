@@ -98,3 +98,38 @@ export interface GuestStatistics {
   byCategory: Record<string, number>;
   byConfirmationStage: Record<string, number>;
 }
+
+// Additional shared interfaces for component props
+export interface VisibleColumns {
+  categories: boolean;
+  age: boolean;
+  food: boolean;
+  confirmations: boolean;
+}
+
+export interface ExportData {
+  version: string;
+  exported_at: string;
+  organization: {
+    name: string;
+    event_type: string;
+    configuration: Record<string, unknown>;
+    created_at: string;
+  };
+  guests: Array<{
+    name: string;
+    categories: string[];
+    age_group?: string;
+    food_preference?: string;
+    confirmation_stage: string;
+    custom_fields: Record<string, unknown>;
+    display_order: number;
+  }>;
+  members: Array<{
+    email: string;
+    name?: string;
+    role: string;
+    joined_at: string;
+  }>;
+  invite_code: string;
+}

@@ -12,68 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { SortableRow } from './sortable-row';
-import { toast } from 'sonner';
-import { Plus, Settings } from 'lucide-react';
-import { TableRowSkeleton, InlineSpinner } from '@/components/ui/loading-spinner';
-
-interface Guest {
-  id: string;
-  name: string;
-  categories: string[];
-  age_group?: string;
-  food_preference?: string;
-  confirmation_stage: string;
-  custom_fields: Record<string, unknown>;
-  display_order: number;
-}
+import { ColumnSettings } from './guest-table/column-settings';
+import { AddGuestSection } from './guest-table/add-guest-section';
+import { TableLoading } from './guest-table/table-loading';
+import { EmptyState } from './guest-table/empty-state';
+import { useColumnCount } from '@/lib/hooks/use-column-count';
+import type { VisibleColumns, Guest, Organization } from '@/lib/types';
 
 interface GuestTableProps {
   organizationId: string;
-  organization: {
-    id: string;
-    name: string;
-    event_type: string;
-    configuration: {
-      categories: Array<{
-        id: string;
-        label: string;
-        initial: string;
-        color: string;
-      }>;
-      ageGroups: {
-        enabled: boolean;
-        groups: Array<{
-          id: string;
-          label: string;
-          minAge?: number;
-        }>;
-      };
-      foodPreferences: {
-        enabled: boolean;
-        options: Array<{
-          id: string;
-          label: string;
-        }>;
-      };
-      confirmationStages: {
-        enabled: boolean;
-        stages: Array<{
-          id: string;
-          label: string;
-          order: number;
-        }>;
-      };
-    };
-  };
+  organization: Organization;
 }
 
 export function GuestTable({ organizationId, organization }: GuestTableProps) {
@@ -89,14 +38,12 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     setOrganization 
   } = useGuests();
   
-  const [newGuestName, setNewGuestName] = useState('');
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
     categories: true,
     age: organization.configuration?.ageGroups?.enabled ?? false,
     food: organization.configuration?.foodPreferences?.enabled ?? false,
     confirmations: organization.configuration?.confirmationStages?.enabled ?? false,
   });
-  const [addingGuest, setAddingGuest] = useState(false);
   const tableBodyRef = useRef<HTMLTableSectionElement | null>(null);
 
   useEffect(() => {
@@ -112,16 +59,8 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
-  async function handleAddGuest() {
-    if (!newGuestName.trim()) return;
-    
-    setAddingGuest(true);
-    try {
-      await addGuest(newGuestName);
-      setNewGuestName('');
-    } finally {
-      setAddingGuest(false);
-    }
+  async function handleAddGuest(name: string) {
+    await addGuest(name);
   }
 
   async function handleUpdateGuest(guestId: string, updates: Partial<Guest>) {
@@ -153,65 +92,17 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     await moveGuestToEnd(guestId);
   }
 
+  const columnCount = useColumnCount(visibleColumns, organization);
+
   return (
     <div className="rounded-lg bg-white shadow">
       <div className="flex items-center justify-between border-b p-4">
         <h2 className="text-lg font-semibold">Guest List</h2>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <div className="p-2">
-              <div className="space-y-2">
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={visibleColumns.categories}
-                    onCheckedChange={(checked) =>
-                      setVisibleColumns({ ...visibleColumns, categories: !!checked })
-                    }
-                  />
-                  <span className="text-sm">Categories</span>
-                </label>
-                {organization.configuration?.ageGroups?.enabled && (
-                  <label className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={visibleColumns.age}
-                      onCheckedChange={(checked) =>
-                        setVisibleColumns({ ...visibleColumns, age: !!checked })
-                      }
-                    />
-                    <span className="text-sm">Age</span>
-                  </label>
-                )}
-                {organization.configuration?.foodPreferences?.enabled && (
-                  <label className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={visibleColumns.food}
-                      onCheckedChange={(checked) =>
-                        setVisibleColumns({ ...visibleColumns, food: !!checked })
-                      }
-                    />
-                    <span className="text-sm">Food Preference</span>
-                  </label>
-                )}
-                {organization.configuration?.confirmationStages?.enabled && (
-                  <label className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={visibleColumns.confirmations}
-                      onCheckedChange={(checked) =>
-                        setVisibleColumns({ ...visibleColumns, confirmations: !!checked })
-                      }
-                    />
-                    <span className="text-sm">Confirmations</span>
-                  </label>
-                )}
-              </div>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ColumnSettings 
+          visibleColumns={visibleColumns}
+          organization={organization}
+          onColumnsChange={setVisibleColumns}
+        />
       </div>
       
       <Table>
@@ -229,48 +120,9 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         </TableHeader>
         <TableBody ref={tableBodyRef}>
           {loading ? (
-            <>
-              <TableRowSkeleton columns={
-                3 + // base columns (drag, #, name)
-                (visibleColumns.categories ? 1 : 0) +
-                (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
-                (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
-                (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
-                1 // actions column
-              } />
-              <TableRowSkeleton columns={
-                3 + // base columns (drag, #, name)
-                (visibleColumns.categories ? 1 : 0) +
-                (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
-                (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
-                (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
-                1 // actions column
-              } />
-              <TableRowSkeleton columns={
-                3 + // base columns (drag, #, name)
-                (visibleColumns.categories ? 1 : 0) +
-                (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
-                (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
-                (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
-                1 // actions column
-              } />
-            </>
+            <TableLoading columnCount={columnCount} />
           ) : guests.length === 0 ? (
-            <tr>
-              <td 
-                colSpan={
-                  3 + // base columns
-                  (visibleColumns.categories ? 1 : 0) +
-                  (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
-                  (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
-                  (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
-                  1 // actions column
-                }
-                className="text-center py-8 text-muted-foreground"
-              >
-                No guests added yet. Add your first guest below.
-              </td>
-            </tr>
+            <EmptyState columnCount={columnCount} />
           ) : (
             guests.map((guest, index) => (
               <SortableRow
@@ -290,25 +142,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         </TableBody>
       </Table>
       
-      <div className="border-t p-4">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Add new guest..."
-            value={newGuestName}
-            onChange={(e) => setNewGuestName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddGuest()}
-            disabled={loading}
-          />
-          <Button onClick={handleAddGuest} disabled={addingGuest || !newGuestName.trim()}>
-            {addingGuest ? (
-              <InlineSpinner size="sm" className="mr-2" />
-            ) : (
-              <Plus className="mr-2 h-4 w-4" />
-            )}
-            {addingGuest ? 'Adding...' : 'Add Guest'}
-          </Button>
-        </div>
-      </div>
+      <AddGuestSection 
+        onAddGuest={handleAddGuest}
+        loading={loading}
+      />
     </div>
   );
 }

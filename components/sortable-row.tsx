@@ -7,84 +7,18 @@ import {
 } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  GripVertical,
-  Pencil,
-  Check,
-  X,
-  Trash2,
-  ArrowDown,
-  Leaf,
-  Wheat,
-  Milk,
-  Utensils,
-} from 'lucide-react';
+import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface Guest {
-  id: string;
-  name: string;
-  categories: string[];
-  age_group?: string;
-  food_preference?: string;
-  confirmation_stage: string;
-  custom_fields: Record<string, unknown>;
-  display_order: number;
-}
-
-interface VisibleColumns {
-  categories: boolean;
-  age: boolean;
-  food: boolean;
-  confirmations: boolean;
-}
-
-interface CategoryConfig {
-  id: string;
-  label: string;
-  initial: string;
-  color: string;
-}
-
-interface AgeGroupConfig {
-  id: string;
-  label: string;
-  minAge?: number;
-}
-
-interface FoodPreferenceConfig {
-  id: string;
-  label: string;
-}
-
-interface ConfirmationStageConfig {
-  id: string;
-  label: string;
-  order: number;
-}
-
-interface EventConfiguration {
-  categories: CategoryConfig[];
-  ageGroups: {
-    enabled: boolean;
-    groups: AgeGroupConfig[];
-  };
-  foodPreferences: {
-    enabled: boolean;
-    options: FoodPreferenceConfig[];
-  };
-  confirmationStages: {
-    enabled: boolean;
-    stages: ConfirmationStageConfig[];
-  };
-}
+import { GuestNameCell } from './guest-table/guest-name-cell';
+import { GuestActionsCell } from './guest-table/guest-actions-cell';
+import { getFoodIcon } from '@/lib/utils/food-icons';
+import type { Guest, VisibleColumns, EventConfiguration } from '@/lib/types';
 
 interface Organization {
   id: string;
@@ -116,8 +50,6 @@ export function SortableRow({
   onReorder,
   onMoveToEnd,
 }: SortableRowProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(guest.name);
   const [isDraggedOver, setIsDraggedOver] = useState(false);
   const [isBeingDragged, setIsBeingDragged] = useState(false);
   
@@ -185,17 +117,8 @@ export function SortableRow({
     };
   }, [guest.id, guestIndex, onReorder]);
 
-  const handleSaveName = () => {
-    const trimmedName = editName.trim();
-    if (trimmedName && trimmedName !== guest.name) {
-      onUpdate(guest.id, { name: trimmedName });
-    }
-    setIsEditing(false);
-  };
-
-  const handleCancelEdit = () => {
-    setEditName(guest.name);
-    setIsEditing(false);
+  const handleNameUpdate = (name: string) => {
+    onUpdate(guest.id, { name });
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -234,18 +157,6 @@ export function SortableRow({
     onMoveToEnd(guest.id);
   };
 
-  const getFoodIcon = (prefId: string, isSelected: boolean) => {
-    // Default icons based on common preference IDs
-    const whiteClass = "h-4 w-4 text-white";
-    switch (prefId.toLowerCase()) {
-      case 'vegetarian': return <Leaf className={isSelected ? whiteClass : "h-4 w-4 text-green-600"} />;
-      case 'vegan': return <Leaf className={isSelected ? whiteClass : "h-4 w-4 text-green-700"} />;
-      case 'gluten_free': case 'gluten-free': return <Wheat className={isSelected ? whiteClass : "h-4 w-4 text-amber-600"} />;
-      case 'dairy_free': case 'dairy-free': return <Milk className={isSelected ? whiteClass : "h-4 w-4 text-blue-600"} />;
-      case 'none': case 'no_restrictions': return <Utensils className={isSelected ? whiteClass : "h-4 w-4"} />;
-      default: return <Utensils className={isSelected ? whiteClass : "h-4 w-4"} />;
-    }
-  };
 
   const getConfirmationStageInfo = (stageId: string) => {
     const stage = config.confirmationStages.stages.find(s => s.id === stageId);
@@ -272,40 +183,11 @@ export function SortableRow({
       <TableCell className="font-medium">{index}</TableCell>
       
       <TableCell>
-        {isEditing ? (
-          <div className="flex items-center gap-2">
-            <Input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveName();
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              className="h-8"
-              autoFocus
-            />
-            <Button size="icon" variant="ghost" onClick={handleSaveName} className="cursor-pointer">
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="ghost" onClick={handleCancelEdit} className="cursor-pointer">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className={cn(isDeclined && 'line-through')}>
-              {guest.name}
-            </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setIsEditing(true)}
-              className="h-6 w-6 cursor-pointer"
-            >
-              <Pencil className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
+        <GuestNameCell 
+          name={guest.name}
+          isDeclined={isDeclined}
+          onUpdate={handleNameUpdate}
+        />
       </TableCell>
       
       {visibleColumns.categories && (
@@ -402,39 +284,10 @@ export function SortableRow({
       )}
       
       <TableCell>
-        <div className="flex gap-1">          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleMoveToEnd}
-                  className="h-7 w-7 cursor-pointer"
-                >
-                  <ArrowDown className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Move to end</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onDelete(guest.id)}
-                  className="h-7 w-7 text-red-600 hover:text-red-700 cursor-pointer"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Delete</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <GuestActionsCell 
+          onMoveToEnd={handleMoveToEnd}
+          onDelete={() => onDelete(guest.id)}
+        />
       </TableCell>
     </TableRow>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@stackframe/stack';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ export default function InvitePage({ params }: InvitePageProps) {
     loadInviteInfo();
   }, [loadInviteInfo]);
 
-  const loadInviteInfo = async () => {
+  const loadInviteInfo = useCallback(async () => {
     try {
       const { code } = await params;
       const response = await fetch(`/api/invite/${code}`);
@@ -53,7 +53,7 @@ export default function InvitePage({ params }: InvitePageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params]);
 
   const joinOrganization = async () => {
     const { code } = await params;

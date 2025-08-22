@@ -33,7 +33,6 @@ interface OrganizationSelectorProps {
 export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelectorProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [eventPresets, setEventPresets] = useState<EventTypePreset[]>([]);
-  const [loading, setLoading] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [joinLoading, setJoinLoading] = useState(false);
   const [fetchingOrgs, setFetchingOrgs] = useState(true);
