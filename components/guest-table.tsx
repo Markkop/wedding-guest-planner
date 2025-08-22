@@ -108,8 +108,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
-              <TableHead className="w-12">#</TableHead>
+              <TableHead className="w-12 pl-4">#</TableHead>
               <TableHead className="sticky left-0 bg-white z-10 border-r md:static md:bg-transparent md:border-r-0 w-auto md:min-w-[200px]">
                 Name
               </TableHead>

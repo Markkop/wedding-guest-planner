@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Pencil, Check, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Pencil, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface GuestNameCellProps {
   name: string;
@@ -12,7 +12,11 @@ interface GuestNameCellProps {
   onUpdate: (name: string) => void;
 }
 
-export function GuestNameCell({ name, isDeclined, onUpdate }: GuestNameCellProps) {
+export function GuestNameCell({
+  name,
+  isDeclined,
+  onUpdate,
+}: GuestNameCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(name);
 
@@ -36,16 +40,26 @@ export function GuestNameCell({ name, isDeclined, onUpdate }: GuestNameCellProps
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSave();
-            if (e.key === 'Escape') handleCancel();
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") handleCancel();
           }}
           className="h-8"
           autoFocus
         />
-        <Button size="icon" variant="ghost" onClick={handleSave} className="cursor-pointer">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={handleSave}
+          className="cursor-pointer"
+        >
           <Check className="h-4 w-4" />
         </Button>
-        <Button size="icon" variant="ghost" onClick={handleCancel} className="cursor-pointer">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={handleCancel}
+          className="cursor-pointer"
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -56,7 +70,13 @@ export function GuestNameCell({ name, isDeclined, onUpdate }: GuestNameCellProps
 
   return (
     <div className="flex items-center gap-2">
-      <span className={cn(isDeclined && 'line-through')}>
+      <span
+        className={cn(
+          isDeclined && "line-through",
+          "cursor-pointer md:cursor-default"
+        )}
+        onClick={() => setIsEditing(true)}
+      >
         <span className="md:hidden">{truncatedName}</span>
         <span className="hidden md:inline">{name}</span>
       </span>
@@ -64,7 +84,7 @@ export function GuestNameCell({ name, isDeclined, onUpdate }: GuestNameCellProps
         size="icon"
         variant="ghost"
         onClick={() => setIsEditing(true)}
-        className="h-6 w-6 cursor-pointer"
+        className="h-6 w-6 cursor-pointer hidden md:block"
       >
         <Pencil className="h-3 w-3" />
       </Button>
