@@ -50,17 +50,29 @@ export function GuestNameCell({
           size="icon"
           variant="ghost"
           onClick={handleSave}
-          className="cursor-pointer"
+          className={cn(
+            "cursor-pointer",
+            isDeclined && "opacity-50 text-gray-400"
+          )}
         >
-          <Check className="h-4 w-4" />
+          <Check className={cn(
+            "h-4 w-4",
+            isDeclined && "text-gray-400"
+          )} />
         </Button>
         <Button
           size="icon"
           variant="ghost"
           onClick={handleCancel}
-          className="cursor-pointer"
+          className={cn(
+            "cursor-pointer",
+            isDeclined && "opacity-50 text-gray-400"
+          )}
         >
-          <X className="h-4 w-4" />
+          <X className={cn(
+            "h-4 w-4",
+            isDeclined && "text-gray-400"
+          )} />
         </Button>
       </div>
     );
@@ -72,7 +84,7 @@ export function GuestNameCell({
     <div className="flex items-center gap-2">
       <span
         className={cn(
-          isDeclined && "line-through",
+          isDeclined && "line-through text-gray-500",
           "cursor-pointer md:cursor-default"
         )}
         onClick={() => setIsEditing(true)}
@@ -84,7 +96,10 @@ export function GuestNameCell({
         size="icon"
         variant="ghost"
         onClick={() => setIsEditing(true)}
-        className="h-6 w-6 cursor-pointer hidden md:block"
+        className={cn(
+          "h-6 w-6 cursor-pointer hidden md:block",
+          isDeclined && "opacity-50 text-gray-400 hover:text-gray-500"
+        )}
       >
         <Pencil className="h-3 w-3" />
       </Button>

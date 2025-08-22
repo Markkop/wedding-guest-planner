@@ -237,12 +237,16 @@ export function SortableRow({
                           : "outline"
                       }
                       onClick={() => toggleCategory(category.id)}
-                      className="h-7 min-w-7 p-0 cursor-pointer"
+                      className={cn(
+                        "h-7 min-w-7 p-0 cursor-pointer",
+                        isDeclined && "opacity-50 grayscale"
+                      )}
                       style={{
                         backgroundColor: guest.categories.includes(category.id)
-                          ? category.color
+                          ? isDeclined ? "#9CA3AF" : category.color
                           : undefined,
-                        borderColor: category.color,
+                        borderColor: isDeclined ? "#9CA3AF" : category.color,
+                        color: isDeclined && guest.categories.includes(category.id) ? "#ffffff" : undefined
                       }}
                     >
                       {category.initial}
@@ -259,27 +263,37 @@ export function SortableRow({
       {visibleColumns.age && config.ageGroups.enabled && (
         <TableCell>
           <div className="flex gap-1">
-            {(config.ageGroups?.groups || []).map((ageGroup) => (
-              <TooltipProvider key={ageGroup.id}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant={
-                        guest.age_group === ageGroup.id ? "default" : "outline"
-                      }
-                      onClick={() => updateAgeGroup(ageGroup.id)}
-                      className="h-7 min-w-7 p-0 text-xs cursor-pointer"
-                    >
-                      {ageGroup.minAge
-                        ? ageGroup.minAge
-                        : ageGroup.label.slice(0, 2)}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{ageGroup.label}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
+            {(config.ageGroups?.groups || []).map((ageGroup) => {
+              const isSelected = guest.age_group === ageGroup.id;
+              return (
+                <TooltipProvider key={ageGroup.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant={isSelected ? "default" : "outline"}
+                        onClick={() => updateAgeGroup(ageGroup.id)}
+                        className="h-7 min-w-7 p-0 text-xs cursor-pointer"
+                        style={{
+                          backgroundColor: isSelected
+                            ? isDeclined ? "#9CA3AF" : undefined
+                            : undefined,
+                          borderColor: isDeclined ? "#9CA3AF" : undefined,
+                          color: isDeclined
+                            ? isSelected ? "#ffffff" : "#6B7280"
+                            : undefined
+                        }}
+                      >
+                        {ageGroup.minAge
+                          ? ageGroup.minAge
+                          : ageGroup.label.slice(0, 2)}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{ageGroup.label}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              );
+            })}
           </div>
         </TableCell>
       )}
@@ -303,8 +317,14 @@ export function SortableRow({
                         variant={isSelected ? "default" : "outline"}
                         onClick={() => updateFoodPreference(foodPref.id)}
                         className="h-7 w-7 p-0 cursor-pointer"
+                        style={{
+                          backgroundColor: isSelected
+                            ? isDeclined ? "#9CA3AF" : undefined
+                            : undefined,
+                          borderColor: isDeclined ? "#9CA3AF" : undefined
+                        }}
                       >
-                        {getFoodIcon(foodPref.id, isSelected)}
+                        {getFoodIcon(foodPref.id, isSelected, isDeclined)}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>{foodPref.label}</TooltipContent>
@@ -324,14 +344,16 @@ export function SortableRow({
               guest.confirmation_stage === "confirmed"
                 ? "default"
                 : guest.confirmation_stage === "declined"
-                ? "destructive"
+                ? "outline"
                 : "secondary"
             }
             onClick={cycleConfirmationStage}
             className={cn(
               "h-8 min-w-20 cursor-pointer",
               guest.confirmation_stage === "confirmed" &&
-                "bg-green-600 hover:bg-green-700"
+                "bg-green-600 hover:bg-green-700",
+              guest.confirmation_stage === "declined" &&
+                "border-gray-400 text-gray-500 hover:bg-gray-50"
             )}
           >
             {getConfirmationStageInfo(guest.confirmation_stage).label}
@@ -343,6 +365,7 @@ export function SortableRow({
         <GuestActionsCell
           onMoveToEnd={handleMoveToEnd}
           onDelete={() => onDelete(guest.id)}
+          isDeclined={isDeclined}
         />
       </TableCell>
     </TableRow>
