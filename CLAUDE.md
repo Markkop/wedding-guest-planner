@@ -4,91 +4,132 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a wedding guest planner application built with Next.js, TypeScript, and Tailwind CSS. The project aims to provide a comprehensive wedding guest management tool with features like drag-and-drop reordering, organization-based access, and real-time data persistence using Supabase.
+Wedding guest planner application with drag-and-drop reordering, organization-based access, and real-time data persistence. Built with Next.js 15.5.0, TypeScript, Tailwind CSS v4, and Neon Database.
 
 ## Development Commands
 
-- `pnpm dev` - Start the development server with Turbopack (NOTE: Do not run this command automatically)
-- `pnpm build` - Build the production application with Turbopack
-- `pnpm build:sandbox` - Build in sandbox mode (safe to run while dev server is running)
-- `pnpm start` - Start the production server
-- `pnpm start:sandbox` - Start production server on port 4000 using sandbox build
-- `pnpm clean` - Clean all build artifacts (.next, .next-buildcheck, .turbo)
-- `pnpm lint` - Run ESLint for code linting
+```bash
+pnpm dev               # Start dev server with Turbopack (DO NOT run automatically)
+pnpm build             # Build production app
+pnpm build:sandbox     # Safe build mode (use when dev server is running)
+pnpm start             # Start production server
+pnpm start:sandbox     # Start production on port 4000 using sandbox build
+pnpm clean             # Clean all build artifacts
+pnpm lint              # Run ESLint
+```
 
-## Important Notes
+**Important**: Use `pnpm build:sandbox` when dev server is running to prevent ENOENT errors. Sandbox builds output to `.next-buildcheck`.
 
-- **Use sandbox builds**: Always use `pnpm build:sandbox` when testing builds while the dev server is running to prevent ENOENT errors
-- Sandbox builds output to `.next-buildcheck` directory to avoid conflicts with dev server
-- Use `pnpm clean` to remove all build artifacts when needed
+## Tech Stack
 
-## Tech Stack & Architecture
+- **Framework**: Next.js 15.5.0 with App Router, React 19.1.0
+- **Language**: TypeScript with strict mode
+- **Styling**: Tailwind CSS v4 with PostCSS
+- **UI Components**: shadcn/ui (New York style), Lucide React icons
+- **Database**: Neon PostgreSQL (`@neondatabase/serverless`)
+- **Authentication**: Stack Auth (`@stackframe/stack`)
+- **Drag & Drop**: `@atlaskit/pragmatic-drag-and-drop`
+- **AI Integration**: OpenAI SDK with AI SDK React hooks
 
-### Core Technologies
+## Architecture
 
-- **Next.js 15.5.0** with App Router and React Server Components
-- **TypeScript** with strict mode enabled
-- **Tailwind CSS v4** with PostCSS
-- **shadcn/ui** components (New York style)
-- **Lucide React** for icons
+### Database Schema (Neon)
 
-### Project Structure
+```typescript
+// Core tables in lib/db/index.ts
+- users: id, email, password_hash, name, avatar_url
+- organizations: id, name, invite_code, admin_id, event_type, configuration (JSONB)
+- guests: id, organization_id, name, categories[], age_group, food_preferences[], confirmation_stage, display_order
+- organization_members: organization_id, user_id, role (admin|member)
+```
 
-- `/app` - Next.js App Router pages and layouts
-- `/components` - React components (shadcn/ui components will be in `/components/ui`)
-- `/lib` - Utility functions and shared code
-- `/instructions` - Project documentation and requirements
+### Authentication Flow
 
-### Import Aliases
+1. **Stack Auth Integration** (`lib/auth/`)
+   - Client: `lib/auth/stack-client.ts` - `getStackClientApp()`
+   - Server: `lib/auth/stack-server.ts` - Stack server utilities
+   - Safe wrappers for auth operations with error handling
 
-- `@/*` maps to the project root
-- `@/components` for components
-- `@/lib` for utilities
-- `@/components/ui` for shadcn/ui components
-
-## Database & Authentication
-
-- **Neon Database**: Use Neon (PostgreSQL) for all database operations
-- **Neon Auth**: Implement authentication using Neon's capabilities
-- **Gateway Pattern**: Set up a gateway integration layer that:
-  - Abstracts external service calls
-  - Currently implements local/mock functionality
-  - Ready for future third-party service integration
-  - Follows adapter pattern for easy swapping of implementations
-
-## Key Features to Implement
-
-Based on the PRD, the application needs:
-
-1. **Authentication & Organizations**
-
-   - User signup/login system (using Neon Auth)
-   - Organization-based wedding projects
-   - Invite code system for collaboration
-
-2. **Guest Management Dashboard**
-
-   - Statistics cards (total, confirmed, per partner)
-   - Drag-and-drop guest reordering
-   - Inline editing capabilities
-   - Customizable partner roles and initials
-
-3. **Guest Properties**
-
-   - Categories (customizable partner assignments)
-   - Age groups (Adult, 7 years, 11 years)
-   - Food preferences (No restrictions, Vegetarian, Vegan, Gluten-free, Dairy-free)
-   - Three-stage confirmation system
-
-4. **Data Persistence**
-   - Neon database for real-time sync
-   - Local state management for offline resilience
+2. **Organization Access**
+   - Invite code system for joining organizations
+   - Admin role management
    - Multi-user collaboration support
 
-## UI/UX Guidelines
+### Service Layer Architecture
 
-- Use 8px spacing system throughout
-- Indigo primary color scheme with gray neutrals
-- All interactive elements need hover states with tooltips
-- Mobile-responsive design with touch-friendly buttons
-- White cards on light gray background for visual hierarchy
+```
+lib/services/
+├── guest-service.ts       # Guest CRUD operations
+├── organization-service.ts # Organization management
+└── event-config-service.ts # Event configuration
+
+lib/gateway/               # External service abstraction
+├── base-gateway.ts        # Interface definitions
+├── mock-gateway.ts        # Mock implementations
+└── index.ts              # Gateway manager
+```
+
+### Component Architecture
+
+- **Guest Table** (`components/guest-table/`): Modular table components with drag-and-drop
+- **Context Providers**: Guest context for state management
+- **UI Components** (`components/ui/`): shadcn/ui New York style components
+
+## Key Implementation Details
+
+### Drag & Drop Reordering
+- Uses `@atlaskit/pragmatic-drag-and-drop` 
+- Preserves order in `display_order` field
+- Optimistic updates with database sync
+
+### Guest Confirmation System
+Three-stage progression:
+1. Save the Date
+2. Invitation Sent
+3. Final Confirmation
+
+### Food Preferences
+- Multiple selection support via array
+- Icons: utensils (none), leaf (vegetarian), vegan, wheat (gluten-free), milk (dairy-free)
+
+### Partner Categories
+- Customizable via organization configuration
+- Stored as array to support multiple categories
+- Visual indicators with initials (Y/M, A/B, etc.)
+
+## Environment Variables
+
+Required in `.env.local`:
+```
+DATABASE_URL                              # Neon PostgreSQL connection
+NEXT_PUBLIC_STACK_PROJECT_ID             # Stack Auth project ID
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY # Stack Auth public key
+STACK_SECRET_SERVER_KEY                   # Stack Auth server key (if needed)
+```
+
+## Build Configuration
+
+- **Sandbox Mode**: `NEXT_BUILD_SANDBOX=1` outputs to `.next-buildcheck`
+- **TypeScript**: Strict mode enabled, build errors ignored for rapid development
+- **ESLint**: Configured but skippable during builds
+
+## API Routes Structure
+
+```
+app/api/
+├── guests/[guestId]/        # Individual guest operations
+├── organizations/
+│   ├── [organizationId]/
+│   │   ├── guests/          # Bulk guest operations
+│   │   ├── config/          # Event configuration
+│   │   ├── export/          # Data export
+│   │   └── import/          # Data import
+│   └── by-invite/[code]/    # Join by invite code
+└── invite/[code]/           # Invite management
+```
+
+## Testing & Quality
+
+- Run `pnpm lint` before committing
+- TypeScript strict mode catches type errors
+- Use sandbox builds for testing while dev server runs
