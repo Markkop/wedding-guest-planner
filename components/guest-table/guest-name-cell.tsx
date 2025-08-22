@@ -52,10 +52,13 @@ export function GuestNameCell({ name, isDeclined, onUpdate }: GuestNameCellProps
     );
   }
 
+  const truncatedName = name.length > 10 ? `${name.slice(0, 10)}...` : name;
+
   return (
     <div className="flex items-center gap-2">
       <span className={cn(isDeclined && 'line-through')}>
-        {name}
+        <span className="md:hidden">{truncatedName}</span>
+        <span className="hidden md:inline">{name}</span>
       </span>
       <Button
         size="icon"

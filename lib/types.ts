@@ -34,12 +34,16 @@ export interface ConfirmationStageConfig {
 
 export interface EventConfiguration {
   categories: CategoryConfig[];
+  categoriesConfig?: {
+    allowMultiple: boolean;
+  };
   ageGroups: {
     enabled: boolean;
     groups: AgeGroupConfig[];
   };
   foodPreferences: {
     enabled: boolean;
+    allowMultiple?: boolean;
     options: FoodPreferenceConfig[];
   };
   confirmationStages: {
@@ -75,6 +79,7 @@ export interface Guest {
   categories: string[];
   age_group?: string;
   food_preference?: string;
+  food_preferences?: string[];
   confirmation_stage: string;
   custom_fields: Record<string, unknown>;
   display_order: number;

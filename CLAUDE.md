@@ -15,12 +15,12 @@ This is a wedding guest planner application built with Next.js, TypeScript, and 
 
 ## Important Notes
 
-- **Never automatically run `pnpm dev`** - Always ask the user before starting the development server
-- The development server should only be started when explicitly requested by the user
+- When using pnpm build for testing and validation only (which are most of the cases), delete the .next folder AFTER running the command, so we don't affect the pnpm dev command.
 
 ## Tech Stack & Architecture
 
 ### Core Technologies
+
 - **Next.js 15.5.0** with App Router and React Server Components
 - **TypeScript** with strict mode enabled
 - **Tailwind CSS v4** with PostCSS
@@ -28,12 +28,14 @@ This is a wedding guest planner application built with Next.js, TypeScript, and 
 - **Lucide React** for icons
 
 ### Project Structure
+
 - `/app` - Next.js App Router pages and layouts
 - `/components` - React components (shadcn/ui components will be in `/components/ui`)
 - `/lib` - Utility functions and shared code
 - `/instructions` - Project documentation and requirements
 
 ### Import Aliases
+
 - `@/*` maps to the project root
 - `@/components` for components
 - `@/lib` for utilities
@@ -54,17 +56,20 @@ This is a wedding guest planner application built with Next.js, TypeScript, and 
 Based on the PRD, the application needs:
 
 1. **Authentication & Organizations**
+
    - User signup/login system (using Neon Auth)
    - Organization-based wedding projects
    - Invite code system for collaboration
 
 2. **Guest Management Dashboard**
+
    - Statistics cards (total, confirmed, per partner)
    - Drag-and-drop guest reordering
    - Inline editing capabilities
    - Customizable partner roles and initials
 
 3. **Guest Properties**
+
    - Categories (customizable partner assignments)
    - Age groups (Adult, 7 years, 11 years)
    - Food preferences (No restrictions, Vegetarian, Vegan, Gluten-free, Dairy-free)

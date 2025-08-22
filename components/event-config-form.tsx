@@ -36,8 +36,9 @@ export function EventConfigForm({
   const [config, setConfig] = useState<EventConfiguration>(
     initialConfig || {
       categories: [],
+      categoriesConfig: { allowMultiple: false },
       ageGroups: { enabled: false, groups: [] },
-      foodPreferences: { enabled: false, options: [] },
+      foodPreferences: { enabled: false, allowMultiple: true, options: [] },
       confirmationStages: { enabled: true, stages: [] }
     }
   );
@@ -287,6 +288,18 @@ export function EventConfigForm({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            <label className="flex items-center space-x-2">
+              <Checkbox
+                checked={config.categoriesConfig?.allowMultiple ?? false}
+                onCheckedChange={(checked) =>
+                  setConfig({
+                    ...config,
+                    categoriesConfig: { allowMultiple: !!checked }
+                  })
+                }
+              />
+              <span>Allow multiple category selection</span>
+            </label>
             {config.categories.map((category, index) => (
               <div key={index} className="flex items-center space-x-2 p-4 border rounded">
                 <Input
@@ -408,6 +421,21 @@ export function EventConfigForm({
               />
               <span>Enable food preferences</span>
             </label>
+            
+            {config.foodPreferences.enabled && (
+              <label className="flex items-center space-x-2">
+                <Checkbox
+                  checked={config.foodPreferences.allowMultiple ?? true}
+                  onCheckedChange={(checked) =>
+                    setConfig({
+                      ...config,
+                      foodPreferences: { ...config.foodPreferences, allowMultiple: !!checked }
+                    })
+                  }
+                />
+                <span>Allow multiple food preference selection</span>
+              </label>
+            )}
             
             {config.foodPreferences.enabled && (
               <>

@@ -50,23 +50,17 @@ export function OrganizationSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="min-w-[200px] justify-between">
+        <Button variant="outline" size="sm" className="sm:min-w-[200px] justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            <span className="truncate">
-              <span className="hidden sm:inline">{currentOrganization.name}</span>
-              <span className="sm:hidden">
-                {currentOrganization.name.length > 12 
-                  ? `${currentOrganization.name.slice(0, 12)}...` 
-                  : currentOrganization.name
-                }
-              </span>
+            <span className="truncate hidden sm:inline">
+              {currentOrganization.name}
             </span>
             <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
               {currentOrganization.role}
             </Badge>
           </div>
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4 hidden sm:inline" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[250px]">

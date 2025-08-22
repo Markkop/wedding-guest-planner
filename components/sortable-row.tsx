@@ -122,16 +122,23 @@ export function SortableRow({
   };
 
   const toggleCategory = (categoryId: string) => {
-    const newCategories = guest.categories.includes(categoryId)
-      ? guest.categories.filter(id => id !== categoryId)
-      : [...guest.categories, categoryId];
+    const allowMultiple = config.categoriesConfig?.allowMultiple ?? false;
     
-    // Ensure at least one category is always selected
-    if (newCategories.length === 0) {
-      return;
+    if (allowMultiple) {
+      const newCategories = guest.categories.includes(categoryId)
+        ? guest.categories.filter(id => id !== categoryId)
+        : [...guest.categories, categoryId];
+      
+      // Ensure at least one category is always selected
+      if (newCategories.length === 0) {
+        return;
+      }
+      
+      onUpdate(guest.id, { categories: newCategories });
+    } else {
+      // Single selection mode - only allow one category
+      onUpdate(guest.id, { categories: [categoryId] });
     }
-    
-    onUpdate(guest.id, { categories: newCategories });
   };
 
   const updateAgeGroup = (ageGroupId: string) => {
@@ -139,7 +146,18 @@ export function SortableRow({
   };
 
   const updateFoodPreference = (foodPrefId: string) => {
-    onUpdate(guest.id, { food_preference: foodPrefId });
+    const allowMultiple = config.foodPreferences?.allowMultiple ?? true;
+    
+    if (allowMultiple) {
+      const currentPreferences = guest.food_preferences || [];
+      const newPreferences = currentPreferences.includes(foodPrefId)
+        ? currentPreferences.filter(id => id !== foodPrefId)
+        : [...currentPreferences, foodPrefId];
+      
+      onUpdate(guest.id, { food_preferences: newPreferences });
+    } else {
+      onUpdate(guest.id, { food_preference: foodPrefId });
+    }
   };
 
   const updateConfirmationStage = (stageId: string) => {
@@ -182,7 +200,12 @@ export function SortableRow({
       
       <TableCell className="font-medium">{index}</TableCell>
       
-      <TableCell>
+      <TableCell className={cn(
+        "sticky left-0 z-10 border-r md:static md:border-r-0 w-auto md:min-w-[200px]",
+        isBeingDragged ? 'bg-white opacity-50 md:bg-transparent' : 
+        isDraggedOver ? 'bg-indigo-50 md:bg-indigo-50' : 
+        isDeclined ? 'bg-gray-50 md:bg-gray-50' : 'bg-white md:bg-transparent'
+      )}>
         <GuestNameCell 
           name={guest.name}
           isDeclined={isDeclined}
@@ -245,23 +268,30 @@ export function SortableRow({
       {visibleColumns.food && config.foodPreferences.enabled && (
         <TableCell>
           <div className="flex gap-1">
-            {(config.foodPreferences?.options || []).map((foodPref) => (
-              <TooltipProvider key={foodPref.id}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant={guest.food_preference === foodPref.id ? 'default' : 'outline'}
-                      onClick={() => updateFoodPreference(foodPref.id)}
-                      className="h-7 w-7 p-0 cursor-pointer"
-                    >
-                      {getFoodIcon(foodPref.id, guest.food_preference === foodPref.id)}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{foodPref.label}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
+            {(config.foodPreferences?.options || []).map((foodPref) => {
+              const allowMultiple = config.foodPreferences?.allowMultiple ?? true;
+              const isSelected = allowMultiple 
+                ? (guest.food_preferences || []).includes(foodPref.id)
+                : guest.food_preference === foodPref.id;
+              
+              return (
+                <TooltipProvider key={foodPref.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant={isSelected ? 'default' : 'outline'}
+                        onClick={() => updateFoodPreference(foodPref.id)}
+                        className="h-7 w-7 p-0 cursor-pointer"
+                      >
+                        {getFoodIcon(foodPref.id, isSelected)}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{foodPref.label}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              );
+            })}
           </div>
         </TableCell>
       )}
