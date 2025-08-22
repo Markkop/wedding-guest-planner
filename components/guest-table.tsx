@@ -23,7 +23,7 @@ import {
 import { SortableRow } from './sortable-row';
 import { toast } from 'sonner';
 import { Plus, Settings } from 'lucide-react';
-import { LoadingContent, TableRowSkeleton, InlineSpinner } from '@/components/ui/loading-spinner';
+import { TableRowSkeleton, InlineSpinner } from '@/components/ui/loading-spinner';
 
 interface Guest {
   id: string;
@@ -81,9 +81,9 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   const [newGuestName, setNewGuestName] = useState('');
   const [visibleColumns, setVisibleColumns] = useState({
     categories: true,
-    age: organization.configuration.ageGroups.enabled,
-    food: organization.configuration.foodPreferences.enabled,
-    confirmations: organization.configuration.confirmationStages.enabled,
+    age: organization.configuration?.ageGroups?.enabled ?? false,
+    food: organization.configuration?.foodPreferences?.enabled ?? false,
+    confirmations: organization.configuration?.confirmationStages?.enabled ?? false,
   });
   const [loading, setLoading] = useState(true);
   const [addingGuest, setAddingGuest] = useState(false);
@@ -341,7 +341,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   />
                   <span className="text-sm">Categories</span>
                 </label>
-                {organization.configuration.ageGroups.enabled && (
+                {organization.configuration?.ageGroups?.enabled && (
                   <label className="flex items-center space-x-2">
                     <Checkbox
                       checked={visibleColumns.age}
@@ -352,7 +352,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                     <span className="text-sm">Age</span>
                   </label>
                 )}
-                {organization.configuration.foodPreferences.enabled && (
+                {organization.configuration?.foodPreferences?.enabled && (
                   <label className="flex items-center space-x-2">
                     <Checkbox
                       checked={visibleColumns.food}
@@ -363,7 +363,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                     <span className="text-sm">Food Preference</span>
                   </label>
                 )}
-                {organization.configuration.confirmationStages.enabled && (
+                {organization.configuration?.confirmationStages?.enabled && (
                   <label className="flex items-center space-x-2">
                     <Checkbox
                       checked={visibleColumns.confirmations}
@@ -387,9 +387,9 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
             <TableHead className="w-12">#</TableHead>
             <TableHead>Name</TableHead>
             {visibleColumns.categories && <TableHead className="w-32">Categories</TableHead>}
-            {visibleColumns.age && organization.configuration.ageGroups.enabled && <TableHead className="w-24">Age</TableHead>}
-            {visibleColumns.food && organization.configuration.foodPreferences.enabled && <TableHead className="w-32">Food</TableHead>}
-            {visibleColumns.confirmations && organization.configuration.confirmationStages.enabled && <TableHead className="w-32">Status</TableHead>}
+            {visibleColumns.age && organization.configuration?.ageGroups?.enabled && <TableHead className="w-24">Age</TableHead>}
+            {visibleColumns.food && organization.configuration?.foodPreferences?.enabled && <TableHead className="w-32">Food</TableHead>}
+            {visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled && <TableHead className="w-32">Status</TableHead>}
             <TableHead className="w-32">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -399,25 +399,25 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
               <TableRowSkeleton columns={
                 3 + // base columns (drag, #, name)
                 (visibleColumns.categories ? 1 : 0) +
-                (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
-                (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
-                (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
+                (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
+                (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
                 1 // actions column
               } />
               <TableRowSkeleton columns={
                 3 + // base columns (drag, #, name)
                 (visibleColumns.categories ? 1 : 0) +
-                (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
-                (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
-                (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
+                (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
+                (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
                 1 // actions column
               } />
               <TableRowSkeleton columns={
                 3 + // base columns (drag, #, name)
                 (visibleColumns.categories ? 1 : 0) +
-                (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
-                (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
-                (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
+                (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
+                (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
                 1 // actions column
               } />
             </>
@@ -427,9 +427,9 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                 colSpan={
                   3 + // base columns
                   (visibleColumns.categories ? 1 : 0) +
-                  (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
-                  (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
-                  (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                  (visibleColumns.age && organization.configuration?.ageGroups?.enabled ? 1 : 0) +
+                  (visibleColumns.food && organization.configuration?.foodPreferences?.enabled ? 1 : 0) +
+                  (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled ? 1 : 0) +
                   1 // actions column
                 }
                 className="text-center py-8 text-muted-foreground"

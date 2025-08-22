@@ -123,7 +123,12 @@ export function SortableRow({
   
   const rowRef = useRef<HTMLTableRowElement | null>(null);
 
-  const config = organization.configuration;
+  const config = organization.configuration || {
+    categories: [],
+    ageGroups: { enabled: false, groups: [] },
+    foodPreferences: { enabled: false, options: [] },
+    confirmationStages: { enabled: false, stages: [] }
+  };
 
   useEffect(() => {
     const rowElement = rowRef.current;
@@ -229,15 +234,16 @@ export function SortableRow({
     onMoveToEnd(guest.id);
   };
 
-  const getFoodIcon = (prefId: string) => {
+  const getFoodIcon = (prefId: string, isSelected: boolean) => {
     // Default icons based on common preference IDs
+    const whiteClass = "h-4 w-4 text-white";
     switch (prefId.toLowerCase()) {
-      case 'vegetarian': return <Leaf className="h-4 w-4 text-green-600" />;
-      case 'vegan': return <Leaf className="h-4 w-4 text-green-700" />;
-      case 'gluten_free': case 'gluten-free': return <Wheat className="h-4 w-4 text-amber-600" />;
-      case 'dairy_free': case 'dairy-free': return <Milk className="h-4 w-4 text-blue-600" />;
-      case 'none': case 'no_restrictions': return <Utensils className="h-4 w-4" />;
-      default: return <Utensils className="h-4 w-4" />;
+      case 'vegetarian': return <Leaf className={isSelected ? whiteClass : "h-4 w-4 text-green-600"} />;
+      case 'vegan': return <Leaf className={isSelected ? whiteClass : "h-4 w-4 text-green-700"} />;
+      case 'gluten_free': case 'gluten-free': return <Wheat className={isSelected ? whiteClass : "h-4 w-4 text-amber-600"} />;
+      case 'dairy_free': case 'dairy-free': return <Milk className={isSelected ? whiteClass : "h-4 w-4 text-blue-600"} />;
+      case 'none': case 'no_restrictions': return <Utensils className={isSelected ? whiteClass : "h-4 w-4"} />;
+      default: return <Utensils className={isSelected ? whiteClass : "h-4 w-4"} />;
     }
   };
 
@@ -305,7 +311,7 @@ export function SortableRow({
       {visibleColumns.categories && (
         <TableCell>
           <div className="flex flex-wrap gap-1">
-            {config.categories.map((category) => (
+            {(config.categories || []).map((category) => (
               <TooltipProvider key={category.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -333,7 +339,7 @@ export function SortableRow({
       {visibleColumns.age && config.ageGroups.enabled && (
         <TableCell>
           <div className="flex gap-1">
-            {config.ageGroups.groups.map((ageGroup) => (
+            {(config.ageGroups?.groups || []).map((ageGroup) => (
               <TooltipProvider key={ageGroup.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -357,7 +363,7 @@ export function SortableRow({
       {visibleColumns.food && config.foodPreferences.enabled && (
         <TableCell>
           <div className="flex gap-1">
-            {config.foodPreferences.options.map((foodPref) => (
+            {(config.foodPreferences?.options || []).map((foodPref) => (
               <TooltipProvider key={foodPref.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -367,7 +373,7 @@ export function SortableRow({
                       onClick={() => updateFoodPreference(foodPref.id)}
                       className="h-7 w-7 p-0 cursor-pointer"
                     >
-                      {getFoodIcon(foodPref.id)}
+                      {getFoodIcon(foodPref.id, guest.food_preference === foodPref.id)}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>{foodPref.label}</TooltipContent>

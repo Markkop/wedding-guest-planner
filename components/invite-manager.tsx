@@ -131,12 +131,13 @@ export function InviteManager({ organization, onInviteRefresh }: InviteManagerPr
             </CardContent>
           </Card>
 
+
           <div className="text-sm text-gray-600 space-y-2">
             <p><strong>How it works:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>Share the invite link with people you want to join</li>
-              <li>If they don't have an account, they'll be prompted to sign up</li>
-              <li>After signing up/logging in, they'll automatically join this organization</li>
+              <li>If they don&apos;t have an account, they&apos;ll be prompted to sign up</li>
+              <li>After signing up/logging in, they&apos;ll automatically join this organization</li>
               <li>You can refresh the invite code anytime for security</li>
             </ul>
           </div>

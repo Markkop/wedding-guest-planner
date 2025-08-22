@@ -83,7 +83,7 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
     ? Math.round((stats.confirmed / stats.total) * 100) 
     : 0;
 
-  const categories = organization.configuration.categories;
+  const categories = organization.configuration?.categories || [];
 
   if (loading) {
     return (

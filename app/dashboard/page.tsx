@@ -1,21 +1,21 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@stackframe/stack';
 import { GuestTable } from '@/components/guest-table';
 import { StatsCards } from '@/components/stats-cards';
 import { OrganizationSelector } from '@/components/organization-selector';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
 import { InviteManager } from '@/components/invite-manager';
+import { SettingsDialog } from '@/components/settings-dialog';
+import { ExportDialog } from '@/components/export-dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import type { Organization } from '@/lib/types';
 import { LoadingContent } from '@/components/ui/loading-spinner';
 
 export default function DashboardPage() {
-  const router = useRouter();
   const user = useUser({ or: 'redirect' });
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function DashboardPage() {
   async function handleLogout() {
     try {
       await user.signOut();
-      router.push('/login');
+      window.location.href = '/login';
     } catch {
       toast.error('Failed to logout');
     }
@@ -93,10 +93,14 @@ export default function DashboardPage() {
                   organization={organization} 
                   onInviteRefresh={loadOrganizations}
                 />
-                <Button onClick={() => router.push('/dashboard/settings')} variant="outline" size="sm">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Button>
+                <SettingsDialog 
+                  organization={organization}
+                  onSettingsChange={loadOrganizations}
+                />
+                <ExportDialog 
+                  organization={organization}
+                  onDataChange={loadOrganizations}
+                />
               </>
             )}
             <Button onClick={handleLogout} variant="outline" size="sm">

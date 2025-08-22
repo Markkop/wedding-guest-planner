@@ -6,7 +6,7 @@ import { useUser } from '@stackframe/stack';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Users, Building2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingContent, InlineSpinner } from '@/components/ui/loading-spinner';
 
@@ -33,7 +33,7 @@ export default function InvitePage({ params }: InvitePageProps) {
 
   useEffect(() => {
     loadInviteInfo();
-  }, []);
+  }, [loadInviteInfo]);
 
   const loadInviteInfo = async () => {
     try {
@@ -120,7 +120,7 @@ export default function InvitePage({ params }: InvitePageProps) {
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-gray-600 mb-4">
-              You're already a member of <strong>{organization.name}</strong>
+              You&apos;re already a member of <strong>{organization.name}</strong>
             </p>
             <Button onClick={() => router.push('/dashboard')}>
               Go to Dashboard
@@ -140,7 +140,7 @@ export default function InvitePage({ params }: InvitePageProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <Users className="h-12 w-12 text-indigo-600 mx-auto mb-2" />
-          <CardTitle>You're Invited!</CardTitle>
+          <CardTitle>You&apos;re Invited!</CardTitle>
           <CardDescription>
             Join the organization and start planning together
           </CardDescription>

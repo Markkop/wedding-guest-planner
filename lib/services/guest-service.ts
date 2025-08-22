@@ -83,10 +83,10 @@ export class GuestService {
     const config = orgResult[0].configuration as EventConfiguration;
     
     // Set defaults based on configuration
-    const categories = data.categories || [config.categories[0]?.id || ''];
-    const ageGroup = data.age_group || (config.ageGroups.enabled ? config.ageGroups.groups[0]?.id : null);
-    const foodPreference = data.food_preference || (config.foodPreferences.enabled ? config.foodPreferences.options[0]?.id : null);
-    const confirmationStage = data.confirmation_stage || (config.confirmationStages.enabled ? config.confirmationStages.stages[0]?.id : 'invited');
+    const categories = data.categories || [config?.categories?.[0]?.id || ''];
+    const ageGroup = data.age_group || (config?.ageGroups?.enabled ? config?.ageGroups?.groups?.[0]?.id : null);
+    const foodPreference = data.food_preference || (config?.foodPreferences?.enabled ? config?.foodPreferences?.options?.[0]?.id : null);
+    const confirmationStage = data.confirmation_stage || (config?.confirmationStages?.enabled ? config?.confirmationStages?.stages?.[0]?.id : 'invited');
 
     const result = await sql`
       INSERT INTO guests (
@@ -322,7 +322,8 @@ export class GuestService {
     const byCategory: Record<string, number> = {};
     
     // Populate confirmation stage counts
-    for (const stage of config.confirmationStages.stages) {
+    const stages = config?.confirmationStages?.stages || [];
+    for (const stage of stages) {
       byConfirmationStage[stage.id] = 0;
     }
     for (const stat of stageStats) {
@@ -330,7 +331,8 @@ export class GuestService {
     }
     
     // Populate category counts
-    for (const category of config.categories) {
+    const categories = config?.categories || [];
+    for (const category of categories) {
       byCategory[category.id] = 0;
     }
     for (const stat of categoryStats) {
