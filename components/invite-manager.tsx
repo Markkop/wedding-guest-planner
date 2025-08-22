@@ -66,8 +66,8 @@ export function InviteManager({ organization, onInviteRefresh }: InviteManagerPr
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Users className="mr-2 h-4 w-4" />
-          Manage Invites
+          <Users className="sm:mr-2 h-4 w-4" />
+          <span className="hidden sm:inline">Manage Invites</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

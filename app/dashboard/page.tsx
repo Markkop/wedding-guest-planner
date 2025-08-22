@@ -66,8 +66,8 @@ export default function DashboardPage() {
           <div className="mb-8 flex items-center justify-between">
             <h1 className="text-3xl font-bold">Welcome, {user?.displayName || user?.primaryEmail}</h1>
             <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              <LogOut className="sm:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
           
@@ -106,8 +106,8 @@ export default function DashboardPage() {
                 </>
               )}
               <Button onClick={handleLogout} variant="outline" size="sm">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
+                <LogOut className="sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>

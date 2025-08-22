@@ -19,8 +19,8 @@ export function ExportDialog({ organization, onDataChange }: ExportDialogProps) 
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <FileText className="mr-2 h-4 w-4" />
-          Export
+          <FileText className="sm:mr-2 h-4 w-4" />
+          <span className="hidden sm:inline">Export</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">

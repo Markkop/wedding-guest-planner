@@ -53,8 +53,16 @@ export function OrganizationSwitcher({
         <Button variant="outline" className="min-w-[200px] justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            <span className="truncate">{currentOrganization.name}</span>
-            <Badge variant="secondary" className="text-xs">
+            <span className="truncate">
+              <span className="hidden sm:inline">{currentOrganization.name}</span>
+              <span className="sm:hidden">
+                {currentOrganization.name.length > 12 
+                  ? `${currentOrganization.name.slice(0, 12)}...` 
+                  : currentOrganization.name
+                }
+              </span>
+            </span>
+            <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
               {currentOrganization.role}
             </Badge>
           </div>
