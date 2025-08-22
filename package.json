@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "rm -rf .next && next dev --turbopack",
     "build": "next build --turbopack",
+    "build:sandbox": "NEXT_BUILD_SANDBOX=1 next build --turbopack",
     "start": "next start",
+    "start:sandbox": "NEXT_BUILD_SANDBOX=1 next start -p 4000",
+    "clean": "rimraf .next .next-buildcheck .turbo",
     "lint": "eslint"
   },
   "dependencies": {

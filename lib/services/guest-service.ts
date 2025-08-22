@@ -41,6 +41,7 @@ export class GuestService {
       categories?: string[];
       age_group?: string;
       food_preference?: string;
+      food_preferences?: string[];
       confirmation_stage?: string;
     }
   ) {
@@ -86,12 +87,13 @@ export class GuestService {
     const categories = data.categories || [config?.categories?.[0]?.id || ''];
     const ageGroup = data.age_group || (config?.ageGroups?.enabled ? config?.ageGroups?.groups?.[0]?.id : null);
     const foodPreference = data.food_preference || (config?.foodPreferences?.enabled ? config?.foodPreferences?.options?.[0]?.id : null);
+    const foodPreferences = data.food_preferences || (config?.foodPreferences?.enabled ? [config?.foodPreferences?.options?.[0]?.id].filter(Boolean) : []);
     const confirmationStage = data.confirmation_stage || (config?.confirmationStages?.enabled ? config?.confirmationStages?.stages?.[0]?.id : 'invited');
 
     const result = await sql`
       INSERT INTO guests (
         organization_id, name, categories, age_group, 
-        food_preference, confirmation_stage, display_order, created_by
+        food_preference, food_preferences, confirmation_stage, display_order, created_by
       )
       VALUES (
         ${organizationId},
@@ -99,6 +101,7 @@ export class GuestService {
         ${categories},
         ${ageGroup},
         ${foodPreference},
+        ${JSON.stringify(foodPreferences)},
         ${confirmationStage},
         ${nextOrder},
         ${user.id}
@@ -116,6 +119,7 @@ export class GuestService {
       categories: string[];
       age_group: string;
       food_preference: string;
+      food_preferences: string[];
       confirmation_stage: string;
       custom_fields: Record<string, unknown>;
     }>
@@ -152,6 +156,7 @@ export class GuestService {
         categories = COALESCE(${data.categories || null}, categories),
         age_group = COALESCE(${data.age_group}, age_group),
         food_preference = COALESCE(${data.food_preference}, food_preference),
+        food_preferences = COALESCE(${data.food_preferences ? JSON.stringify(data.food_preferences) : null}, food_preferences),
         confirmation_stage = COALESCE(${data.confirmation_stage}, confirmation_stage),
         custom_fields = COALESCE(${data.custom_fields ? JSON.stringify(data.custom_fields) : null}, custom_fields),
         updated_at = CURRENT_TIMESTAMP

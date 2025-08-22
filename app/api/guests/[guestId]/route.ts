@@ -7,6 +7,7 @@ const updateGuestSchema = z.object({
   categories: z.array(z.string()).optional(),
   age_group: z.string().optional(),
   food_preference: z.string().optional(),
+  food_preferences: z.array(z.string()).optional(),
   confirmation_stage: z.string().optional(),
   custom_fields: z.record(z.any()).optional(),
 });

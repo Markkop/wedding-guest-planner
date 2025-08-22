@@ -34,6 +34,7 @@ export type Guest = {
   categories: string[];
   age_group?: string;
   food_preference?: string;
+  food_preferences?: string[];
   confirmation_stage: string;
   custom_fields: Record<string, unknown>; // JSONB
   display_order: number;

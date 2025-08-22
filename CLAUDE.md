@@ -10,12 +10,17 @@ This is a wedding guest planner application built with Next.js, TypeScript, and 
 
 - `pnpm dev` - Start the development server with Turbopack (NOTE: Do not run this command automatically)
 - `pnpm build` - Build the production application with Turbopack
+- `pnpm build:sandbox` - Build in sandbox mode (safe to run while dev server is running)
 - `pnpm start` - Start the production server
+- `pnpm start:sandbox` - Start production server on port 4000 using sandbox build
+- `pnpm clean` - Clean all build artifacts (.next, .next-buildcheck, .turbo)
 - `pnpm lint` - Run ESLint for code linting
 
 ## Important Notes
 
-- When using pnpm build for testing and validation only (which are most of the cases), delete the .next folder AFTER running the command, so we don't affect the pnpm dev command.
+- **Use sandbox builds**: Always use `pnpm build:sandbox` when testing builds while the dev server is running to prevent ENOENT errors
+- Sandbox builds output to `.next-buildcheck` directory to avoid conflicts with dev server
+- Use `pnpm clean` to remove all build artifacts when needed
 
 ## Tech Stack & Architecture
 
