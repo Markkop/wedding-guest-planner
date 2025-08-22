@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, Heart } from 'lucide-react';
-import { CardSkeleton } from '@/components/ui/loading-spinner';
+import { useGuests } from '@/lib/guest-context';
 
 interface CategoryConfig {
   id: string;
@@ -36,66 +35,17 @@ interface Organization {
 }
 
 interface StatsCardsProps {
-  organizationId: string;
   organization: Organization;
 }
 
-interface GuestStatistics {
-  total: number;
-  confirmed: number;
-  invited: number;
-  declined: number;
-  byCategory: Record<string, number>;
-  byConfirmationStage: Record<string, number>;
-}
-
-export function StatsCards({ organizationId, organization }: StatsCardsProps) {
-  const [stats, setStats] = useState<GuestStatistics>({
-    total: 0,
-    confirmed: 0,
-    invited: 0,
-    declined: 0,
-    byCategory: {},
-    byConfirmationStage: {},
-  });
-  const [loading, setLoading] = useState(true);
-
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/organizations/${organizationId}/stats`);
-      const data = await response.json();
-      if (response.ok) {
-        setStats(data.stats);
-      }
-    } catch {
-      // Silently handle errors
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+export function StatsCards({ organization }: StatsCardsProps) {
+  const { stats } = useGuests();
 
   const confirmedPercentage = stats.total > 0 
     ? Math.round((stats.confirmed / stats.total) * 100) 
     : 0;
 
   const categories = organization.configuration?.categories || [];
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <CardSkeleton />
-        <CardSkeleton />
-        {categories.map((category) => (
-          <CardSkeleton key={category.id} />
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

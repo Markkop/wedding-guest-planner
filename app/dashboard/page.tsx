@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { LogOut } from 'lucide-react';
 import type { Organization } from '@/lib/types';
 import { LoadingContent } from '@/components/ui/loading-spinner';
+import { GuestProvider } from '@/lib/guest-context';
 
 export default function DashboardPage() {
   const user = useUser({ or: 'redirect' });
@@ -77,45 +78,52 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <OrganizationSwitcher 
-              currentOrganization={organization}
-              onOrganizationChange={setOrganization}
+    <GuestProvider>
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto max-w-7xl px-4 py-8">
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <OrganizationSwitcher 
+                currentOrganization={organization}
+                onOrganizationChange={setOrganization}
+              />
+            </div>
+            <div className="flex gap-2">
+              {organization.role === 'admin' && (
+                <>
+                  <InviteManager 
+                    organization={organization} 
+                    onInviteRefresh={loadOrganizations}
+                  />
+                  <SettingsDialog 
+                    organization={organization}
+                    onSettingsChange={loadOrganizations}
+                  />
+                  <ExportDialog 
+                    organization={organization}
+                    onDataChange={loadOrganizations}
+                  />
+                </>
+              )}
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
+          </div>
+
+          <StatsCards 
+            organization={organization} 
+          />
+          
+          <div className="mt-8">
+            <GuestTable 
+              organizationId={organization.id} 
+              organization={organization} 
             />
           </div>
-          <div className="flex gap-2">
-            {organization.role === 'admin' && (
-              <>
-                <InviteManager 
-                  organization={organization} 
-                  onInviteRefresh={loadOrganizations}
-                />
-                <SettingsDialog 
-                  organization={organization}
-                  onSettingsChange={loadOrganizations}
-                />
-                <ExportDialog 
-                  organization={organization}
-                  onDataChange={loadOrganizations}
-                />
-              </>
-            )}
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-
-        <StatsCards organizationId={organization.id} organization={organization} />
-        
-        <div className="mt-8">
-          <GuestTable organizationId={organization.id} organization={organization} />
         </div>
       </div>
-    </div>
+    </GuestProvider>
   );
 }

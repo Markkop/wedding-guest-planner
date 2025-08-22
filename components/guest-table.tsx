@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   monitorForElements,
 } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import { reorder } from '@atlaskit/pragmatic-drag-and-drop/reorder';
+import { useGuests } from '@/lib/guest-context';
 import {
   Table,
   TableBody,
@@ -77,7 +77,18 @@ interface GuestTableProps {
 }
 
 export function GuestTable({ organizationId, organization }: GuestTableProps) {
-  const [guests, setGuests] = useState<Guest[]>([]);
+  const { 
+    guests, 
+    loading, 
+    loadGuests, 
+    addGuest, 
+    updateGuest, 
+    deleteGuest, 
+    reorderGuests,
+    moveGuestToEnd,
+    setOrganization 
+  } = useGuests();
+  
   const [newGuestName, setNewGuestName] = useState('');
   const [visibleColumns, setVisibleColumns] = useState({
     categories: true,
@@ -85,34 +96,17 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     food: organization.configuration?.foodPreferences?.enabled ?? false,
     confirmations: organization.configuration?.confirmationStages?.enabled ?? false,
   });
-  const [loading, setLoading] = useState(true);
   const [addingGuest, setAddingGuest] = useState(false);
   const tableBodyRef = useRef<HTMLTableSectionElement | null>(null);
 
-  const fetchGuests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/organizations/${organizationId}/guests`);
-      const data = await response.json();
-      if (response.ok) {
-        setGuests(data.guests || []);
-      } else {
-        toast.error(data.error || 'Failed to fetch guests');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch guests');
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId]);
-
   useEffect(() => {
-    fetchGuests();
+    setOrganization(organization);
+    loadGuests(organizationId);
     const savedColumns = localStorage.getItem('visibleColumns');
     if (savedColumns) {
       setVisibleColumns(JSON.parse(savedColumns));
     }
-  }, [organizationId, fetchGuests]);
+  }, [organizationId, organization, loadGuests, setOrganization]);
 
   useEffect(() => {
     localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
@@ -121,115 +115,21 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   async function handleAddGuest() {
     if (!newGuestName.trim()) return;
     
-    // Optimistic update - add guest immediately
-    const tempId = `temp-${Date.now()}`;
-    const config = organization.configuration;
-    const newGuest: Guest = {
-      id: tempId,
-      name: newGuestName,
-      categories: [config.categories[0]?.id || ''],
-      age_group: config.ageGroups.enabled ? config.ageGroups.groups[0]?.id : undefined,
-      food_preference: config.foodPreferences.enabled ? config.foodPreferences.options[0]?.id : undefined,
-      confirmation_stage: config.confirmationStages.enabled ? config.confirmationStages.stages[0]?.id : 'invited',
-      custom_fields: {},
-      display_order: guests.length
-    };
-    
-    setGuests([...guests, newGuest]);
-    setNewGuestName('');
     setAddingGuest(true);
-    
     try {
-      const response = await fetch(`/api/organizations/${organizationId}/guests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newGuest.name }),
-      });
-      
-      const data = await response.json();
-      if (response.ok) {
-        // Replace temp guest with real one from server
-        setGuests(prev => prev.map(g => g.id === tempId ? data.guest : g));
-      } else {
-        // Revert on failure
-        setGuests(prev => prev.filter(g => g.id !== tempId));
-        setNewGuestName(newGuest.name);
-        toast.error(data.error || 'Failed to add guest');
-      }
-    } catch (error) {
-      // Revert on failure
-      setGuests(prev => prev.filter(g => g.id !== tempId));
-      setNewGuestName(newGuest.name);
-      toast.error(error instanceof Error ? error.message : 'Failed to add guest');
+      await addGuest(newGuestName);
+      setNewGuestName('');
     } finally {
       setAddingGuest(false);
     }
   }
 
   async function handleUpdateGuest(guestId: string, updates: Partial<Guest>) {
-    // Store original guest for rollback
-    const originalGuest = guests.find(g => g.id === guestId);
-    if (!originalGuest) return;
-    
-    // Optimistic update - update immediately
-    setGuests(prev => prev.map(g => g.id === guestId ? { ...g, ...updates } : g));
-    
-    try {
-      const response = await fetch(`/api/guests/${guestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      });
-      
-      const data = await response.json();
-      if (response.ok) {
-        // Update with server response
-        setGuests(prev => prev.map(g => g.id === guestId ? { ...g, ...data.guest } : g));
-      } else {
-        // Revert on failure
-        setGuests(prev => prev.map(g => g.id === guestId ? originalGuest : g));
-        toast.error(data.error || 'Failed to update guest');
-      }
-    } catch (error) {
-      // Revert on failure
-      setGuests(prev => prev.map(g => g.id === guestId ? originalGuest : g));
-      toast.error(error instanceof Error ? error.message : 'Failed to update guest');
-    }
+    await updateGuest(guestId, updates);
   }
 
   async function handleDeleteGuest(guestId: string) {
-    // Store guest for rollback
-    const guestToDelete = guests.find(g => g.id === guestId);
-    const guestIndex = guests.findIndex(g => g.id === guestId);
-    if (!guestToDelete) return;
-    
-    // Optimistic update - remove immediately
-    setGuests(prev => prev.filter(g => g.id !== guestId));
-    
-    try {
-      const response = await fetch(`/api/guests/${guestId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        // Revert on failure - restore guest at original position
-        setGuests(prev => {
-          const newGuests = [...prev];
-          newGuests.splice(guestIndex, 0, guestToDelete);
-          return newGuests;
-        });
-        toast.error(data.error || 'Failed to delete guest');
-      }
-    } catch (error) {
-      // Revert on failure - restore guest at original position
-      setGuests(prev => {
-        const newGuests = [...prev];
-        newGuests.splice(guestIndex, 0, guestToDelete);
-        return newGuests;
-      });
-      toast.error(error instanceof Error ? error.message : 'Failed to delete guest');
-    }
+    await deleteGuest(guestId);
   }
 
   // Setup global drag monitor
@@ -246,77 +146,11 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   }, []);
 
   async function handleReorder(fromIndex: number, toIndex: number) {
-    // Store original order for rollback
-    const originalGuests = [...guests];
-    
-    // Optimistic update - reorder immediately
-    const newGuests = reorder({
-      list: guests,
-      startIndex: fromIndex,
-      finishIndex: toIndex,
-    });
-    setGuests(newGuests);
-    
-    try {
-      const response = await fetch(`/api/organizations/${organizationId}/guests/reorder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guestIds: newGuests.map(g => g.id) }),
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        // Revert on failure
-        setGuests(originalGuests);
-        toast.error(data.error || 'Failed to save order');
-      }
-    } catch (error) {
-      // Revert on failure
-      setGuests(originalGuests);
-      toast.error(error instanceof Error ? error.message : 'Failed to save order');
-    }
+    await reorderGuests(fromIndex, toIndex);
   }
 
   async function handleMoveToEnd(guestId: string) {
-    // Find the guest to move
-    const guestIndex = guests.findIndex(g => g.id === guestId);
-    if (guestIndex === -1) return;
-    
-    // If already at the end, do nothing
-    if (guestIndex === guests.length - 1) return;
-    
-    // Store original order for rollback
-    const originalGuests = [...guests];
-    
-    // Optimistic update - move guest to end immediately
-    const guestToMove = guests[guestIndex];
-    const newGuests = [
-      ...guests.slice(0, guestIndex),
-      ...guests.slice(guestIndex + 1),
-      guestToMove
-    ];
-    setGuests(newGuests);
-    
-    try {
-      // Use the reorder endpoint with the new guest order
-      const response = await fetch(`/api/organizations/${organizationId}/guests/reorder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guestIds: newGuests.map(g => g.id) }),
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        // Revert on failure
-        setGuests(originalGuests);
-        toast.error(data.error || 'Failed to move guest to end');
-      }
-    } catch (error) {
-      // Revert on failure
-      setGuests(originalGuests);
-      console.error('Move to end error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to move guest to end');
-    }
+    await moveGuestToEnd(guestId);
   }
 
   return (
