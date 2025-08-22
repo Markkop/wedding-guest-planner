@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { useUser } from "@stackframe/stack";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DemoGuestProvider } from "@/lib/demo-guest-context";
-import { DemoGuestTable } from "@/components/demo-guest-table";
-import { DemoStatsCards } from "@/components/demo-stats-cards";
-import { DemoResetButton } from "@/components/demo-reset-button";
+import { LocalGuestProvider } from "@/lib/local-guest-context";
+import { GuestTable } from "@/components/guest-table";
+import { StatsCards } from "@/components/stats-cards";
 import { LoadingContent } from "@/components/ui/loading-spinner";
 import { Sparkles, ArrowRight, Users, Calendar, Settings } from "lucide-react";
 import Link from "next/link";
@@ -106,7 +105,7 @@ function LandingContent() {
       {/* Demo Section */}
       <section className="pb-16">
         <div className="mx-auto max-w-7xl px-4">
-          <DemoGuestProvider>
+          <LocalGuestProvider>
             {/* Demo Instructions */}
             <div className="bg-white rounded-lg shadow-sm border p-6 mb-4">
               <h3 className="text-lg font-semibold mb-4 text-center">
@@ -146,19 +145,135 @@ function LandingContent() {
               </div>
             </div>
 
-            {/* Demo Stats */}
+            {/* Stats Cards */}
             <div className="mb-4">
-              <DemoStatsCards />
+              <StatsCards
+                organization={{
+                  id: "demo-org-1",
+                  name: "Sarah & Michael's Wedding",
+                  invite_code: "DEMO2024",
+                  admin_id: "demo-admin",
+                  event_type: "wedding",
+                  configuration: {
+                    categories: [
+                      {
+                        id: "bride",
+                        label: "Bride's Side",
+                        initial: "B",
+                        color: "#EC4899",
+                      },
+                      {
+                        id: "groom",
+                        label: "Groom's Side",
+                        initial: "G",
+                        color: "#3B82F6",
+                      },
+                      {
+                        id: "mutual",
+                        label: "Mutual Friends",
+                        initial: "M",
+                        color: "#10B981",
+                      },
+                    ],
+                    ageGroups: {
+                      enabled: true,
+                      groups: [
+                        { id: "adult", label: "Adult", minAge: 18 },
+                        { id: "child", label: "Child (7-17)", minAge: 7 },
+                        { id: "infant", label: "Infant (0-6)", minAge: 0 },
+                      ],
+                    },
+                    foodPreferences: {
+                      enabled: true,
+                      options: [
+                        { id: "none", label: "No restrictions" },
+                        { id: "vegetarian", label: "Vegetarian" },
+                        { id: "vegan", label: "Vegan" },
+                        { id: "gluten_free", label: "Gluten-free" },
+                        { id: "dairy_free", label: "Dairy-free" },
+                      ],
+                    },
+                    confirmationStages: {
+                      enabled: true,
+                      stages: [
+                        { id: "invited", label: "Invited", order: 1 },
+                        { id: "confirmed", label: "Confirmed", order: 2 },
+                        { id: "declined", label: "Declined", order: 3 },
+                      ],
+                    },
+                  },
+                  created_at: new Date("2024-01-01"),
+                  updated_at: new Date(),
+                  role: "admin",
+                }}
+              />
             </div>
 
-            {/* Demo Guest Table */}
+            {/* Original Guest Table */}
             <div className="mb-12">
-              <DemoGuestTable />
+              <GuestTable
+                organizationId="demo-org-1"
+                organization={{
+                  id: "demo-org-1",
+                  name: "Sarah & Michael's Wedding",
+                  invite_code: "DEMO2024",
+                  admin_id: "demo-admin",
+                  event_type: "wedding",
+                  configuration: {
+                    categories: [
+                      {
+                        id: "bride",
+                        label: "Bride's Side",
+                        initial: "B",
+                        color: "#EC4899",
+                      },
+                      {
+                        id: "groom",
+                        label: "Groom's Side",
+                        initial: "G",
+                        color: "#3B82F6",
+                      },
+                      {
+                        id: "mutual",
+                        label: "Mutual Friends",
+                        initial: "M",
+                        color: "#10B981",
+                      },
+                    ],
+                    ageGroups: {
+                      enabled: true,
+                      groups: [
+                        { id: "adult", label: "Adult", minAge: 18 },
+                        { id: "child", label: "Child (7-17)", minAge: 7 },
+                        { id: "infant", label: "Infant (0-6)", minAge: 0 },
+                      ],
+                    },
+                    foodPreferences: {
+                      enabled: true,
+                      options: [
+                        { id: "none", label: "No restrictions" },
+                        { id: "vegetarian", label: "Vegetarian" },
+                        { id: "vegan", label: "Vegan" },
+                        { id: "gluten_free", label: "Gluten-free" },
+                        { id: "dairy_free", label: "Dairy-free" },
+                      ],
+                    },
+                    confirmationStages: {
+                      enabled: true,
+                      stages: [
+                        { id: "invited", label: "Invited", order: 1 },
+                        { id: "confirmed", label: "Confirmed", order: 2 },
+                        { id: "declined", label: "Declined", order: 3 },
+                      ],
+                    },
+                  },
+                  created_at: new Date("2024-01-01"),
+                  updated_at: new Date(),
+                  role: "admin",
+                }}
+              />
             </div>
-
-            {/* Demo Reset Button */}
-            <DemoResetButton />
-          </DemoGuestProvider>
+          </LocalGuestProvider>
         </div>
       </section>
 

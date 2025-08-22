@@ -3,43 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, CheckCircle } from 'lucide-react';
 import { useGuests } from '@/lib/guest-context';
+import type { Organization } from '@/lib/types';
 
-interface CategoryConfig {
-  id: string;
-  label: string;
-  initial: string;
-  color: string;
-}
-
-interface ConfirmationStage {
-  id: string;
-  label: string;
-  order: number;
-  color?: string;
-}
-
-interface EventConfiguration {
-  categories: CategoryConfig[];
-  ageGroups: {
-    enabled: boolean;
-    groups: Array<{ id: string; label: string; minAge?: number; }>;
-  };
-  foodPreferences: {
-    enabled: boolean;
-    options: Array<{ id: string; label: string; }>;
-  };
-  confirmationStages: {
-    enabled: boolean;
-    stages: ConfirmationStage[];
-  };
-}
-
-interface Organization {
-  id: string;
-  name: string;
-  event_type: string;
-  configuration: EventConfiguration;
-}
 
 interface StatsCardsProps {
   organization: Organization;

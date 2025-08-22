@@ -30,6 +30,7 @@ export interface ConfirmationStageConfig {
   id: string;
   label: string;
   order: number;
+  color?: string;
 }
 
 export interface EventConfiguration {
