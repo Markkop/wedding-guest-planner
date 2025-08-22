@@ -15,11 +15,13 @@ import { LogOut } from "lucide-react";
 import type { Organization } from "@/lib/types";
 import { LoadingContent } from "@/components/ui/loading-spinner";
 import { GuestProvider } from "@/lib/guest-context";
+import { Chatbot } from "@/components/chatbot";
 
 export default function DashboardPage() {
   const user = useUser({ or: "redirect" });
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const loadOrganizations = useCallback(async () => {
     try {
@@ -50,6 +52,11 @@ export default function DashboardPage() {
       toast.error("Failed to logout");
     }
   }
+
+  const handleGuestsUpdate = useCallback(() => {
+    // Trigger a re-render of the GuestTable by updating the key
+    setRefreshKey((prev) => prev + 1);
+  }, []);
 
   if (loading) {
     return (
@@ -118,11 +125,18 @@ export default function DashboardPage() {
 
           <div className="mt-4">
             <GuestTable
+              key={refreshKey}
               organizationId={organization.id}
               organization={organization}
             />
           </div>
         </div>
+
+        {/* Chatbot */}
+        <Chatbot
+          organizationId={organization.id}
+          onGuestsUpdate={handleGuestsUpdate}
+        />
       </div>
     </GuestProvider>
   );

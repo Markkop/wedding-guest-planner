@@ -122,12 +122,8 @@ const DEMO_GUESTS: Guest[] = [
 // Instead of providing a separate context (which breaks components relying on
 // the default GuestContext), we will *also* provide values via the shared
 // GuestContext so that components like StatsCards can consume them without
-// modification. We keep DemoGuestContext for demo-specific hooks.
+// modification.
 import { GuestContext } from "@/lib/guest-context";
-
-const DemoGuestContext = createContext<DemoGuestContextType | undefined>(
-  undefined
-);
 
 export function useGuests() {
   const context = useContext(GuestContext);
@@ -324,22 +320,7 @@ export function LocalGuestProvider({
         moveGuestToEnd,
       }}
     >
-      <DemoGuestContext.Provider
-        value={{
-          guests,
-          loading,
-          stats,
-          organization: DEMO_ORGANIZATION,
-          addGuest,
-          updateGuest,
-          deleteGuest,
-          reorderGuests,
-          moveGuestToEnd,
-          resetDemo,
-        }}
-      >
-        {children}
-      </DemoGuestContext.Provider>
+      {children}
     </GuestContext.Provider>
   );
 }
