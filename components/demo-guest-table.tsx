@@ -94,7 +94,7 @@ export function DemoGuestTable() {
   const columnCount = useColumnCount(visibleColumns, organization);
 
   return (
-    <div className="rounded-lg bg-white shadow">
+    <div className="relative rounded-lg bg-white shadow flex flex-col">
       <div className="flex items-center justify-between border-b p-4">
         <h2 className="text-lg font-semibold">Guest List</h2>
         <ColumnSettings
@@ -104,54 +104,58 @@ export function DemoGuestTable() {
         />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12 pl-4">#</TableHead>
-            <TableHead>Name</TableHead>
-            {visibleColumns.categories && (
-              <TableHead className="w-32">Categories</TableHead>
+      <div className="overflow-x-auto flex-1">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12 pl-4">#</TableHead>
+              <TableHead>Name</TableHead>
+              {visibleColumns.categories && (
+                <TableHead className="w-40">Categories</TableHead>
+              )}
+              {visibleColumns.age &&
+                organization.configuration?.ageGroups?.enabled && (
+                  <TableHead className="w-24">Age</TableHead>
+                )}
+              {visibleColumns.food &&
+                organization.configuration?.foodPreferences?.enabled && (
+                  <TableHead className="w-32">Food</TableHead>
+                )}
+              {visibleColumns.confirmations &&
+                organization.configuration?.confirmationStages?.enabled && (
+                  <TableHead className="w-32">Status</TableHead>
+                )}
+              <TableHead className="w-32">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody ref={tableBodyRef}>
+            {loading ? (
+              <TableLoading columnCount={columnCount} />
+            ) : guests.length === 0 ? (
+              <EmptyState columnCount={columnCount} />
+            ) : (
+              guests.map((guest, index) => (
+                <SortableRow
+                  key={guest.id}
+                  guest={guest}
+                  index={index + 1}
+                  guestIndex={index}
+                  visibleColumns={visibleColumns}
+                  organization={organization}
+                  onUpdate={handleUpdateGuest}
+                  onDelete={handleDeleteGuest}
+                  onReorder={handleReorder}
+                  onMoveToEnd={handleMoveToEnd}
+                />
+              ))
             )}
-            {visibleColumns.age &&
-              organization.configuration?.ageGroups?.enabled && (
-                <TableHead className="w-24">Age</TableHead>
-              )}
-            {visibleColumns.food &&
-              organization.configuration?.foodPreferences?.enabled && (
-                <TableHead className="w-32">Food</TableHead>
-              )}
-            {visibleColumns.confirmations &&
-              organization.configuration?.confirmationStages?.enabled && (
-                <TableHead className="w-32">Status</TableHead>
-              )}
-            <TableHead className="w-32">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody ref={tableBodyRef}>
-          {loading ? (
-            <TableLoading columnCount={columnCount} />
-          ) : guests.length === 0 ? (
-            <EmptyState columnCount={columnCount} />
-          ) : (
-            guests.map((guest, index) => (
-              <SortableRow
-                key={guest.id}
-                guest={guest}
-                index={index + 1}
-                guestIndex={index}
-                visibleColumns={visibleColumns}
-                organization={organization}
-                onUpdate={handleUpdateGuest}
-                onDelete={handleDeleteGuest}
-                onReorder={handleReorder}
-                onMoveToEnd={handleMoveToEnd}
-              />
-            ))
-          )}
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      </div>
 
-      <AddGuestSection onAddGuest={handleAddGuest} loading={addingGuest} />
+      <div className="sticky bottom-0 bg-white border-t shadow-lg z-20">
+        <AddGuestSection onAddGuest={handleAddGuest} loading={addingGuest} />
+      </div>
     </div>
   );
 }

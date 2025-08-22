@@ -224,7 +224,7 @@ export function SortableRow({
 
       {visibleColumns.categories && (
         <TableCell>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex gap-1 justify-start min-w-max">
             {(config.categories || []).map((category) => (
               <TooltipProvider key={category.id}>
                 <Tooltip>

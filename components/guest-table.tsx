@@ -94,7 +94,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   const columnCount = useColumnCount(visibleColumns, organization);
 
   return (
-    <div className="rounded-lg bg-white shadow">
+    <div className="relative rounded-lg bg-white shadow flex flex-col">
       <div className="flex items-center justify-between border-b p-4">
         <h2 className="text-lg font-semibold">Guest List</h2>
         <ColumnSettings
@@ -104,7 +104,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         />
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto flex-1">
         <Table>
           <TableHeader>
             <TableRow>
@@ -113,7 +113,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                 Name
               </TableHead>
               {visibleColumns.categories && (
-                <TableHead className="w-32">Categories</TableHead>
+                <TableHead className="w-40">Categories</TableHead>
               )}
               {visibleColumns.age &&
                 organization.configuration?.ageGroups?.enabled && (
@@ -155,7 +155,9 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         </Table>
       </div>
 
-      <AddGuestSection onAddGuest={handleAddGuest} loading={loading} />
+      <div className="sticky bottom-0 bg-white border-t shadow-lg z-20">
+        <AddGuestSection onAddGuest={handleAddGuest} loading={loading} />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-react';
@@ -14,6 +14,7 @@ interface AddGuestSectionProps {
 export function AddGuestSection({ onAddGuest, loading }: AddGuestSectionProps) {
   const [newGuestName, setNewGuestName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleAddGuest = async () => {
     if (!newGuestName.trim()) return;
@@ -22,6 +23,8 @@ export function AddGuestSection({ onAddGuest, loading }: AddGuestSectionProps) {
     try {
       await onAddGuest(newGuestName);
       setNewGuestName('');
+      // Keep focus on the input after adding
+      inputRef.current?.focus();
     } finally {
       setIsAdding(false);
     }
@@ -31,6 +34,7 @@ export function AddGuestSection({ onAddGuest, loading }: AddGuestSectionProps) {
     <div className="border-t p-4">
       <div className="flex gap-2">
         <Input
+          ref={inputRef}
           placeholder="Add new guest..."
           value={newGuestName}
           onChange={(e) => setNewGuestName(e.target.value)}
