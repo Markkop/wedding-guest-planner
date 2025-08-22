@@ -191,6 +191,45 @@ export function SortableRow({
 
   const isDeclined = guest.confirmation_stage === "declined";
 
+  // Get confirmation stage styling
+  const getConfirmationStageButtonStyle = (stageId: string) => {
+
+    switch (stageId) {
+      case "listed":
+        return {
+          variant: "outline" as const,
+          className: "border-gray-400 text-gray-600 hover:bg-gray-50",
+        };
+      case "invited":
+        return {
+          variant: "default" as const,
+          className: "bg-yellow-500 hover:bg-yellow-600 text-white",
+        };
+      case "confirmed_1":
+      case "confirmed_2":
+      case "confirmed_3":
+        return {
+          variant: "default" as const,
+          className:
+            stageId === "confirmed_1"
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : stageId === "confirmed_2"
+              ? "bg-green-600 hover:bg-green-700 text-white"
+              : "bg-green-700 hover:bg-green-800 text-white",
+        };
+      case "declined":
+        return {
+          variant: "outline" as const,
+          className: "border-gray-400 text-gray-500 hover:bg-gray-50",
+        };
+      default:
+        return {
+          variant: "secondary" as const,
+          className: "",
+        };
+    }
+  };
+
   return (
     <TableRow
       ref={rowRef}
@@ -242,11 +281,25 @@ export function SortableRow({
                         isDeclined && "opacity-50 grayscale"
                       )}
                       style={{
+                        // Apply category color only when the option is selected
                         backgroundColor: guest.categories.includes(category.id)
-                          ? isDeclined ? "#9CA3AF" : category.color
+                          ? isDeclined
+                            ? "#9CA3AF"
+                            : category.color
                           : undefined,
-                        borderColor: isDeclined ? "#9CA3AF" : category.color,
-                        color: isDeclined && guest.categories.includes(category.id) ? "#ffffff" : undefined
+                        // For unselected options, keep the default outline border (no custom color)
+                        borderColor: guest.categories.includes(category.id)
+                          ? isDeclined
+                            ? "#9CA3AF"
+                            : category.color
+                          : isDeclined
+                          ? "#9CA3AF"
+                          : undefined,
+                        // Ensure text remains visible when the button is greyed out due to declined status
+                        color:
+                          isDeclined && guest.categories.includes(category.id)
+                            ? "#ffffff"
+                            : undefined,
                       }}
                     >
                       {category.initial}
@@ -276,12 +329,16 @@ export function SortableRow({
                         className="h-7 min-w-7 p-0 text-xs cursor-pointer"
                         style={{
                           backgroundColor: isSelected
-                            ? isDeclined ? "#9CA3AF" : undefined
+                            ? isDeclined
+                              ? "#9CA3AF"
+                              : undefined
                             : undefined,
                           borderColor: isDeclined ? "#9CA3AF" : undefined,
                           color: isDeclined
-                            ? isSelected ? "#ffffff" : "#6B7280"
-                            : undefined
+                            ? isSelected
+                              ? "#ffffff"
+                              : "#6B7280"
+                            : undefined,
                         }}
                       >
                         {ageGroup.minAge
@@ -319,9 +376,11 @@ export function SortableRow({
                         className="h-7 w-7 p-0 cursor-pointer"
                         style={{
                           backgroundColor: isSelected
-                            ? isDeclined ? "#9CA3AF" : undefined
+                            ? isDeclined
+                              ? "#9CA3AF"
+                              : undefined
                             : undefined,
-                          borderColor: isDeclined ? "#9CA3AF" : undefined
+                          borderColor: isDeclined ? "#9CA3AF" : undefined,
                         }}
                       >
                         {getFoodIcon(foodPref.id, isSelected, isDeclined)}
@@ -341,19 +400,13 @@ export function SortableRow({
           <Button
             size="sm"
             variant={
-              guest.confirmation_stage === "confirmed"
-                ? "default"
-                : guest.confirmation_stage === "declined"
-                ? "outline"
-                : "secondary"
+              getConfirmationStageButtonStyle(guest.confirmation_stage).variant
             }
             onClick={cycleConfirmationStage}
             className={cn(
               "h-8 min-w-20 cursor-pointer",
-              guest.confirmation_stage === "confirmed" &&
-                "bg-green-600 hover:bg-green-700",
-              guest.confirmation_stage === "declined" &&
-                "border-gray-400 text-gray-500 hover:bg-gray-50"
+              getConfirmationStageButtonStyle(guest.confirmation_stage)
+                .className
             )}
           >
             {getConfirmationStageInfo(guest.confirmation_stage).label}

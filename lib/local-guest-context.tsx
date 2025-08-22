@@ -119,20 +119,6 @@ const DEMO_GUESTS: Guest[] = [
   },
 ];
 
-interface GuestContextType {
-  guests: Guest[];
-  loading: boolean;
-  stats: GuestStatistics;
-  organization: Organization | null;
-  setOrganization: (org: Organization | null) => void;
-  loadGuests: (organizationId: string) => Promise<void>;
-  addGuest: (name: string) => Promise<void>;
-  updateGuest: (guestId: string, updates: Partial<Guest>) => Promise<void>;
-  deleteGuest: (guestId: string) => Promise<void>;
-  reorderGuests: (fromIndex: number, toIndex: number) => Promise<void>;
-  moveGuestToEnd: (guestId: string) => Promise<void>;
-}
-
 // Instead of providing a separate context (which breaks components relying on
 // the default GuestContext), we will *also* provide values via the shared
 // GuestContext so that components like StatsCards can consume them without

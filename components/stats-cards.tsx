@@ -14,18 +14,14 @@ export function StatsCards({ organization }: StatsCardsProps) {
   const { stats } = useGuests();
 
   const categories = organization.configuration?.categories || [];
-  const confirmationStages = organization.configuration?.confirmationStages?.stages || [];
 
-  // Default colors for confirmation stages
-  const getConfirmationColor = (stageId: string) => {
-    switch (stageId) {
-      case 'invited': return '#6B7280';    // Neutral/gray
-      case 'pending': return '#F59E0B';    // Yellow
-      case 'confirmed': return '#10B981';  // Green
-      case 'declined': return '#EF4444';   // Red
-      default: return '#6B7280';           // Default neutral
-    }
-  };
+  // Calculate aggregated counts for the new display format
+  const listedCount = stats.byConfirmationStage?.['listed'] || 0;
+  const invitedCount = stats.byConfirmationStage?.['invited'] || 0;
+  const confirmedCount = (stats.byConfirmationStage?.['confirmed_1'] || 0) + 
+                        (stats.byConfirmationStage?.['confirmed_2'] || 0) + 
+                        (stats.byConfirmationStage?.['confirmed_3'] || 0);
+  const declinedCount = stats.byConfirmationStage?.['declined'] || 0;
 
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -54,7 +50,7 @@ export function StatsCards({ organization }: StatsCardsProps) {
         </CardContent>
       </Card>
       
-      {/* Confirmations Card */}
+      {/* Invitations Card */}
       {organization.configuration?.confirmationStages?.enabled && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
@@ -63,18 +59,20 @@ export function StatsCards({ organization }: StatsCardsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold flex items-center gap-1">
-              {confirmationStages
-                .sort((a, b) => a.order - b.order)
-                .map((stage, index) => (
-                  <span key={stage.id}>
-                    <span style={{ color: stage.color || getConfirmationColor(stage.id) }}>
-                      {stats.byConfirmationStage?.[stage.id] || 0}
-                    </span>
-                    {index < confirmationStages.length - 1 && (
-                      <span className="text-muted-foreground mx-1">/</span>
-                    )}
-                  </span>
-                ))}
+              {/* Listed - Gray */}
+              <span style={{ color: '#6B7280' }}>{listedCount}</span>
+              <span className="text-muted-foreground mx-1">/</span>
+              
+              {/* Invited - Yellow */}
+              <span style={{ color: '#F59E0B' }}>{invitedCount}</span>
+              <span className="text-muted-foreground mx-1">/</span>
+              
+              {/* All Confirmed stages combined - Green */}
+              <span style={{ color: '#22C55E' }}>{confirmedCount}</span>
+              <span className="text-muted-foreground mx-1">/</span>
+              
+              {/* Declined - Gray */}
+              <span style={{ color: '#6B7280' }}>{declinedCount}</span>
             </div>
           </CardContent>
         </Card>
