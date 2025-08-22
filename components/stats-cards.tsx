@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, Heart } from 'lucide-react';
+import { CardSkeleton } from '@/components/ui/loading-spinner';
 
 interface CategoryConfig {
   id: string;
@@ -57,8 +58,10 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
     byCategory: {},
     byConfirmationStage: {},
   });
+  const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await fetch(`/api/organizations/${organizationId}/stats`);
       const data = await response.json();
@@ -67,6 +70,8 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
       }
     } catch {
       // Silently handle errors
+    } finally {
+      setLoading(false);
     }
   }, [organizationId]);
 
@@ -79,6 +84,18 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
     : 0;
 
   const categories = organization.configuration.categories;
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <CardSkeleton />
+        <CardSkeleton />
+        {categories.map((category) => (
+          <CardSkeleton key={category.id} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

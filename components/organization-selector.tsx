@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import type { Organization, EventTypePreset } from '@/lib/types';
+import { LoadingContent, InlineSpinner } from '@/components/ui/loading-spinner';
 
 const createOrgSchema = z.object({
   name: z.string().min(1, 'Organization name is required'),
@@ -33,6 +34,9 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [eventPresets, setEventPresets] = useState<EventTypePreset[]>([]);
   const [loading, setLoading] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [fetchingOrgs, setFetchingOrgs] = useState(true);
 
   const createForm = useForm<CreateOrgForm>({
     resolver: zodResolver(createOrgSchema),
@@ -55,6 +59,7 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
   }, []);
 
   async function fetchOrganizations() {
+    setFetchingOrgs(true);
     try {
       const response = await fetch('/api/organizations');
       const data = await response.json();
@@ -63,6 +68,8 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
       }
     } catch {
       console.error('Failed to fetch organizations');
+    } finally {
+      setFetchingOrgs(false);
     }
   }
 
@@ -79,7 +86,7 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
   }
 
   async function onCreateOrg(data: CreateOrgForm) {
-    setLoading(true);
+    setCreateLoading(true);
     try {
       const response = await fetch('/api/organizations', {
         method: 'POST',
@@ -97,12 +104,12 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
     } catch {
       toast.error('Failed to create organization');
     } finally {
-      setLoading(false);
+      setCreateLoading(false);
     }
   }
 
   async function onJoinOrg(data: JoinOrgForm) {
-    setLoading(true);
+    setJoinLoading(true);
     try {
       const response = await fetch('/api/organizations/join', {
         method: 'POST',
@@ -120,7 +127,7 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
     } catch {
       toast.error('Failed to join organization');
     } finally {
-      setLoading(false);
+      setJoinLoading(false);
     }
   }
 
@@ -137,7 +144,12 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {organizations.length > 0 && (
+          {fetchingOrgs ? (
+            <div className="mb-6">
+              <h3 className="mb-2 text-sm font-medium">Your Organizations</h3>
+              <LoadingContent text="Loading organizations..." className="py-4" />
+            </div>
+          ) : organizations.length > 0 ? (
             <div className="mb-6">
               <h3 className="mb-2 text-sm font-medium">Your Organizations</h3>
               <div className="space-y-2">
@@ -158,7 +170,7 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           <Tabs defaultValue="create">
             <TabsList className="grid w-full grid-cols-2">
@@ -244,8 +256,15 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
                     </div>
                   )}
                   
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Creating...' : 'Create Organization'}
+                  <Button type="submit" className="w-full" disabled={createLoading}>
+                    {createLoading ? (
+                      <>
+                        <InlineSpinner size="sm" className="mr-2" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Organization'
+                    )}
                   </Button>
                 </form>
               </Form>
@@ -268,8 +287,15 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
                     )}
                   />
                   
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Joining...' : 'Join Organization'}
+                  <Button type="submit" className="w-full" disabled={joinLoading}>
+                    {joinLoading ? (
+                      <>
+                        <InlineSpinner size="sm" className="mr-2" />
+                        Joining...
+                      </>
+                    ) : (
+                      'Join Organization'
+                    )}
                   </Button>
                 </form>
               </Form>

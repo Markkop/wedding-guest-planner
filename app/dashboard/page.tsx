@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { LogOut, Settings } from 'lucide-react';
 import type { Organization } from '@/lib/types';
+import { LoadingContent } from '@/components/ui/loading-spinner';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -51,8 +52,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div>Loading...</div>
+      <div className="min-h-screen bg-gray-50">
+        <LoadingContent text="Loading dashboard..." className="min-h-screen" />
       </div>
     );
   }

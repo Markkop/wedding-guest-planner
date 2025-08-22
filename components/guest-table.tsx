@@ -23,6 +23,7 @@ import {
 import { SortableRow } from './sortable-row';
 import { toast } from 'sonner';
 import { Plus, Settings } from 'lucide-react';
+import { LoadingContent, TableRowSkeleton, InlineSpinner } from '@/components/ui/loading-spinner';
 
 interface Guest {
   id: string;
@@ -84,10 +85,12 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     food: organization.configuration.foodPreferences.enabled,
     confirmations: organization.configuration.confirmationStages.enabled,
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [addingGuest, setAddingGuest] = useState(false);
   const tableBodyRef = useRef<HTMLTableSectionElement | null>(null);
 
   const fetchGuests = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await fetch(`/api/organizations/${organizationId}/guests`);
       const data = await response.json();
@@ -98,6 +101,8 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to fetch guests');
+    } finally {
+      setLoading(false);
     }
   }, [organizationId]);
 
@@ -132,7 +137,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     
     setGuests([...guests, newGuest]);
     setNewGuestName('');
-    setLoading(true);
+    setAddingGuest(true);
     
     try {
       const response = await fetch(`/api/organizations/${organizationId}/guests`, {
@@ -157,7 +162,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       setNewGuestName(newGuest.name);
       toast.error(error instanceof Error ? error.message : 'Failed to add guest');
     } finally {
-      setLoading(false);
+      setAddingGuest(false);
     }
   }
 
@@ -389,20 +394,65 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody ref={tableBodyRef}>
-          {guests.map((guest, index) => (
-            <SortableRow
-              key={guest.id}
-              guest={guest}
-              index={index + 1}
-              guestIndex={index}
-              visibleColumns={visibleColumns}
-              organization={organization}
-              onUpdate={handleUpdateGuest}
-              onDelete={handleDeleteGuest}
-              onReorder={handleReorder}
-              onMoveToEnd={handleMoveToEnd}
-            />
-          ))}
+          {loading ? (
+            <>
+              <TableRowSkeleton columns={
+                3 + // base columns (drag, #, name)
+                (visibleColumns.categories ? 1 : 0) +
+                (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
+                (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
+                (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                1 // actions column
+              } />
+              <TableRowSkeleton columns={
+                3 + // base columns (drag, #, name)
+                (visibleColumns.categories ? 1 : 0) +
+                (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
+                (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
+                (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                1 // actions column
+              } />
+              <TableRowSkeleton columns={
+                3 + // base columns (drag, #, name)
+                (visibleColumns.categories ? 1 : 0) +
+                (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
+                (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
+                (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                1 // actions column
+              } />
+            </>
+          ) : guests.length === 0 ? (
+            <tr>
+              <td 
+                colSpan={
+                  3 + // base columns
+                  (visibleColumns.categories ? 1 : 0) +
+                  (visibleColumns.age && organization.configuration.ageGroups.enabled ? 1 : 0) +
+                  (visibleColumns.food && organization.configuration.foodPreferences.enabled ? 1 : 0) +
+                  (visibleColumns.confirmations && organization.configuration.confirmationStages.enabled ? 1 : 0) +
+                  1 // actions column
+                }
+                className="text-center py-8 text-muted-foreground"
+              >
+                No guests added yet. Add your first guest below.
+              </td>
+            </tr>
+          ) : (
+            guests.map((guest, index) => (
+              <SortableRow
+                key={guest.id}
+                guest={guest}
+                index={index + 1}
+                guestIndex={index}
+                visibleColumns={visibleColumns}
+                organization={organization}
+                onUpdate={handleUpdateGuest}
+                onDelete={handleDeleteGuest}
+                onReorder={handleReorder}
+                onMoveToEnd={handleMoveToEnd}
+              />
+            ))
+          )}
         </TableBody>
       </Table>
       
@@ -415,9 +465,13 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
             onKeyDown={(e) => e.key === 'Enter' && handleAddGuest()}
             disabled={loading}
           />
-          <Button onClick={handleAddGuest} disabled={loading || !newGuestName.trim()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Guest
+          <Button onClick={handleAddGuest} disabled={addingGuest || !newGuestName.trim()}>
+            {addingGuest ? (
+              <InlineSpinner size="sm" className="mr-2" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
+            {addingGuest ? 'Adding...' : 'Add Guest'}
           </Button>
         </div>
       </div>

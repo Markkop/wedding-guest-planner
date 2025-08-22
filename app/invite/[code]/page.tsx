@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Users, Building2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { LoadingContent, InlineSpinner } from '@/components/ui/loading-spinner';
 
 interface InvitePageProps {
   params: Promise<{ code: string }>;
@@ -84,11 +85,8 @@ export default function InvitePage({ params }: InvitePageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Loading invite...</span>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <LoadingContent text="Loading invite..." className="min-h-screen" />
       </div>
     );
   }
@@ -185,7 +183,7 @@ export default function InvitePage({ params }: InvitePageProps) {
             >
               {joining ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <InlineSpinner size="sm" className="mr-2" />
                   {user ? 'Joining...' : 'Redirecting...'}
                 </>
               ) : (
