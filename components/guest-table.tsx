@@ -27,11 +27,11 @@ import { Plus, Settings } from 'lucide-react';
 interface Guest {
   id: string;
   name: string;
-  category: 'partner1' | 'partner2';
-  age_group: 'adult' | '7years' | '11years';
-  food_preference: 'none' | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free';
-  confirmation_stage: number;
-  declined: boolean;
+  categories: string[];
+  age_group?: string;
+  food_preference?: string;
+  confirmation_stage: string;
+  custom_fields: Record<string, unknown>;
   display_order: number;
 }
 
@@ -40,10 +40,38 @@ interface GuestTableProps {
   organization: {
     id: string;
     name: string;
-    partner1_label?: string;
-    partner1_initial?: string;
-    partner2_label?: string;
-    partner2_initial?: string;
+    event_type: string;
+    configuration: {
+      categories: Array<{
+        id: string;
+        label: string;
+        initial: string;
+        color: string;
+      }>;
+      ageGroups: {
+        enabled: boolean;
+        groups: Array<{
+          id: string;
+          label: string;
+          minAge?: number;
+        }>;
+      };
+      foodPreferences: {
+        enabled: boolean;
+        options: Array<{
+          id: string;
+          label: string;
+        }>;
+      };
+      confirmationStages: {
+        enabled: boolean;
+        stages: Array<{
+          id: string;
+          label: string;
+          order: number;
+        }>;
+      };
+    };
   };
 }
 
@@ -51,13 +79,12 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [newGuestName, setNewGuestName] = useState('');
   const [visibleColumns, setVisibleColumns] = useState({
-    category: true,
-    age: true,
-    food: true,
-    confirmations: true,
+    categories: true,
+    age: organization.configuration.ageGroups.enabled,
+    food: organization.configuration.foodPreferences.enabled,
+    confirmations: organization.configuration.confirmationStages.enabled,
   });
   const [loading, setLoading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const tableBodyRef = useRef<HTMLTableSectionElement | null>(null);
 
   const fetchGuests = useCallback(async () => {
@@ -91,14 +118,15 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     
     // Optimistic update - add guest immediately
     const tempId = `temp-${Date.now()}`;
+    const config = organization.configuration;
     const newGuest: Guest = {
       id: tempId,
       name: newGuestName,
-      category: 'partner1',
-      age_group: 'adult',
-      food_preference: 'none',
-      confirmation_stage: 0,
-      declined: false,
+      categories: [config.categories[0]?.id || ''],
+      age_group: config.ageGroups.enabled ? config.ageGroups.groups[0]?.id : undefined,
+      food_preference: config.foodPreferences.enabled ? config.foodPreferences.options[0]?.id : undefined,
+      confirmation_stage: config.confirmationStages.enabled ? config.confirmationStages.stages[0]?.id : 'invited',
+      custom_fields: {},
       display_order: guests.length
     };
     
@@ -203,10 +231,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   useEffect(() => {
     const cleanup = monitorForElements({
       onDragStart() {
-        setIsDragging(true);
+        // Drag started
       },
       onDrop() {
-        setIsDragging(false);
+        // Drag ended
       },
     });
     return cleanup;
@@ -301,40 +329,46 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
               <div className="space-y-2">
                 <label className="flex items-center space-x-2">
                   <Checkbox
-                    checked={visibleColumns.category}
+                    checked={visibleColumns.categories}
                     onCheckedChange={(checked) =>
-                      setVisibleColumns({ ...visibleColumns, category: !!checked })
+                      setVisibleColumns({ ...visibleColumns, categories: !!checked })
                     }
                   />
-                  <span className="text-sm">Category</span>
+                  <span className="text-sm">Categories</span>
                 </label>
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={visibleColumns.age}
-                    onCheckedChange={(checked) =>
-                      setVisibleColumns({ ...visibleColumns, age: !!checked })
-                    }
-                  />
-                  <span className="text-sm">Age</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={visibleColumns.food}
-                    onCheckedChange={(checked) =>
-                      setVisibleColumns({ ...visibleColumns, food: !!checked })
-                    }
-                  />
-                  <span className="text-sm">Food Preference</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={visibleColumns.confirmations}
-                    onCheckedChange={(checked) =>
-                      setVisibleColumns({ ...visibleColumns, confirmations: !!checked })
-                    }
-                  />
-                  <span className="text-sm">Confirmations</span>
-                </label>
+                {organization.configuration.ageGroups.enabled && (
+                  <label className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={visibleColumns.age}
+                      onCheckedChange={(checked) =>
+                        setVisibleColumns({ ...visibleColumns, age: !!checked })
+                      }
+                    />
+                    <span className="text-sm">Age</span>
+                  </label>
+                )}
+                {organization.configuration.foodPreferences.enabled && (
+                  <label className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={visibleColumns.food}
+                      onCheckedChange={(checked) =>
+                        setVisibleColumns({ ...visibleColumns, food: !!checked })
+                      }
+                    />
+                    <span className="text-sm">Food Preference</span>
+                  </label>
+                )}
+                {organization.configuration.confirmationStages.enabled && (
+                  <label className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={visibleColumns.confirmations}
+                      onCheckedChange={(checked) =>
+                        setVisibleColumns({ ...visibleColumns, confirmations: !!checked })
+                      }
+                    />
+                    <span className="text-sm">Confirmations</span>
+                  </label>
+                )}
               </div>
             </div>
           </DropdownMenuContent>
@@ -347,10 +381,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
             <TableHead className="w-12"></TableHead>
             <TableHead className="w-12">#</TableHead>
             <TableHead>Name</TableHead>
-            {visibleColumns.category && <TableHead className="w-24">Category</TableHead>}
-            {visibleColumns.age && <TableHead className="w-24">Age</TableHead>}
-            {visibleColumns.food && <TableHead className="w-32">Food</TableHead>}
-            {visibleColumns.confirmations && <TableHead className="w-32">Confirmations</TableHead>}
+            {visibleColumns.categories && <TableHead className="w-32">Categories</TableHead>}
+            {visibleColumns.age && organization.configuration.ageGroups.enabled && <TableHead className="w-24">Age</TableHead>}
+            {visibleColumns.food && organization.configuration.foodPreferences.enabled && <TableHead className="w-32">Food</TableHead>}
+            {visibleColumns.confirmations && organization.configuration.confirmationStages.enabled && <TableHead className="w-32">Status</TableHead>}
             <TableHead className="w-32">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -363,7 +397,6 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
               guestIndex={index}
               visibleColumns={visibleColumns}
               organization={organization}
-              isDragging={isDragging}
               onUpdate={handleUpdateGuest}
               onDelete={handleDeleteGuest}
               onReorder={handleReorder}

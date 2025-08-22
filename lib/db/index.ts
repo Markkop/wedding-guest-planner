@@ -21,10 +21,8 @@ export type Organization = {
   name: string;
   invite_code: string;
   admin_id: string;
-  partner1_label: string;
-  partner1_initial: string;
-  partner2_label: string;
-  partner2_initial: string;
+  event_type: string;
+  configuration: Record<string, unknown>; // JSONB
   created_at: Date;
   updated_at: Date;
 };
@@ -33,11 +31,11 @@ export type Guest = {
   id: string;
   organization_id: string;
   name: string;
-  category: 'partner1' | 'partner2';
-  age_group: 'adult' | '7years' | '11years';
-  food_preference: 'none' | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free';
-  confirmation_stage: number;
-  declined: boolean;
+  categories: string[];
+  age_group?: string;
+  food_preference?: string;
+  confirmation_stage: string;
+  custom_fields: Record<string, unknown>; // JSONB
   display_order: number;
   created_at: Date;
   updated_at: Date;

@@ -7,15 +7,62 @@ export interface User {
   updated_at: Date;
 }
 
+// Configuration Types
+export interface CategoryConfig {
+  id: string;
+  label: string;
+  initial: string;
+  color: string;
+}
+
+export interface AgeGroupConfig {
+  id: string;
+  label: string;
+  minAge?: number;
+}
+
+export interface FoodPreferenceConfig {
+  id: string;
+  label: string;
+}
+
+export interface ConfirmationStageConfig {
+  id: string;
+  label: string;
+  order: number;
+}
+
+export interface EventConfiguration {
+  categories: CategoryConfig[];
+  ageGroups: {
+    enabled: boolean;
+    groups: AgeGroupConfig[];
+  };
+  foodPreferences: {
+    enabled: boolean;
+    options: FoodPreferenceConfig[];
+  };
+  confirmationStages: {
+    enabled: boolean;
+    stages: ConfirmationStageConfig[];
+  };
+}
+
+export interface EventTypePreset {
+  id: string;
+  name: string;
+  description?: string;
+  default_config: EventConfiguration;
+  created_at: Date;
+}
+
 export interface Organization {
   id: string;
   name: string;
   invite_code: string;
   admin_id: string;
-  partner1_label: string;
-  partner1_initial: string;
-  partner2_label: string;
-  partner2_initial: string;
+  event_type: string;
+  configuration: EventConfiguration;
   created_at: Date;
   updated_at: Date;
   role?: 'admin' | 'member';
@@ -25,11 +72,11 @@ export interface Guest {
   id: string;
   organization_id: string;
   name: string;
-  category: 'partner1' | 'partner2';
-  age_group: 'adult' | '7years' | '11years';
-  food_preference: 'none' | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free';
-  confirmation_stage: number;
-  declined: boolean;
+  categories: string[];
+  age_group?: string;
+  food_preference?: string;
+  confirmation_stage: string;
+  custom_fields: Record<string, unknown>;
   display_order: number;
   created_at: Date;
   updated_at: Date;
@@ -37,7 +84,7 @@ export interface Guest {
 }
 
 export interface ColumnVisibility {
-  category: boolean;
+  categories: boolean;
   age: boolean;
   food: boolean;
   confirmations: boolean;
@@ -46,6 +93,8 @@ export interface ColumnVisibility {
 export interface GuestStatistics {
   total: number;
   confirmed: number;
-  partner1_count: number;
-  partner2_count: number;
+  invited: number;
+  declined: number;
+  byCategory: Record<string, number>;
+  byConfirmationStage: Record<string, number>;
 }

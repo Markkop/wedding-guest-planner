@@ -2,6 +2,8 @@ import { nanoid } from 'nanoid';
 import { sql } from '@/lib/db';
 import { safeRequireUser, safeGetUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
+import { EventConfigService } from './event-config-service';
+import type { EventConfiguration } from '@/lib/types';
 
 export class OrganizationService {
   static generateInviteCode(): string {
@@ -10,10 +12,8 @@ export class OrganizationService {
 
   static async createOrganization(
     name: string,
-    partner1Label = 'Bride',
-    partner1Initial = 'B',
-    partner2Label = 'Groom',
-    partner2Initial = 'G'
+    eventType: string = 'wedding',
+    customConfig?: Partial<EventConfiguration>
   ) {
     const user = await safeRequireUser();
 
@@ -27,16 +27,28 @@ export class OrganizationService {
 
     const inviteCode = this.generateInviteCode();
 
+    // Get the preset configuration for the event type
+    const preset = await EventConfigService.getEventTypePreset(eventType);
+    if (!preset) {
+      throw new Error(`Unknown event type: ${eventType}`);
+    }
+
+    // Merge preset with custom configuration if provided
+    const finalConfig = customConfig 
+      ? EventConfigService.mergeConfiguration(preset.default_config, customConfig)
+      : preset.default_config;
+
+    // Validate the final configuration
+    if (!EventConfigService.validateConfiguration(finalConfig)) {
+      throw new Error('Invalid event configuration');
+    }
+
     const result = await sql`
       INSERT INTO organizations (
-        name, invite_code, admin_id,
-        partner1_label, partner1_initial,
-        partner2_label, partner2_initial
+        name, invite_code, admin_id, event_type, configuration
       )
       VALUES (
-        ${name}, ${inviteCode}, ${user.id},
-        ${partner1Label}, ${partner1Initial},
-        ${partner2Label}, ${partner2Initial}
+        ${name}, ${inviteCode}, ${user.id}, ${eventType}, ${JSON.stringify(finalConfig)}
       )
       RETURNING *
     `;
@@ -125,10 +137,8 @@ export class OrganizationService {
     organizationId: string,
     data: {
       name?: string;
-      partner1_label?: string;
-      partner1_initial?: string;
-      partner2_label?: string;
-      partner2_initial?: string;
+      event_type?: string;
+      configuration?: EventConfiguration;
     }
   ) {
     const user = await safeRequireUser();
@@ -142,13 +152,17 @@ export class OrganizationService {
       throw new Error('Only admins can update organization settings');
     }
 
+    // If updating configuration, validate it first
+    if (data.configuration && !EventConfigService.validateConfiguration(data.configuration)) {
+      throw new Error('Invalid event configuration');
+    }
+
     const result = await sql`
       UPDATE organizations
       SET name = COALESCE(${data.name}, name),
-          partner1_label = COALESCE(${data.partner1_label}, partner1_label),
-          partner1_initial = COALESCE(${data.partner1_initial}, partner1_initial),
-          partner2_label = COALESCE(${data.partner2_label}, partner2_label),
-          partner2_initial = COALESCE(${data.partner2_initial}, partner2_initial)
+          event_type = COALESCE(${data.event_type}, event_type),
+          configuration = COALESCE(${data.configuration ? JSON.stringify(data.configuration) : null}, configuration),
+          updated_at = CURRENT_TIMESTAMP
       WHERE id = ${organizationId}
       RETURNING *
     `;

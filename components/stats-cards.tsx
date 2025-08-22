@@ -4,13 +4,34 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, Heart } from 'lucide-react';
 
+interface CategoryConfig {
+  id: string;
+  label: string;
+  initial: string;
+  color: string;
+}
+
+interface EventConfiguration {
+  categories: CategoryConfig[];
+  ageGroups: {
+    enabled: boolean;
+    groups: Array<{ id: string; label: string; minAge?: number; }>;
+  };
+  foodPreferences: {
+    enabled: boolean;
+    options: Array<{ id: string; label: string; }>;
+  };
+  confirmationStages: {
+    enabled: boolean;
+    stages: Array<{ id: string; label: string; order: number; }>;
+  };
+}
+
 interface Organization {
   id: string;
   name: string;
-  partner1_label?: string;
-  partner1_initial?: string;
-  partner2_label?: string;
-  partner2_initial?: string;
+  event_type: string;
+  configuration: EventConfiguration;
 }
 
 interface StatsCardsProps {
@@ -18,12 +39,23 @@ interface StatsCardsProps {
   organization: Organization;
 }
 
+interface GuestStatistics {
+  total: number;
+  confirmed: number;
+  invited: number;
+  declined: number;
+  byCategory: Record<string, number>;
+  byConfirmationStage: Record<string, number>;
+}
+
 export function StatsCards({ organizationId, organization }: StatsCardsProps) {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<GuestStatistics>({
     total: 0,
     confirmed: 0,
-    partner1_count: 0,
-    partner2_count: 0,
+    invited: 0,
+    declined: 0,
+    byCategory: {},
+    byConfirmationStage: {},
   });
 
   const fetchStats = useCallback(async () => {
@@ -34,6 +66,7 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
         setStats(data.stats);
       }
     } catch {
+      // Silently handle errors
     }
   }, [organizationId]);
 
@@ -44,6 +77,8 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
   const confirmedPercentage = stats.total > 0 
     ? Math.round((stats.confirmed / stats.total) * 100) 
     : 0;
+
+  const categories = organization.configuration.categories;
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -68,29 +103,19 @@ export function StatsCards({ organizationId, organization }: StatsCardsProps) {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            {organization.partner1_label} ({organization.partner1_initial})
-          </CardTitle>
-          <Heart className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.partner1_count}</div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            {organization.partner2_label} ({organization.partner2_initial})
-          </CardTitle>
-          <Heart className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats.partner2_count}</div>
-        </CardContent>
-      </Card>
+      {categories.map((category) => (
+        <Card key={category.id}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {category.label} ({category.initial})
+            </CardTitle>
+            <Heart className="h-4 w-4 text-muted-foreground" style={{ color: category.color }} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.byCategory[category.id] || 0}</div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

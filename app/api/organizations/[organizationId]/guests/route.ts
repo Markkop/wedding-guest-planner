@@ -4,9 +4,10 @@ import { z } from 'zod';
 
 const createGuestSchema = z.object({
   name: z.string().min(1),
-  category: z.enum(['partner1', 'partner2']).optional(),
-  age_group: z.enum(['adult', '7years', '11years']).optional(),
-  food_preference: z.enum(['none', 'vegetarian', 'vegan', 'gluten_free', 'dairy_free']).optional(),
+  categories: z.array(z.string()).optional(),
+  age_group: z.string().optional(),
+  food_preference: z.string().optional(),
+  confirmation_stage: z.string().optional(),
 });
 
 export async function GET(

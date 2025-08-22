@@ -2,6 +2,7 @@ import { sql } from '@/lib/db';
 import { safeRequireUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
 import type { Guest } from '@/lib/db';
+import type { EventConfiguration } from '@/lib/types';
 
 export class GuestService {
   static async getGuests(organizationId: string) {
@@ -37,9 +38,10 @@ export class GuestService {
     organizationId: string,
     data: {
       name: string;
-      category?: 'partner1' | 'partner2';
-      age_group?: 'adult' | '7years' | '11years';
-      food_preference?: 'none' | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free';
+      categories?: string[];
+      age_group?: string;
+      food_preference?: string;
+      confirmation_stage?: string;
     }
   ) {
     const user = await safeRequireUser();
@@ -69,17 +71,35 @@ export class GuestService {
 
     const nextOrder = (maxOrderResult[0].max_order || 0) + 1;
 
+    // Get organization configuration to set defaults
+    const orgResult = await sql`
+      SELECT configuration FROM organizations WHERE id = ${organizationId}
+    `;
+    
+    if (orgResult.length === 0) {
+      throw new Error('Organization not found');
+    }
+    
+    const config = orgResult[0].configuration as EventConfiguration;
+    
+    // Set defaults based on configuration
+    const categories = data.categories || [config.categories[0]?.id || ''];
+    const ageGroup = data.age_group || (config.ageGroups.enabled ? config.ageGroups.groups[0]?.id : null);
+    const foodPreference = data.food_preference || (config.foodPreferences.enabled ? config.foodPreferences.options[0]?.id : null);
+    const confirmationStage = data.confirmation_stage || (config.confirmationStages.enabled ? config.confirmationStages.stages[0]?.id : 'invited');
+
     const result = await sql`
       INSERT INTO guests (
-        organization_id, name, category, age_group, 
-        food_preference, display_order, created_by
+        organization_id, name, categories, age_group, 
+        food_preference, confirmation_stage, display_order, created_by
       )
       VALUES (
         ${organizationId},
         ${data.name},
-        ${data.category || 'partner1'},
-        ${data.age_group || 'adult'},
-        ${data.food_preference || 'none'},
+        ${categories},
+        ${ageGroup},
+        ${foodPreference},
+        ${confirmationStage},
         ${nextOrder},
         ${user.id}
       )
@@ -93,11 +113,11 @@ export class GuestService {
     guestId: string,
     data: Partial<{
       name: string;
-      category: 'partner1' | 'partner2';
-      age_group: 'adult' | '7years' | '11years';
-      food_preference: 'none' | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free';
-      confirmation_stage: number;
-      declined: boolean;
+      categories: string[];
+      age_group: string;
+      food_preference: string;
+      confirmation_stage: string;
+      custom_fields: Record<string, unknown>;
     }>
   ) {
     const user = await safeRequireUser();
@@ -129,11 +149,11 @@ export class GuestService {
       UPDATE guests
       SET 
         name = COALESCE(${data.name}, name),
-        category = COALESCE(${data.category}, category),
+        categories = COALESCE(${data.categories || null}, categories),
         age_group = COALESCE(${data.age_group}, age_group),
         food_preference = COALESCE(${data.food_preference}, food_preference),
         confirmation_stage = COALESCE(${data.confirmation_stage}, confirmation_stage),
-        declined = COALESCE(${data.declined}, declined),
+        custom_fields = COALESCE(${data.custom_fields ? JSON.stringify(data.custom_fields) : null}, custom_fields),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${guestId}
       RETURNING *
@@ -260,16 +280,72 @@ export class GuestService {
       throw new Error('Access denied');
     }
 
-    const stats = await sql`
+    // Get organization configuration for dynamic statistics
+    const orgResult = await sql`
+      SELECT configuration FROM organizations WHERE id = ${organizationId}
+    `;
+    
+    if (orgResult.length === 0) {
+      throw new Error('Organization not found');
+    }
+    
+    const config = orgResult[0].configuration as EventConfiguration;
+    
+    // Basic stats
+    const basicStats = await sql`
       SELECT 
         COUNT(*) as total,
-        COUNT(CASE WHEN confirmation_stage = 3 AND NOT declined THEN 1 END) as confirmed,
-        COUNT(CASE WHEN category = 'partner1' AND NOT declined THEN 1 END) as partner1_count,
-        COUNT(CASE WHEN category = 'partner2' AND NOT declined THEN 1 END) as partner2_count
+        COUNT(CASE WHEN confirmation_stage = 'invited' THEN 1 END) as invited
       FROM guests
       WHERE organization_id = ${organizationId}
     `;
+    
+    // Get confirmation stage counts
+    const stageStats = await sql`
+      SELECT confirmation_stage, COUNT(*) as count
+      FROM guests
+      WHERE organization_id = ${organizationId}
+      GROUP BY confirmation_stage
+    `;
+    
+    // Get category counts (handle TEXT[] array)
+    const categoryStats = await sql`
+      SELECT 
+        unnest(categories) as category,
+        COUNT(*) as count
+      FROM guests
+      WHERE organization_id = ${organizationId}
+      GROUP BY unnest(categories)
+    `;
+    
+    const byConfirmationStage: Record<string, number> = {};
+    const byCategory: Record<string, number> = {};
+    
+    // Populate confirmation stage counts
+    for (const stage of config.confirmationStages.stages) {
+      byConfirmationStage[stage.id] = 0;
+    }
+    for (const stat of stageStats) {
+      byConfirmationStage[stat.confirmation_stage] = Number(stat.count);
+    }
+    
+    // Populate category counts
+    for (const category of config.categories) {
+      byCategory[category.id] = 0;
+    }
+    for (const stat of categoryStats) {
+      byCategory[stat.category] = Number(stat.count);
+    }
+    
+    const stats = {
+      total: Number(basicStats[0].total),
+      invited: Number(basicStats[0].invited),
+      confirmed: byConfirmationStage.confirmed || 0,
+      declined: byConfirmationStage.declined || 0,
+      byCategory,
+      byConfirmationStage
+    };
 
-    return stats[0];
+    return stats;
   }
 }

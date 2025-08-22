@@ -21,8 +21,6 @@ import {
   X,
   Trash2,
   ArrowDown,
-  XCircle,
-  User,
   Leaf,
   Wheat,
   Milk,
@@ -33,29 +31,66 @@ import { cn } from '@/lib/utils';
 interface Guest {
   id: string;
   name: string;
-  category: 'partner1' | 'partner2';
-  age_group: 'adult' | '7years' | '11years';
-  food_preference: 'none' | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free';
-  confirmation_stage: number;
-  declined: boolean;
+  categories: string[];
+  age_group?: string;
+  food_preference?: string;
+  confirmation_stage: string;
+  custom_fields: Record<string, unknown>;
   display_order: number;
 }
 
 interface VisibleColumns {
-  category: boolean;
+  categories: boolean;
   age: boolean;
   food: boolean;
   confirmations: boolean;
-  confirmation?: boolean;
+}
+
+interface CategoryConfig {
+  id: string;
+  label: string;
+  initial: string;
+  color: string;
+}
+
+interface AgeGroupConfig {
+  id: string;
+  label: string;
+  minAge?: number;
+}
+
+interface FoodPreferenceConfig {
+  id: string;
+  label: string;
+}
+
+interface ConfirmationStageConfig {
+  id: string;
+  label: string;
+  order: number;
+}
+
+interface EventConfiguration {
+  categories: CategoryConfig[];
+  ageGroups: {
+    enabled: boolean;
+    groups: AgeGroupConfig[];
+  };
+  foodPreferences: {
+    enabled: boolean;
+    options: FoodPreferenceConfig[];
+  };
+  confirmationStages: {
+    enabled: boolean;
+    stages: ConfirmationStageConfig[];
+  };
 }
 
 interface Organization {
   id: string;
   name: string;
-  partner1_label?: string;
-  partner1_initial?: string;
-  partner2_label?: string;
-  partner2_initial?: string;
+  event_type: string;
+  configuration: EventConfiguration;
 }
 
 interface SortableRowProps {
@@ -64,7 +99,6 @@ interface SortableRowProps {
   guestIndex: number;
   visibleColumns: VisibleColumns;
   organization: Organization;
-  isDragging: boolean;
   onUpdate: (guestId: string, updates: Partial<Guest>) => void;
   onDelete: (guestId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
@@ -77,7 +111,6 @@ export function SortableRow({
   guestIndex,
   visibleColumns,
   organization,
-  isDragging,
   onUpdate,
   onDelete,
   onReorder,
@@ -90,6 +123,8 @@ export function SortableRow({
   
   const rowRef = useRef<HTMLTableRowElement | null>(null);
   const dragHandleRef = useRef<HTMLDivElement | null>(null);
+
+  const config = organization.configuration;
 
   useEffect(() => {
     if (!rowRef.current || !dragHandleRef.current) return;
@@ -106,7 +141,7 @@ export function SortableRow({
       onGenerateDragPreview({ nativeSetDragImage }) {
         // Create a better drag preview
         const el = rowRef.current!;
-        nativeSetDragImage(el, 20, 20);
+        nativeSetDragImage?.(el, 20, 20);
       },
       onDragStart() {
         setIsBeingDragged(true);
@@ -160,29 +195,61 @@ export function SortableRow({
     setIsEditing(false);
   };
 
-  const cycleConfirmation = () => {
-    const nextStage = (guest.confirmation_stage + 1) % 4;
-    onUpdate(guest.id, { confirmation_stage: nextStage });
+  const toggleCategory = (categoryId: string) => {
+    const newCategories = guest.categories.includes(categoryId)
+      ? guest.categories.filter(id => id !== categoryId)
+      : [...guest.categories, categoryId];
+    
+    // Ensure at least one category is always selected
+    if (newCategories.length === 0) {
+      return;
+    }
+    
+    onUpdate(guest.id, { categories: newCategories });
   };
 
-  const toggleDeclined = () => {
-    onUpdate(guest.id, { declined: !guest.declined });
+  const updateAgeGroup = (ageGroupId: string) => {
+    onUpdate(guest.id, { age_group: ageGroupId });
+  };
+
+  const updateFoodPreference = (foodPrefId: string) => {
+    onUpdate(guest.id, { food_preference: foodPrefId });
+  };
+
+  const updateConfirmationStage = (stageId: string) => {
+    onUpdate(guest.id, { confirmation_stage: stageId });
+  };
+
+  const cycleConfirmationStage = () => {
+    const sortedStages = config.confirmationStages.stages.sort((a, b) => a.order - b.order);
+    const currentIndex = sortedStages.findIndex(stage => stage.id === guest.confirmation_stage);
+    const nextIndex = (currentIndex + 1) % sortedStages.length;
+    updateConfirmationStage(sortedStages[nextIndex].id);
   };
 
   const handleMoveToEnd = () => {
     onMoveToEnd(guest.id);
   };
 
-  const getFoodIcon = (preference: string) => {
-    switch (preference) {
+  const getFoodIcon = (prefId: string) => {
+    // Default icons based on common preference IDs
+    switch (prefId.toLowerCase()) {
       case 'vegetarian': return <Leaf className="h-4 w-4 text-green-600" />;
       case 'vegan': return <Leaf className="h-4 w-4 text-green-700" />;
-      case 'gluten_free': return <Wheat className="h-4 w-4 text-amber-600" />;
-      case 'dairy_free': return <Milk className="h-4 w-4 text-blue-600" />;
+      case 'gluten_free': case 'gluten-free': return <Wheat className="h-4 w-4 text-amber-600" />;
+      case 'dairy_free': case 'dairy-free': return <Milk className="h-4 w-4 text-blue-600" />;
+      case 'none': case 'no_restrictions': return <Utensils className="h-4 w-4" />;
       default: return <Utensils className="h-4 w-4" />;
     }
   };
 
+  const getConfirmationStageInfo = (stageId: string) => {
+    const stage = config.confirmationStages.stages.find(s => s.id === stageId);
+    if (!stage) return { label: stageId, order: 0 };
+    return stage;
+  };
+
+  const isDeclined = guest.confirmation_stage === 'declined';
 
   return (
     <TableRow
@@ -191,7 +258,7 @@ export function SortableRow({
         'transition-all',
         isBeingDragged && 'opacity-50',
         isDraggedOver && 'bg-indigo-50',
-        guest.declined && 'bg-gray-50 opacity-60'
+        isDeclined && 'bg-gray-50 opacity-60'
       )}
     >
       <TableCell className="cursor-move">
@@ -224,7 +291,7 @@ export function SortableRow({
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className={cn(guest.declined && 'line-through')}>
+            <span className={cn(isDeclined && 'line-through')}>
               {guest.name}
             </span>
             <Button
@@ -239,120 +306,27 @@ export function SortableRow({
         )}
       </TableCell>
       
-      {visibleColumns.category && (
+      {visibleColumns.categories && (
         <TableCell>
-          <div className="flex gap-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant={guest.category === 'partner1' ? 'default' : 'outline'}
-                    onClick={() => onUpdate(guest.id, { category: 'partner1' })}
-                    className="h-7 w-7 p-0"
-                  >
-                    {organization.partner1_initial}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{organization.partner1_label}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant={guest.category === 'partner2' ? 'default' : 'outline'}
-                    onClick={() => onUpdate(guest.id, { category: 'partner2' })}
-                    className="h-7 w-7 p-0"
-                  >
-                    {organization.partner2_initial}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{organization.partner2_label}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </TableCell>
-      )}
-      
-      {visibleColumns.age && (
-        <TableCell>
-          <div className="flex gap-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant={guest.age_group === 'adult' ? 'default' : 'outline'}
-                    onClick={() => onUpdate(guest.id, { age_group: 'adult' })}
-                    className="h-7 w-7 p-0"
-                  >
-                    <User className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Adult</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant={guest.age_group === '7years' ? 'default' : 'outline'}
-                    onClick={() => onUpdate(guest.id, { age_group: '7years' })}
-                    className="h-7 w-7 p-0"
-                  >
-                    7
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>7 years</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant={guest.age_group === '11years' ? 'default' : 'outline'}
-                    onClick={() => onUpdate(guest.id, { age_group: '11years' })}
-                    className="h-7 w-7 p-0"
-                  >
-                    11
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>11 years</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </TableCell>
-      )}
-      
-      {visibleColumns.food && (
-        <TableCell>
-          <div className="flex gap-1">
-            {['none', 'vegetarian', 'vegan', 'gluten_free', 'dairy_free'].map((pref) => (
-              <TooltipProvider key={pref}>
+          <div className="flex flex-wrap gap-1">
+            {config.categories.map((category) => (
+              <TooltipProvider key={category.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       size="sm"
-                      variant={guest.food_preference === pref ? 'default' : 'outline'}
-                      onClick={() => onUpdate(guest.id, { food_preference: pref as any })}
-                      className="h-7 w-7 p-0"
+                      variant={guest.categories.includes(category.id) ? 'default' : 'outline'}
+                      onClick={() => toggleCategory(category.id)}
+                      className="h-7 min-w-7 p-0"
+                      style={{
+                        backgroundColor: guest.categories.includes(category.id) ? category.color : undefined,
+                        borderColor: category.color,
+                      }}
                     >
-                      {getFoodIcon(pref)}
+                      {category.initial}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {pref === 'none' ? 'No restrictions' :
-                     pref === 'gluten_free' ? 'Gluten free' :
-                     pref === 'dairy_free' ? 'Dairy free' :
-                     pref.charAt(0).toUpperCase() + pref.slice(1)}
-                  </TooltipContent>
+                  <TooltipContent>{category.label}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             ))}
@@ -360,41 +334,73 @@ export function SortableRow({
         </TableCell>
       )}
       
-      {visibleColumns.confirmations && (
+      {visibleColumns.age && config.ageGroups.enabled && (
+        <TableCell>
+          <div className="flex gap-1">
+            {config.ageGroups.groups.map((ageGroup) => (
+              <TooltipProvider key={ageGroup.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={guest.age_group === ageGroup.id ? 'default' : 'outline'}
+                      onClick={() => updateAgeGroup(ageGroup.id)}
+                      className="h-7 min-w-7 p-0 text-xs"
+                    >
+                      {ageGroup.minAge ? ageGroup.minAge : ageGroup.label.slice(0, 2)}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{ageGroup.label}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+          </div>
+        </TableCell>
+      )}
+      
+      {visibleColumns.food && config.foodPreferences.enabled && (
+        <TableCell>
+          <div className="flex gap-1">
+            {config.foodPreferences.options.map((foodPref) => (
+              <TooltipProvider key={foodPref.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={guest.food_preference === foodPref.id ? 'default' : 'outline'}
+                      onClick={() => updateFoodPreference(foodPref.id)}
+                      className="h-7 w-7 p-0"
+                    >
+                      {getFoodIcon(foodPref.id)}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{foodPref.label}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+          </div>
+        </TableCell>
+      )}
+      
+      {visibleColumns.confirmations && config.confirmationStages.enabled && (
         <TableCell>
           <Button
             size="sm"
-            variant={guest.confirmation_stage === 0 ? 'outline' : 
-                    guest.confirmation_stage === 3 ? 'default' : 'secondary'}
-            onClick={cycleConfirmation}
+            variant={guest.confirmation_stage === 'confirmed' ? 'default' : 
+                    guest.confirmation_stage === 'declined' ? 'destructive' : 'secondary'}
+            onClick={cycleConfirmationStage}
             className={cn(
-              'h-8',
-              guest.confirmation_stage === 3 && 'bg-green-600 hover:bg-green-700'
+              'h-8 min-w-20',
+              guest.confirmation_stage === 'confirmed' && 'bg-green-600 hover:bg-green-700'
             )}
           >
-            Confirmations {guest.confirmation_stage}/3
+            {getConfirmationStageInfo(guest.confirmation_stage).label}
           </Button>
         </TableCell>
       )}
       
       <TableCell>
-        <div className="flex gap-1">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant={guest.declined ? 'default' : 'ghost'}
-                  onClick={toggleDeclined}
-                  className="h-7 w-7"
-                >
-                  <XCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Won&apos;t make it</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
+        <div className="flex gap-1">          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

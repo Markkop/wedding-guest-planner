@@ -4,10 +4,8 @@ import { z } from 'zod';
 
 const createOrgSchema = z.object({
   name: z.string().min(1),
-  partner1_label: z.string().optional(),
-  partner1_initial: z.string().length(1).optional(),
-  partner2_label: z.string().optional(),
-  partner2_initial: z.string().length(1).optional(),
+  event_type: z.string().default('wedding'),
+  custom_config: z.any().optional(), // EventConfiguration partial
 });
 
 export async function GET() {
@@ -29,10 +27,8 @@ export async function POST(request: Request) {
     
     const organization = await OrganizationService.createOrganization(
       data.name,
-      data.partner1_label,
-      data.partner1_initial,
-      data.partner2_label,
-      data.partner2_initial
+      data.event_type,
+      data.custom_config
     );
     
     return NextResponse.json({ organization }, { status: 201 });
