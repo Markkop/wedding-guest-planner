@@ -80,8 +80,10 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
         if (isFromAssistant && !cleanText && toolParts.length > 0) {
           const simplifiedToolParts = toolParts.map(part => ({
             type: part.type,
-            input: (part as { input?: unknown }).input
+            input: (part as { input?: unknown }).input,
+            output: (part as { output?: Record<string, unknown> }).output
           }));
+          
           toolActionDescription = generateToolActionDescription(simplifiedToolParts);
         }
         
@@ -114,15 +116,25 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
             const args = (part as { input?: unknown }).input as Record<string, unknown> || {};
             let description = `⚙️ Processing ${toolName}`;
             
+            // Look for the corresponding tool result (the same tool part contains both input and output)
+            const toolPart = part as { output?: Record<string, unknown>; input?: unknown };
+            const result = toolPart.output as Record<string, unknown> || {};
+            
             switch (toolName) {
               case "createGuest":
                 description = `➕ Adding ${(args as { name?: string }).name || "guest"}`;
                 break;
               case "updateGuest":
-                description = "✏️ Updating guest";
+                const guestName = result.guestName as string || "guest";
+                const updatedFields = result.updatedFields as string[] || [];
+                const fieldsText = updatedFields.length > 0 
+                  ? ` (${updatedFields.join(", ")})` 
+                  : "";
+                description = `✏️ Updating ${guestName}${fieldsText}`;
                 break;
               case "deleteGuest":
-                description = "🗑️ Removing guest";
+                const deletedGuestName = result.guestName as string || "guest";
+                description = `🗑️ Removing ${deletedGuestName}`;
                 break;
               case "getGuests":
                 description = "📋 Fetching guest list";

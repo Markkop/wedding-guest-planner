@@ -190,6 +190,13 @@ export async function POST(request: Request) {
 
       const systemPrompt = `You are a helpful assistant for a wedding guest planning application.
 
+CRITICAL CONTEXT UNDERSTANDING:
+- The conversation history shows COMPLETED actions - they have ALREADY been executed successfully
+- Tool results in previous messages represent FINISHED operations - do NOT repeat them
+- ONLY focus on the user's LATEST message and what they are asking for RIGHT NOW
+- If you see previous successful tool calls (like "Adding Pedro"), those guests have ALREADY been created
+- Never re-execute or duplicate actions that appear in conversation history
+
 IMPORTANT: Only respond to the user's CURRENT request. Never re-execute actions from previous messages in the conversation history.
 
 Current organization configuration:
@@ -228,7 +235,9 @@ CRITICAL: NEVER RE-EXECUTE PREVIOUS TOOL CALLS
 - **ONLY respond to the user's CURRENT request** - do not repeat or re-execute actions from earlier in the conversation
 - **If you see tool results in the conversation history**, those actions have ALREADY been completed - do not repeat them
 - **Focus solely on the user's latest message** and what they are asking for right now
-- **Example**: If the conversation shows you previously added guests A and B, and the user now says "remove B", ONLY remove B - do not re-add A and B first
+- **Previous successful tool calls are COMPLETED ACTIONS** - seeing "Adding Pedro" in history means Pedro was ALREADY added
+- **Example**: If conversation shows you previously added guests A and B, and user now says "remove B", ONLY remove B - do not re-add A and B first
+- **Example**: If user says "add pedro" and you see "Adding Pedro" already in conversation history, Pedro is ALREADY ADDED - do not add him again
 
 Be helpful, conversational, and informative. When users provide lists of names or images with guest information, help them create guests efficiently while explaining each step.`;
 
@@ -271,6 +280,10 @@ Be helpful, conversational, and informative. When users provide lists of names o
           inputSchema: updateGuestSchema,
           execute: async ({ guestId, updates }) => {
             try {
+              // Get guest info before updating for broadcast
+              const guests = await GuestService.getGuests(organizationId);
+              const existingGuest = guests.find(g => g.id === guestId);
+              
               const updatedGuest = await GuestService.updateGuest(guestId, updates);
               
               // Broadcast the change to other connected users
@@ -281,13 +294,15 @@ Be helpful, conversational, and informative. When users provide lists of names o
                   userId: user.id,
                   userName: user.displayName || user.primaryEmail || "AI Assistant",
                   guestId,
+                  guestName: existingGuest?.name || "Unknown",
                   updates,
+                  updatedFields: Object.keys(updates),
                   timestamp: new Date().toISOString(),
                   isAI: true,
                 });
               }
               
-              return { success: true, guest: updatedGuest };
+              return { success: true, guest: updatedGuest, guestName: existingGuest?.name, updatedFields: Object.keys(updates) };
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to update guest' };
             }
@@ -299,6 +314,10 @@ Be helpful, conversational, and informative. When users provide lists of names o
           execute: async ({ guestId }) => {
             console.log("🤖 AI deleteGuest tool called with guestId:", guestId);
             try {
+              // Get guest info before deleting for broadcast
+              const guests = await GuestService.getGuests(organizationId);
+              const existingGuest = guests.find(g => g.id === guestId);
+              
               console.log("🤖 AI calling GuestService.deleteGuest");
               await GuestService.deleteGuest(guestId);
               console.log("🤖 AI GuestService.deleteGuest completed successfully");
@@ -313,13 +332,14 @@ Be helpful, conversational, and informative. When users provide lists of names o
                   userId: user.id,
                   userName: user.displayName || user.primaryEmail || "AI Assistant",
                   guestId,
+                  guestName: existingGuest?.name || "Unknown",
                   timestamp: new Date().toISOString(),
                   isAI: true,
                 });
                 console.log("🤖 AI broadcast completed");
               }
               
-              return { success: true };
+              return { success: true, guestName: existingGuest?.name };
             } catch (error) {
               console.error("🤖 AI deleteGuest error:", error);
               return { success: false, error: error instanceof Error ? error.message : 'Failed to delete guest' };

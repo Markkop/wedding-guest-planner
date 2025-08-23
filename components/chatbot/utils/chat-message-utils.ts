@@ -16,18 +16,27 @@ export const cleanTextContent = (textContent: string, role: "user" | "assistant"
   return cleanText;
 };
 
-export const generateToolActionDescription = (toolParts: Array<{ type: string; input?: unknown }>): string => {
+export const generateToolActionDescription = (
+  toolParts: Array<{ type: string; input?: unknown; output?: Record<string, unknown> }>
+): string => {
   const toolActions = toolParts.map((part) => {
     const toolName = part.type.replace("tool-", "");
     const args = part.input || {};
+    const result = part.output || {};
     
     switch (toolName) {
       case "createGuest":
         return `➕ Adding ${(args as { name?: string }).name || "guest"}`;
       case "updateGuest":
-        return `✏️ Updating guest`;
+        const guestName = result.guestName as string || "guest";
+        const updatedFields = result.updatedFields as string[] || [];
+        const fieldsText = updatedFields.length > 0 
+          ? ` (${updatedFields.join(", ")})` 
+          : "";
+        return `✏️ Updating ${guestName}${fieldsText}`;
       case "deleteGuest":
-        return `🗑️ Removing guest`;
+        const deletedGuestName = result.guestName as string || "guest";
+        return `🗑️ Removing ${deletedGuestName}`;
       case "getGuests":
         return `📋 Fetching guest list`;
       case "findGuest":
