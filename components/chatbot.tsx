@@ -24,8 +24,17 @@ import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
+// Custom toast function for chatbot with left positioning
+const chatbotToast = {
+  success: (message: string) => toast.success(message, { position: "bottom-left" }),
+  error: (message: string) => toast.error(message, { position: "bottom-left" }),
+  info: (message: string) => toast.info(message, { position: "bottom-left" }),
+  warning: (message: string) => toast.warning(message, { position: "bottom-left" }),
+};
 
 interface ChatbotProps {
   organizationId: string;
@@ -67,14 +76,14 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
       // Only trigger refresh if data actually changed
       if (hasDataChanges) {
         onGuestsUpdate?.();
-        toast.success("Guest list updated");
+        chatbotToast.success("Guest list updated");
       }
     },
     onError: (error) => {
       console.error("Chat error:", error);
       console.log("🚨 Full error object:", error);
       console.log("🚨 Messages state at error:", messages);
-      toast.error("Failed to send message");
+      chatbotToast.error("Failed to send message");
     },
   });
 
@@ -93,7 +102,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
       
       // Clear pasted images after sending
       setPastedImages([]);
-      toast.success(`Message sent with ${pastedImages.length} image(s)`);
+      chatbotToast.success(`Message sent with ${pastedImages.length} image(s)`);
     } else {
       sendMessage({ text: inputValue });
     }
@@ -121,7 +130,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
         try {
           // Check file size (5MB limit)
           if (file.size > 5 * 1024 * 1024) {
-            toast.error("Image too large. Please use an image smaller than 5MB.");
+            chatbotToast.error("Image too large. Please use an image smaller than 5MB.");
             continue;
           }
 
@@ -131,7 +140,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
             
             // Additional check on base64 data size
             if (imageData.length > 7 * 1024 * 1024) { // ~5MB base64 encoded
-              toast.error("Image data too large after encoding.");
+              chatbotToast.error("Image data too large after encoding.");
               return;
             }
             
@@ -141,15 +150,15 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
           
           reader.onerror = (error) => {
             console.error("FileReader error:", error);
-            toast.error("Failed to read image file");
+            chatbotToast.error("Failed to read image file");
           };
           
           reader.readAsDataURL(file);
           
-          toast.success(`Image pasted! Type a message to send it.`);
+          chatbotToast.success(`Image pasted! Type a message to send it.`);
         } catch (error) {
           console.error("Failed to process pasted image:", error);
-          toast.error("Failed to process pasted image");
+          chatbotToast.error("Failed to process pasted image");
         }
       }
     }
@@ -212,7 +221,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
       }, 1000);
     } catch (error) {
       console.error("Failed to start recording:", error);
-      toast.error("Failed to access microphone");
+      chatbotToast.error("Failed to access microphone");
     }
   };
 
@@ -230,7 +239,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
   const sendAudioMessage = async (audioBlob: Blob) => {
     try {
       console.log("🎤 Starting audio transcription");
-      toast.info("Transcribing audio...");
+      chatbotToast.info("Transcribing audio...");
       
       // Convert audio blob to base64
       const reader = new FileReader();
@@ -260,17 +269,17 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
             text: transcription,
           });
           
-          toast.success("Audio transcribed successfully");
+          chatbotToast.success("Audio transcribed successfully");
         } catch (error) {
           console.error("Failed to transcribe audio:", error);
-          toast.error("Failed to transcribe audio");
+          chatbotToast.error("Failed to transcribe audio");
         }
       };
 
       reader.readAsDataURL(audioBlob);
     } catch (error) {
       console.error("Failed to process audio:", error);
-      toast.error("Failed to process audio");
+      chatbotToast.error("Failed to process audio");
     }
   };
 
@@ -287,13 +296,13 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
         (file) =>
           new Promise<void>((resolve) => {
             if (!file.type.startsWith("image/")) {
-              toast.error("Please upload image files only");
+              chatbotToast.error("Please upload image files only");
               return resolve();
             }
 
             // Check file size (5MB limit)
             if (file.size > 5 * 1024 * 1024) {
-              toast.error("Image too large. Please use an image smaller than 5MB.");
+              chatbotToast.error("Image too large. Please use an image smaller than 5MB.");
               return resolve();
             }
 
@@ -303,7 +312,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
 
               // Additional check on base64 data size (~5MB base64 encoded)
               if (imageData.length > 7 * 1024 * 1024) {
-                toast.error("Image data too large after encoding.");
+                chatbotToast.error("Image data too large after encoding.");
                 return resolve();
               }
 
@@ -319,7 +328,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
 
             reader.onerror = (error) => {
               console.error("FileReader error:", error);
-              toast.error("Failed to read image file");
+              chatbotToast.error("Failed to read image file");
               resolve();
             };
 
@@ -332,7 +341,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
     event.target.value = "";
 
     if (addedCount > 0) {
-      toast.success(
+      chatbotToast.success(
         `${addedCount} image${addedCount > 1 ? "s" : ""} added! Type a message to send.`
       );
     }
@@ -514,6 +523,9 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
                             </div>
                           </DialogTrigger>
                           <DialogContent className="max-w-4xl max-h-[90vh] p-4">
+                            <DialogTitle className="sr-only">
+                              Image {imgIndex + 1} - Full Size View
+                            </DialogTitle>
                             <div className="flex items-center justify-center">
                               <Image
                                 src={imageData}
@@ -574,7 +586,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
                 variant="ghost"
                 onClick={() => {
                   setPastedImages([]);
-                  toast.info("Pasted images cleared");
+                  chatbotToast.info("Pasted images cleared");
                 }}
                 className="h-6 text-blue-600 hover:text-blue-800"
               >
