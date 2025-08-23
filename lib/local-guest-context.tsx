@@ -124,6 +124,7 @@ const DEMO_GUESTS: Guest[] = [
 // GuestContext so that components like StatsCards can consume them without
 // modification.
 import { GuestContext } from "@/lib/guest-context";
+import { GuestContext as CollaborativeGuestContext } from "@/lib/collaborative-guest-context";
 
 export function useGuests() {
   const context = useContext(GuestContext);
@@ -298,6 +299,13 @@ export function LocalGuestProvider({
 
 
   return (
+    /*
+     * Expose the same value through BOTH the generic `GuestContext` and the
+     * collaborative guest context so that components (like `StatsCards`) that
+     * import `useGuests` from either module work seamlessly in the demo
+     * landing page. This avoids having to duplicate components or change their
+     * imports while keeping the demo fully self-contained and non-collaborative.
+     */
     <GuestContext.Provider
       value={{
         guests,
@@ -313,7 +321,23 @@ export function LocalGuestProvider({
         moveGuestToEnd,
       }}
     >
-      {children}
+      <CollaborativeGuestContext.Provider
+        value={{
+          guests,
+          loading,
+          stats,
+          organization,
+          setOrganization,
+          loadGuests,
+          addGuest,
+          updateGuest,
+          deleteGuest,
+          reorderGuests,
+          moveGuestToEnd,
+        }}
+      >
+        {children}
+      </CollaborativeGuestContext.Provider>
     </GuestContext.Provider>
   );
 }
