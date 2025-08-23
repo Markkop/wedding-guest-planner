@@ -38,6 +38,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
 
   const [inputValue, setInputValue] = useState("");
   const { messages, sendMessage, status } = useChat({
+    id: `chat-${organizationId}`, // Maintain conversation state per organization
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: {
@@ -64,6 +65,8 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
     },
     onError: (error) => {
       console.error("Chat error:", error);
+      console.log("🚨 Full error object:", error);
+      console.log("🚨 Messages state at error:", messages);
       toast.error("Failed to send message");
     },
   });
@@ -93,6 +96,11 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
     });
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    console.log("🏢 Organization ID changed:", organizationId);
+    console.log("🏢 Current messages when org changed:", messages.length);
+  }, [organizationId, messages.length]);
 
   const startRecording = async () => {
     try {
@@ -142,16 +150,42 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
 
   const sendAudioMessage = async (audioBlob: Blob) => {
     try {
+      console.log("🎤 Starting audio transcription");
+      toast.info("Transcribing audio...");
+      
       // Convert audio blob to base64
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64Audio = e.target?.result as string;
-
-        // For now, send a message indicating audio was recorded
-        // The server will handle transcription
-        sendMessage({
-          text: `[Audio recording - please transcribe] ${base64Audio}`,
-        });
+        
+        try {
+          // Make a direct API call to transcribe the audio first
+          const transcriptionResponse = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audioData: base64Audio,
+              organizationId
+            })
+          });
+          
+          if (!transcriptionResponse.ok) {
+            throw new Error('Transcription failed');
+          }
+          
+          const { transcription } = await transcriptionResponse.json();
+          console.log("🎤 Audio transcribed:", transcription);
+          
+          // Now send the transcribed text as a normal message
+          sendMessage({
+            text: transcription,
+          });
+          
+          toast.success("Audio transcribed successfully");
+        } catch (error) {
+          console.error("Failed to transcribe audio:", error);
+          toast.error("Failed to transcribe audio");
+        }
       };
 
       reader.readAsDataURL(audioBlob);
@@ -265,9 +299,15 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
               return "";
             })();
             
+            // Skip rendering empty messages
+            if (!textContent.trim()) {
+              console.log(`💬 Skipping empty message ${index}`);
+              return null;
+            }
+            
             return (
               <div
-                key={index}
+                key={message.id || `message-${index}`}
                 className={cn(
                   "mb-4 flex gap-2",
                   message.role === "assistant" ? "justify-start" : "justify-end"

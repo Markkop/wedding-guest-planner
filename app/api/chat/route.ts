@@ -44,34 +44,6 @@ const findGuestSchema = z.object({
   name: z.string().describe('The name of the guest to find (can be partial match)'),
 });
 
-async function transcribeAudio(audioData: Buffer | ArrayBuffer): Promise<string> {
-  try {
-    const formData = new FormData();
-    const uint8Array = audioData instanceof Buffer ? new Uint8Array(audioData) : new Uint8Array(audioData);
-    const audioBlob = new Blob([uint8Array], { type: 'audio/webm' });
-    formData.append('file', audioBlob, 'audio.webm');
-    formData.append('model', 'whisper-1');
-
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to transcribe audio');
-    }
-
-    const data = await response.json();
-    return data.text;
-  } catch (error) {
-    console.error('Audio transcription error:', error);
-    throw new Error('Failed to transcribe audio');
-  }
-}
-
 async function analyzeImage(imageData: string): Promise<string> {
   try {
     const response = await generateText({
@@ -124,16 +96,8 @@ export async function POST(request: Request) {
         if (textParts.length > 0) {
           const textContent = textParts.map((part) => (part as { text: string }).text).join('');
           
-          // Check for audio recording marker
-          if (textContent.includes('[Audio recording - please transcribe]')) {
-            const base64Audio = textContent.replace('[Audio recording - please transcribe] ', '');
-            const audioBuffer = Buffer.from(base64Audio.split(',')[1], 'base64');
-            const transcription = await transcribeAudio(audioBuffer);
-            return {
-              role: message.role,
-              content: `Audio transcription: ${transcription}`,
-            };
-          }
+          // Audio transcription is now handled separately via /api/transcribe
+          // No need to process audio markers here anymore
 
           // Check for image data
           if (textContent.includes('data:image/')) {
