@@ -14,14 +14,15 @@ import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 import type { Organization } from "@/lib/types";
 import { LoadingContent } from "@/components/ui/loading-spinner";
-import { GuestProvider } from "@/lib/guest-context";
+import { GuestProvider } from "@/lib/collaborative-guest-context";
+import { CollaborationProvider } from "@/lib/collaboration-context";
+import { OnlineUsers } from "@/components/online-users";
 import { Chatbot } from "@/components/chatbot";
 
 export default function DashboardPage() {
   const user = useUser({ or: "redirect" });
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const loadOrganizations = useCallback(async () => {
     try {
@@ -53,10 +54,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleGuestsUpdate = useCallback(() => {
-    // Trigger a re-render of the GuestTable by updating the key
-    setRefreshKey((prev) => prev + 1);
-  }, []);
 
   if (loading) {
     return (
@@ -87,57 +84,62 @@ export default function DashboardPage() {
   }
 
   return (
-    <GuestProvider>
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 py-4">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <OrganizationSwitcher
-                currentOrganization={organization}
-                onOrganizationChange={setOrganization}
+    <CollaborationProvider organizationId={organization.id}>
+      <GuestProvider>
+        <div className="min-h-screen bg-gray-50">
+          <div className="mx-auto max-w-7xl px-4 py-4">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <OrganizationSwitcher
+                  currentOrganization={organization}
+                  onOrganizationChange={setOrganization}
+                />
+              </div>
+              <div className="flex gap-2">
+                {organization.role === "admin" && (
+                  <>
+                    <InviteManager
+                      organization={organization}
+                      onInviteRefresh={loadOrganizations}
+                    />
+                    <SettingsDialog
+                      organization={organization}
+                      onSettingsChange={loadOrganizations}
+                    />
+                    <ExportDialog
+                      organization={organization}
+                      onDataChange={loadOrganizations}
+                    />
+                  </>
+                )}
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                  <LogOut className="sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
+              </div>
+            </div>
+
+            <StatsCards organization={organization} />
+
+            <div className="mt-4">
+              <GuestTable
+                organizationId={organization.id}
+                organization={organization}
               />
             </div>
-            <div className="flex gap-2">
-              {organization.role === "admin" && (
-                <>
-                  <InviteManager
-                    organization={organization}
-                    onInviteRefresh={loadOrganizations}
-                  />
-                  <SettingsDialog
-                    organization={organization}
-                    onSettingsChange={loadOrganizations}
-                  />
-                  <ExportDialog
-                    organization={organization}
-                    onDataChange={loadOrganizations}
-                  />
-                </>
-              )}
-              <Button onClick={handleLogout} variant="outline" size="sm">
-                <LogOut className="sm:mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
+
+            {/* Online Users - At bottom of content */}
+            <div className="mt-6 flex justify-center">
+              <OnlineUsers />
             </div>
           </div>
 
-          <StatsCards organization={organization} />
-
-          <div className="mt-4">
-            <GuestTable
-              key={refreshKey}
-              organizationId={organization.id}
-              organization={organization}
-            />
-          </div>
+          {/* Chatbot */}
+          <Chatbot
+            organizationId={organization.id}
+          />
         </div>
-
-        {/* Chatbot */}
-        <Chatbot
-          organizationId={organization.id}
-          onGuestsUpdate={handleGuestsUpdate}
-        />
-      </div>
-    </GuestProvider>
+      </GuestProvider>
+    </CollaborationProvider>
   );
 }

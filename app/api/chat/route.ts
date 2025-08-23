@@ -4,9 +4,10 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { GuestService } from '@/lib/services/guest-service';
 import { OrganizationService } from '@/lib/services/organization-service';
-import { safeRequireUser } from '@/lib/auth/safe-stack';
+import { safeRequireUser, getStackServerApp } from '@/lib/auth/safe-stack';
 import { EventConfiguration, Guest } from '@/lib/types';
 import type { UIMessage } from 'ai';
+import { broadcastToOrganization } from '@/app/api/organizations/[organizationId]/stream/route';
 
 // Schema for guest data
 const guestSchema = z.object({
@@ -236,6 +237,20 @@ Be helpful, conversational, and informative. When users provide lists of names o
           execute: async (guest) => {
             try {
               const newGuest = await GuestService.createGuest(organizationId, guest);
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              if (user) {
+                await broadcastToOrganization(organizationId, {
+                  type: "guest_added",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guest: newGuest,
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+              }
+              
               return { success: true, guest: newGuest };
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to create guest' };
@@ -247,10 +262,24 @@ Be helpful, conversational, and informative. When users provide lists of names o
           inputSchema: bulkGuestSchema,
           execute: async ({ guests }) => {
             const results = [];
+            const user = await stackServerApp.getUser();
+            
             for (const guest of guests) {
               try {
                 const newGuest = await GuestService.createGuest(organizationId, guest);
                 results.push({ success: true, guest: newGuest });
+                
+                // Broadcast each guest addition
+                if (user) {
+                  await broadcastToOrganization(organizationId, {
+                    type: "guest_added",
+                    userId: user.id,
+                    userName: user.displayName || user.primaryEmail || "AI Assistant",
+                    guest: newGuest,
+                    timestamp: new Date().toISOString(),
+                    isAI: true,
+                  });
+                }
               } catch (error) {
                 results.push({
                   success: false,
@@ -268,6 +297,21 @@ Be helpful, conversational, and informative. When users provide lists of names o
           execute: async ({ guestId, updates }) => {
             try {
               const updatedGuest = await GuestService.updateGuest(guestId, updates);
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              if (user) {
+                await broadcastToOrganization(organizationId, {
+                  type: "guest_updated",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guestId,
+                  updates,
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+              }
+              
               return { success: true, guest: updatedGuest };
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to update guest' };
@@ -278,10 +322,31 @@ Be helpful, conversational, and informative. When users provide lists of names o
           description: 'Delete a guest',
           inputSchema: deleteGuestSchema,
           execute: async ({ guestId }) => {
+            console.log("🤖 AI deleteGuest tool called with guestId:", guestId);
             try {
+              console.log("🤖 AI calling GuestService.deleteGuest");
               await GuestService.deleteGuest(guestId);
+              console.log("🤖 AI GuestService.deleteGuest completed successfully");
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              console.log("🤖 AI got user for broadcast:", user?.id);
+              if (user) {
+                console.log("🤖 AI broadcasting guest deletion:", guestId);
+                await broadcastToOrganization(organizationId, {
+                  type: "guest_deleted",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guestId,
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+                console.log("🤖 AI broadcast completed");
+              }
+              
               return { success: true };
             } catch (error) {
+              console.error("🤖 AI deleteGuest error:", error);
               return { success: false, error: error instanceof Error ? error.message : 'Failed to delete guest' };
             }
           },

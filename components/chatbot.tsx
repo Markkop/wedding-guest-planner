@@ -38,10 +38,9 @@ const chatbotToast = {
 
 interface ChatbotProps {
   organizationId: string;
-  onGuestsUpdate?: () => void;
 }
 
-export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
+export function Chatbot({ organizationId }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -73,9 +72,8 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
       
       console.log("🔥 hasDataChanges:", hasDataChanges);
       
-      // Only trigger refresh if data actually changed
+      // Show success message when data changed (real-time updates handle the rest)
       if (hasDataChanges) {
-        onGuestsUpdate?.();
         chatbotToast.success("Guest list updated");
       }
     },

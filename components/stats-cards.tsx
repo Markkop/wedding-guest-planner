@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, CheckCircle } from 'lucide-react';
-import { useGuests } from '@/lib/guest-context';
+import { useGuests } from '@/lib/collaborative-guest-context';
 import type { Organization } from '@/lib/types';
 
 

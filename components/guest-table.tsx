@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { useGuests } from "@/lib/guest-context";
+import { useGuests } from "@/lib/collaborative-guest-context";
 import {
   Table,
   TableBody,
