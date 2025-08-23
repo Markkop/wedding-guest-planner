@@ -45,6 +45,25 @@ const findGuestSchema = z.object({
   name: z.string().describe('The name of the guest to find (can be partial match)'),
 });
 
+// Schema for bulk guest update
+const bulkUpdateGuestSchema = z.object({
+  guestIds: z.array(z.string()).describe('Array of guest IDs to update'),
+  updates: guestSchema.partial().describe('Fields to update on all selected guests'),
+});
+
+// Schema for bulk guest deletion
+const bulkDeleteGuestSchema = z.object({
+  guestIds: z.array(z.string()).describe('Array of guest IDs to delete'),
+});
+
+// Schema for bulk guest update with individual updates per guest
+const bulkUpdateGuestsIndividuallySchema = z.object({
+  updates: z.array(z.object({
+    guestId: z.string().describe('The ID of the guest to update'),
+    fields: guestSchema.partial().describe('Fields to update for this specific guest'),
+  })).describe('Array of individual guest updates, each with their own specific changes'),
+});
+
 async function analyzeImage(imageData: string): Promise<string> {
   try {
     // Validate image data format
@@ -204,6 +223,10 @@ ${formatGuestContext(currentGuests)}
 When working with guests:
 - You can reference guests by their name or ID when editing/deleting
 - Always use the ID values (not labels) for categories, age groups, food preferences, and confirmation stages
+- You can perform bulk operations to update or delete multiple guests at once
+- Use bulkUpdateGuests to apply the same changes to multiple guests
+- Use bulkUpdateGuestsIndividually when different guests need different updates (e.g., updating multiple guests with different categories or confirmation stages)
+- Use bulkDeleteGuests to remove multiple guests in one operation
 
 MANDATORY WHEN CREATING GUESTS:
 - **ALWAYS** provide categories array with at least one category ID: ["${config.categories[0]?.id}"]
@@ -220,6 +243,8 @@ CRITICAL RESPONSE GUIDELINES:
 4. **If editing/deleting guests**, reference them by name and explain what changes you're making
 5. **If creating guests**, confirm what information you're adding and any defaults you're using
 6. **Never use tools without explaining your actions in natural language**
+7. **For bulk operations**, summarize the action (e.g., "I'll update all 5 guests to confirmed status" or "I'll remove these 3 guests from your list")
+8. **For individual bulk updates**, briefly describe the different changes (e.g., "I'll update John to confirmed, Sarah to invited, and Mark's food preference to vegan")
 
 Be helpful, conversational, and informative. When users provide lists of names or images with guest information, help them create guests efficiently while explaining each step.`;
 
@@ -262,7 +287,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
           inputSchema: bulkGuestSchema,
           execute: async ({ guests }) => {
             const results = [];
-            const user = await stackServerApp.getUser();
+            const user = await getStackServerApp().getUser();
             
             for (const guest of guests) {
               try {
@@ -388,6 +413,110 @@ Be helpful, conversational, and informative. When users provide lists of names o
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to find guest' };
             }
+          },
+        },
+        bulkUpdateGuests: {
+          description: 'Update multiple guests at once with the same changes',
+          inputSchema: bulkUpdateGuestSchema,
+          execute: async ({ guestIds, updates }) => {
+            const results = [];
+            const user = await getStackServerApp().getUser();
+            
+            for (const guestId of guestIds) {
+              try {
+                const updatedGuest = await GuestService.updateGuest(guestId, updates);
+                results.push({ success: true, guestId, guest: updatedGuest });
+                
+                // Broadcast each guest update
+                if (user) {
+                  await broadcastToOrganization(organizationId, {
+                    type: "guest_updated",
+                    userId: user.id,
+                    userName: user.displayName || user.primaryEmail || "AI Assistant",
+                    guestId,
+                    updates,
+                    timestamp: new Date().toISOString(),
+                    isAI: true,
+                  });
+                }
+              } catch (error) {
+                results.push({
+                  success: false,
+                  guestId,
+                  error: error instanceof Error ? error.message : 'Failed to update guest'
+                });
+              }
+            }
+            return { results, totalUpdated: results.filter(r => r.success).length };
+          },
+        },
+        bulkDeleteGuests: {
+          description: 'Delete multiple guests at once',
+          inputSchema: bulkDeleteGuestSchema,
+          execute: async ({ guestIds }) => {
+            const results = [];
+            const user = await getStackServerApp().getUser();
+            
+            for (const guestId of guestIds) {
+              try {
+                await GuestService.deleteGuest(guestId);
+                results.push({ success: true, guestId });
+                
+                // Broadcast each guest deletion
+                if (user) {
+                  await broadcastToOrganization(organizationId, {
+                    type: "guest_deleted",
+                    userId: user.id,
+                    userName: user.displayName || user.primaryEmail || "AI Assistant",
+                    guestId,
+                    timestamp: new Date().toISOString(),
+                    isAI: true,
+                  });
+                }
+              } catch (error) {
+                results.push({
+                  success: false,
+                  guestId,
+                  error: error instanceof Error ? error.message : 'Failed to delete guest'
+                });
+              }
+            }
+            return { results, totalDeleted: results.filter(r => r.success).length };
+          },
+        },
+        bulkUpdateGuestsIndividually: {
+          description: 'Update multiple guests with different changes for each guest. Use this when each guest needs different updates.',
+          inputSchema: bulkUpdateGuestsIndividuallySchema,
+          execute: async ({ updates }) => {
+            const results = [];
+            const user = await getStackServerApp().getUser();
+            
+            for (const update of updates) {
+              try {
+                const updatedGuest = await GuestService.updateGuest(update.guestId, update.fields);
+                results.push({ success: true, guestId: update.guestId, guest: updatedGuest });
+                
+                // Broadcast each guest update
+                if (user) {
+                  await broadcastToOrganization(organizationId, {
+                    type: "guest_updated",
+                    userId: user.id,
+                    userName: user.displayName || user.primaryEmail || "AI Assistant",
+                    guestId: update.guestId,
+                    updates: update.fields,
+                    timestamp: new Date().toISOString(),
+                    isAI: true,
+                  });
+                }
+              } catch (error) {
+                results.push({
+                  success: false,
+                  guestId: update.guestId,
+                  error: error instanceof Error ? error.message : 'Failed to update guest'
+                });
+              }
+            }
+            return { results, totalUpdated: results.filter(r => r.success).length };
           },
         },
       },

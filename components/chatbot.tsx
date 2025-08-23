@@ -411,6 +411,12 @@ export function Chatbot({ organizationId }: ChatbotProps) {
 
           {messages.map((message, index) => {
             console.log(`💬 Rendering message ${index}:`, message);
+            
+            // Check for tool calls in the message
+            const toolParts = message.parts?.filter((part) => 
+              part.type.startsWith("tool-") && part.type !== "tool-result"
+            ) || [];
+            
             const textContent = (() => {
               // Handle message parts
               if (message.parts) {
@@ -438,8 +444,50 @@ export function Chatbot({ organizationId }: ChatbotProps) {
               cleanTextContent = cleanTextContent.replace(/\[Image could not be processed\]/g, '❌ Could not process image');
             }
             
-            // Skip rendering if no clean text and no images
-            if (!cleanTextContent && images.length === 0) {
+            // Generate tool action descriptions if no text but has tool calls
+            let toolActionDescription = "";
+            if (message.role === "assistant" && !cleanTextContent && toolParts.length > 0) {
+              const toolCallParts = toolParts.filter((part) => part.type.startsWith("tool-"));
+              
+              if (toolCallParts.length > 0) {
+                const toolActions = toolCallParts.map((part) => {
+                  // Extract tool name from type (e.g., "tool-createGuest" -> "createGuest")
+                  const toolName = part.type.replace("tool-", "");
+                  const args = (part as { input?: Record<string, unknown> }).input || {};
+                  
+                  // Generate user-friendly descriptions based on tool name
+                  switch (toolName) {
+                    case "createGuest":
+                      return `➕ Adding ${(args as { name?: string }).name || "guest"}`;
+                    case "createMultipleGuests":
+                      return `➕ Adding ${Array.isArray((args as { guests?: unknown[] }).guests) ? (args as { guests: unknown[] }).guests.length : "multiple"} guests`;
+                    case "updateGuest":
+                      return `✏️ Updating guest`;
+                    case "deleteGuest":
+                      return `🗑️ Removing guest`;
+                    case "bulkUpdateGuests":
+                      return `✏️ Updating ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
+                    case "bulkUpdateGuestsIndividually":
+                      return `✏️ Applying individual updates to ${Array.isArray((args as { updates?: unknown[] }).updates) ? (args as { updates: unknown[] }).updates.length : "multiple"} guests`;
+                    case "bulkDeleteGuests":
+                      return `🗑️ Removing ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
+                    case "getGuests":
+                      return `📋 Fetching guest list`;
+                    case "findGuest":
+                      return `🔍 Searching for ${(args as { name?: string }).name || "guest"}`;
+                    case "getOrganizationInfo":
+                      return `ℹ️ Getting organization details`;
+                    default:
+                      return `⚙️ Processing ${toolName || "action"}`;
+                  }
+                }).join("\n");
+                
+                toolActionDescription = toolActions;
+              }
+            }
+            
+            // Skip rendering if no clean text, no images, and no tool actions
+            if (!cleanTextContent && images.length === 0 && !toolActionDescription) {
               console.log(`💬 Skipping empty message ${index}`);
               return null;
             }
@@ -461,10 +509,25 @@ export function Chatbot({ organizationId }: ChatbotProps) {
                   className={cn(
                     "rounded-lg px-3 py-2 max-w-[80%]",
                     message.role === "assistant"
-                      ? "bg-muted text-foreground"
+                      ? toolActionDescription ? "bg-blue-50 text-blue-800 border border-blue-200" : "bg-muted text-foreground"
                       : "bg-primary text-primary-foreground"
                   )}
                 >
+                  {/* Display tool action description if no text */}
+                  {toolActionDescription && !cleanTextContent && (
+                    <div className={cn(
+                      "space-y-1",
+                      images.length > 0 && "mb-3"
+                    )}>
+                      {toolActionDescription.split('\n').map((action, actionIndex) => (
+                        <p key={actionIndex} className="text-sm font-medium flex items-center gap-2">
+                          <Bot className="h-3 w-3 opacity-70" />
+                          {action}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  
                   {/* Display clean text content */}
                   {cleanTextContent && (
                     <p className={cn(
