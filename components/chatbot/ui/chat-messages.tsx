@@ -118,20 +118,11 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
               case "createGuest":
                 description = `➕ Adding ${(args as { name?: string }).name || "guest"}`;
                 break;
-              case "createMultipleGuests":
-                description = `➕ Adding ${Array.isArray((args as { guests?: unknown[] }).guests) ? (args as { guests: unknown[] }).guests.length : "multiple"} guests`;
-                break;
               case "updateGuest":
                 description = "✏️ Updating guest";
                 break;
               case "deleteGuest":
                 description = "🗑️ Removing guest";
-                break;
-              case "bulkUpdateGuests":
-                description = `✏️ Updating ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
-                break;
-              case "bulkDeleteGuests":
-                description = `🗑️ Removing ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
                 break;
               case "getGuests":
                 description = "📋 Fetching guest list";

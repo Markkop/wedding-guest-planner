@@ -24,18 +24,10 @@ export const generateToolActionDescription = (toolParts: Array<{ type: string; i
     switch (toolName) {
       case "createGuest":
         return `➕ Adding ${(args as { name?: string }).name || "guest"}`;
-      case "createMultipleGuests":
-        return `➕ Adding ${Array.isArray((args as { guests?: unknown[] }).guests) ? (args as { guests: unknown[] }).guests.length : "multiple"} guests`;
       case "updateGuest":
         return `✏️ Updating guest`;
       case "deleteGuest":
         return `🗑️ Removing guest`;
-      case "bulkUpdateGuests":
-        return `✏️ Updating ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
-      case "bulkUpdateGuestsIndividually":
-        return `✏️ Applying individual updates to ${Array.isArray((args as { updates?: unknown[] }).updates) ? (args as { updates: unknown[] }).updates.length : "multiple"} guests`;
-      case "bulkDeleteGuests":
-        return `🗑️ Removing ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
       case "getGuests":
         return `📋 Fetching guest list`;
       case "findGuest":

@@ -19,10 +19,6 @@ const guestSchema = z.object({
   confirmation_stage: z.string().optional().describe('The confirmation stage ID. ALWAYS provide this when creating a guest.'),
 });
 
-// Schema for bulk guest creation
-const bulkGuestSchema = z.object({
-  guests: z.array(guestSchema).describe('Array of guests to create'),
-});
 
 // Schema for guest update
 const updateGuestSchema = z.object({
@@ -45,24 +41,8 @@ const findGuestSchema = z.object({
   name: z.string().describe('The name of the guest to find (can be partial match)'),
 });
 
-// Schema for bulk guest update
-const bulkUpdateGuestSchema = z.object({
-  guestIds: z.array(z.string()).describe('Array of guest IDs to update'),
-  updates: guestSchema.partial().describe('Fields to update on all selected guests'),
-});
 
-// Schema for bulk guest deletion
-const bulkDeleteGuestSchema = z.object({
-  guestIds: z.array(z.string()).describe('Array of guest IDs to delete'),
-});
 
-// Schema for bulk guest update with individual updates per guest
-const bulkUpdateGuestsIndividuallySchema = z.object({
-  updates: z.array(z.object({
-    guestId: z.string().describe('The ID of the guest to update'),
-    fields: guestSchema.partial().describe('Fields to update for this specific guest'),
-  })).describe('Array of individual guest updates, each with their own specific changes'),
-});
 
 async function analyzeImage(imageData: string): Promise<string> {
   try {
@@ -208,8 +188,10 @@ export async function POST(request: Request) {
       }).join('\n');
     };
 
-      const systemPrompt = `You are a helpful assistant for a wedding guest planning application. 
-    
+      const systemPrompt = `You are a helpful assistant for a wedding guest planning application.
+
+IMPORTANT: Only respond to the user's CURRENT request. Never re-execute actions from previous messages in the conversation history.
+
 Current organization configuration:
 - Event Type: ${organization.event_type}
 - Categories: ${config.categories.map(c => `${c.label} (${c.id})`).join(', ')}
@@ -223,12 +205,10 @@ ${formatGuestContext(currentGuests)}
 When working with guests:
 - You can reference guests by their name or ID when editing/deleting
 - Always use the ID values (not labels) for categories, age groups, food preferences, and confirmation stages
-- You can perform bulk operations to update or delete multiple guests at once
-- Use bulkUpdateGuests to apply the same changes to multiple guests
-- Use bulkUpdateGuestsIndividually when different guests need different updates (e.g., updating multiple guests with different categories or confirmation stages)
-- Use bulkDeleteGuests to remove multiple guests in one operation
+- **When working with multiple guests at the same time**, use multiple individual tool calls to attend to the user's request (e.g., if user asks to add 3 guests, make 3 separate createGuest calls)
+- **For multiple operations**, explain what you're doing and process each guest individually with separate tool calls
 
-MANDATORY WHEN CREATING GUESTS:
+MANDATORY when CREATING GUESTS:
 - **ALWAYS** provide categories array with at least one category ID: ["${config.categories[0]?.id}"]
 - **ALWAYS** provide confirmation_stage: "${config.confirmationStages.stages[0]?.id || 'invited'}"
 ${config.ageGroups.enabled ? `- **ALWAYS** provide age_group when age groups are enabled: "${config.ageGroups.groups[0]?.id}"` : '- age_group: Not needed (age groups disabled)'}
@@ -243,8 +223,12 @@ CRITICAL RESPONSE GUIDELINES:
 4. **If editing/deleting guests**, reference them by name and explain what changes you're making
 5. **If creating guests**, confirm what information you're adding and any defaults you're using
 6. **Never use tools without explaining your actions in natural language**
-7. **For bulk operations**, summarize the action (e.g., "I'll update all 5 guests to confirmed status" or "I'll remove these 3 guests from your list")
-8. **For individual bulk updates**, briefly describe the different changes (e.g., "I'll update John to confirmed, Sarah to invited, and Mark's food preference to vegan")
+
+CRITICAL: NEVER RE-EXECUTE PREVIOUS TOOL CALLS
+- **ONLY respond to the user's CURRENT request** - do not repeat or re-execute actions from earlier in the conversation
+- **If you see tool results in the conversation history**, those actions have ALREADY been completed - do not repeat them
+- **Focus solely on the user's latest message** and what they are asking for right now
+- **Example**: If the conversation shows you previously added guests A and B, and the user now says "remove B", ONLY remove B - do not re-add A and B first
 
 Be helpful, conversational, and informative. When users provide lists of names or images with guest information, help them create guests efficiently while explaining each step.`;
 
@@ -280,40 +264,6 @@ Be helpful, conversational, and informative. When users provide lists of names o
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to create guest' };
             }
-          },
-        },
-        createMultipleGuests: {
-          description: 'Create multiple guests at once. For each guest, ALWAYS provide categories array and confirmation_stage. Include age_group and food_preference if those features are enabled.',
-          inputSchema: bulkGuestSchema,
-          execute: async ({ guests }) => {
-            const results = [];
-            const user = await getStackServerApp().getUser();
-            
-            for (const guest of guests) {
-              try {
-                const newGuest = await GuestService.createGuest(organizationId, guest);
-                results.push({ success: true, guest: newGuest });
-                
-                // Broadcast each guest addition
-                if (user) {
-                  await broadcastToOrganization(organizationId, {
-                    type: "guest_added",
-                    userId: user.id,
-                    userName: user.displayName || user.primaryEmail || "AI Assistant",
-                    guest: newGuest,
-                    timestamp: new Date().toISOString(),
-                    isAI: true,
-                  });
-                }
-              } catch (error) {
-                results.push({
-                  success: false,
-                  guestName: guest.name,
-                  error: error instanceof Error ? error.message : 'Failed to create guest'
-                });
-              }
-            }
-            return { results };
           },
         },
         updateGuest: {
@@ -413,110 +363,6 @@ Be helpful, conversational, and informative. When users provide lists of names o
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to find guest' };
             }
-          },
-        },
-        bulkUpdateGuests: {
-          description: 'Update multiple guests at once with the same changes',
-          inputSchema: bulkUpdateGuestSchema,
-          execute: async ({ guestIds, updates }) => {
-            const results = [];
-            const user = await getStackServerApp().getUser();
-            
-            for (const guestId of guestIds) {
-              try {
-                const updatedGuest = await GuestService.updateGuest(guestId, updates);
-                results.push({ success: true, guestId, guest: updatedGuest });
-                
-                // Broadcast each guest update
-                if (user) {
-                  await broadcastToOrganization(organizationId, {
-                    type: "guest_updated",
-                    userId: user.id,
-                    userName: user.displayName || user.primaryEmail || "AI Assistant",
-                    guestId,
-                    updates,
-                    timestamp: new Date().toISOString(),
-                    isAI: true,
-                  });
-                }
-              } catch (error) {
-                results.push({
-                  success: false,
-                  guestId,
-                  error: error instanceof Error ? error.message : 'Failed to update guest'
-                });
-              }
-            }
-            return { results, totalUpdated: results.filter(r => r.success).length };
-          },
-        },
-        bulkDeleteGuests: {
-          description: 'Delete multiple guests at once',
-          inputSchema: bulkDeleteGuestSchema,
-          execute: async ({ guestIds }) => {
-            const results = [];
-            const user = await getStackServerApp().getUser();
-            
-            for (const guestId of guestIds) {
-              try {
-                await GuestService.deleteGuest(guestId);
-                results.push({ success: true, guestId });
-                
-                // Broadcast each guest deletion
-                if (user) {
-                  await broadcastToOrganization(organizationId, {
-                    type: "guest_deleted",
-                    userId: user.id,
-                    userName: user.displayName || user.primaryEmail || "AI Assistant",
-                    guestId,
-                    timestamp: new Date().toISOString(),
-                    isAI: true,
-                  });
-                }
-              } catch (error) {
-                results.push({
-                  success: false,
-                  guestId,
-                  error: error instanceof Error ? error.message : 'Failed to delete guest'
-                });
-              }
-            }
-            return { results, totalDeleted: results.filter(r => r.success).length };
-          },
-        },
-        bulkUpdateGuestsIndividually: {
-          description: 'Update multiple guests with different changes for each guest. Use this when each guest needs different updates.',
-          inputSchema: bulkUpdateGuestsIndividuallySchema,
-          execute: async ({ updates }) => {
-            const results = [];
-            const user = await getStackServerApp().getUser();
-            
-            for (const update of updates) {
-              try {
-                const updatedGuest = await GuestService.updateGuest(update.guestId, update.fields);
-                results.push({ success: true, guestId: update.guestId, guest: updatedGuest });
-                
-                // Broadcast each guest update
-                if (user) {
-                  await broadcastToOrganization(organizationId, {
-                    type: "guest_updated",
-                    userId: user.id,
-                    userName: user.displayName || user.primaryEmail || "AI Assistant",
-                    guestId: update.guestId,
-                    updates: update.fields,
-                    timestamp: new Date().toISOString(),
-                    isAI: true,
-                  });
-                }
-              } catch (error) {
-                results.push({
-                  success: false,
-                  guestId: update.guestId,
-                  error: error instanceof Error ? error.message : 'Failed to update guest'
-                });
-              }
-            }
-            return { results, totalUpdated: results.filter(r => r.success).length };
           },
         },
       },

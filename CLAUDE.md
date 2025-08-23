@@ -120,7 +120,7 @@ app/api/
 ├── guests/[guestId]/        # Individual guest operations
 ├── organizations/
 │   ├── [organizationId]/
-│   │   ├── guests/          # Bulk guest operations
+│   │   ├── guests/          # Guest operations
 │   │   ├── config/          # Event configuration
 │   │   ├── export/          # Data export
 │   │   └── import/          # Data import
