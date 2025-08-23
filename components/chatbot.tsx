@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { marked } from "marked";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -27,6 +28,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
+// Configure marked.js for safe HTML rendering
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 
 // Custom toast function for chatbot with left positioning
 const chatbotToast = {
@@ -532,7 +539,12 @@ export function Chatbot({ organizationId }: ChatbotProps) {
                   )}
                 >
                   {cleanTextContent && (
-                    <p className="text-sm whitespace-pre-wrap mb-1">{cleanTextContent}</p>
+                    <div 
+                      className="text-sm prose prose-sm max-w-none mb-1 [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>ul>li]:mb-1 [&>ol>li]:mb-1 [&>h1]:text-base [&>h1]:font-semibold [&>h2]:text-sm [&>h2]:font-semibold [&>h3]:text-sm [&>h3]:font-medium [&>code]:text-xs [&>code]:bg-muted [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>pre]:bg-muted [&>pre]:p-2 [&>pre]:rounded [&>pre]:text-xs [&>pre]:overflow-x-auto"
+                      dangerouslySetInnerHTML={{ 
+                        __html: isFromAssistant ? marked.parse(cleanTextContent) : cleanTextContent 
+                      }}
+                    />
                   )}
                   {images.length > 0 && (
                     <div className={cn(

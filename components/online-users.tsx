@@ -3,7 +3,7 @@
 import { useCollaboration } from "@/lib/collaboration-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Wifi, WifiOff } from "lucide-react";
+import { Users, WifiOff } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function getInitials(name: string): string {
