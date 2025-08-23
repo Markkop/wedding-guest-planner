@@ -5,17 +5,17 @@ import { NextResponse } from 'next/server';
 import { GuestService } from '@/lib/services/guest-service';
 import { OrganizationService } from '@/lib/services/organization-service';
 import { safeRequireUser } from '@/lib/auth/safe-stack';
-import { EventConfiguration } from '@/lib/types';
+import { EventConfiguration, Guest } from '@/lib/types';
 import type { UIMessage } from 'ai';
 
 // Schema for guest data
 const guestSchema = z.object({
   name: z.string().describe('The name of the guest'),
-  categories: z.array(z.string()).optional().describe('Array of category IDs for the guest'),
-  age_group: z.string().optional().describe('The age group ID of the guest'),
-  food_preference: z.string().optional().describe('The food preference ID of the guest'),
-  food_preferences: z.array(z.string()).optional().describe('Array of food preference IDs'),
-  confirmation_stage: z.string().optional().describe('The confirmation stage ID (invited, confirmed, declined, etc)'),
+  categories: z.array(z.string()).optional().describe('Array of category IDs for the guest. ALWAYS provide at least one category ID when creating a guest.'),
+  age_group: z.string().optional().describe('The age group ID of the guest. Provide if age groups are enabled.'),
+  food_preference: z.string().optional().describe('The food preference ID of the guest. Provide if food preferences are enabled.'),
+  food_preferences: z.array(z.string()).optional().describe('Array of food preference IDs. Provide if food preferences allow multiple selections.'),
+  confirmation_stage: z.string().optional().describe('The confirmation stage ID. ALWAYS provide this when creating a guest.'),
 });
 
 // Schema for bulk guest creation
@@ -37,6 +37,11 @@ const deleteGuestSchema = z.object({
 // Schema for getting organization info
 const getOrgInfoSchema = z.object({
   organizationId: z.string().describe('The organization ID to get information about'),
+});
+
+// Schema for finding a guest by name
+const findGuestSchema = z.object({
+  name: z.string().describe('The name of the guest to find (can be partial match)'),
 });
 
 async function transcribeAudio(audioData: Buffer | ArrayBuffer): Promise<string> {
@@ -108,6 +113,9 @@ export async function POST(request: Request) {
     const organization = await OrganizationService.getOrganization(organizationId);
     const config = organization.configuration as EventConfiguration;
 
+    // Get current guests for better AI context
+    const currentGuests = await GuestService.getGuests(organizationId);
+
     // Process messages to handle audio and images
     const processedMessages = await Promise.all(messages.map(async (message: UIMessage) => {
       // Handle UIMessage structure with parts
@@ -155,7 +163,32 @@ export async function POST(request: Request) {
       };
     }));
 
-    const systemPrompt = `You are a helpful assistant for a wedding guest planning application. 
+    // Helper function to format guest list for context
+    const formatGuestContext = (guests: Guest[]) => {
+      if (guests.length === 0) {
+        return 'No guests have been added yet.';
+      }
+      
+      return guests.map(guest => {
+        const categoryLabels = guest.categories?.map((catId: string) => 
+          config.categories.find(c => c.id === catId)?.label || catId
+        ).join(', ') || 'None';
+        
+        const ageGroupLabel = guest.age_group 
+          ? config.ageGroups.groups.find(g => g.id === guest.age_group)?.label || guest.age_group
+          : 'Not set';
+          
+        const foodPrefLabel = guest.food_preference
+          ? config.foodPreferences.options.find(f => f.id === guest.food_preference)?.label || guest.food_preference
+          : 'Not set';
+          
+        const confirmationLabel = config.confirmationStages.stages.find(s => s.id === guest.confirmation_stage)?.label || guest.confirmation_stage;
+        
+        return `• ${guest.name} (ID: ${guest.id}) - ${categoryLabels} | ${confirmationLabel}${config.ageGroups.enabled ? ` | Age: ${ageGroupLabel}` : ''}${config.foodPreferences.enabled ? ` | Food: ${foodPrefLabel}` : ''}`;
+      }).join('\n');
+    };
+
+      const systemPrompt = `You are a helpful assistant for a wedding guest planning application. 
     
 Current organization configuration:
 - Event Type: ${organization.event_type}
@@ -164,16 +197,30 @@ Current organization configuration:
 - Food Preferences: ${config.foodPreferences.enabled ? config.foodPreferences.options.map(f => `${f.label} (${f.id})`).join(', ') : 'Not enabled'}
 - Confirmation Stages: ${config.confirmationStages.enabled ? config.confirmationStages.stages.map(s => `${s.label} (${s.id})`).join(', ') : 'Not enabled'}
 
-When creating guests:
+CURRENT GUEST LIST (${currentGuests.length} guests):
+${formatGuestContext(currentGuests)}
+
+When working with guests:
+- You can reference guests by their name or ID when editing/deleting
 - Always use the ID values (not labels) for categories, age groups, food preferences, and confirmation stages
-- Default confirmation stage is "${config.confirmationStages.stages[0]?.id || 'invited'}"
-- Default category is "${config.categories[0]?.id}"
-- If age groups are enabled, default is "${config.ageGroups.groups[0]?.id}"
-- If food preferences are enabled, default is "${config.foodPreferences.options[0]?.id}"
 
-Be helpful and conversational. When users provide lists of names or images with guest information, help them create guests efficiently.
+MANDATORY WHEN CREATING GUESTS:
+- **ALWAYS** provide categories array with at least one category ID: ["${config.categories[0]?.id}"]
+- **ALWAYS** provide confirmation_stage: "${config.confirmationStages.stages[0]?.id || 'invited'}"
+${config.ageGroups.enabled ? `- **ALWAYS** provide age_group when age groups are enabled: "${config.ageGroups.groups[0]?.id}"` : '- age_group: Not needed (age groups disabled)'}
+${config.foodPreferences.enabled ? `- **ALWAYS** provide food_preference when food preferences are enabled: "${config.foodPreferences.options[0]?.id}"` : '- food_preference: Not needed (food preferences disabled)'}
 
-IMPORTANT: Always provide a natural language response to the user, even when using tools. Explain what you're doing or have done. If the user is just chatting and not requesting any data changes, respond conversationally without using any tools.`;
+NEVER create a guest without providing these required fields in your tool calls!
+
+CRITICAL RESPONSE GUIDELINES:
+1. **ALWAYS provide a conversational text response** before, during, or after using any tools
+2. **Explain what you're doing** when using tools (e.g., "I'll add John to your guest list" or "Let me update Sarah's information")
+3. **Acknowledge the user's request** and provide feedback on the results
+4. **If editing/deleting guests**, reference them by name and explain what changes you're making
+5. **If creating guests**, confirm what information you're adding and any defaults you're using
+6. **Never use tools without explaining your actions in natural language**
+
+Be helpful, conversational, and informative. When users provide lists of names or images with guest information, help them create guests efficiently while explaining each step.`;
 
     console.log("Processed messages for AI:", processedMessages);
     
@@ -184,7 +231,7 @@ IMPORTANT: Always provide a natural language response to the user, even when usi
 
       tools: {
         createGuest: {
-          description: 'Create a single guest',
+          description: 'Create a single guest. ALWAYS provide categories array and confirmation_stage. Include age_group and food_preference if those features are enabled.',
           inputSchema: guestSchema,
           execute: async (guest) => {
             try {
@@ -196,7 +243,7 @@ IMPORTANT: Always provide a natural language response to the user, even when usi
           },
         },
         createMultipleGuests: {
-          description: 'Create multiple guests at once',
+          description: 'Create multiple guests at once. For each guest, ALWAYS provide categories array and confirmation_stage. Include age_group and food_preference if those features are enabled.',
           inputSchema: bulkGuestSchema,
           execute: async ({ guests }) => {
             const results = [];
@@ -260,6 +307,21 @@ IMPORTANT: Always provide a natural language response to the user, even when usi
               return { success: true, organization: org };
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to get organization' };
+            }
+          },
+        },
+        findGuest: {
+          description: 'Find a guest by name (useful when user refers to a guest by name for editing or deleting)',
+          inputSchema: findGuestSchema,
+          execute: async ({ name }) => {
+            try {
+              const guests = await GuestService.getGuests(organizationId);
+              const matchingGuests = guests.filter(guest => 
+                guest.name.toLowerCase().includes(name.toLowerCase())
+              );
+              return { success: true, guests: matchingGuests };
+            } catch (error) {
+              return { success: false, error: error instanceof Error ? error.message : 'Failed to find guest' };
             }
           },
         },
