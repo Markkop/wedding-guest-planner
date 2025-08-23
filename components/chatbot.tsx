@@ -18,6 +18,7 @@ import {
   Bot,
   User,
 } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -470,9 +471,11 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
                     )}>
                       {images.map((imageData, imgIndex) => (
                         <div key={imgIndex} className="relative group">
-                          <img
+                          <Image
                             src={imageData}
                             alt={`Uploaded image ${imgIndex + 1}`}
+                            width={96}
+                            height={96}
                             className={cn(
                               "w-24 h-24 rounded border-2 object-cover cursor-pointer transition-all",
                               "hover:scale-105 hover:shadow-lg",

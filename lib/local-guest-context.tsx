@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { useContext, useState, useCallback } from "react";
 import { reorder } from "@atlaskit/pragmatic-drag-and-drop/reorder";
 import { toast } from "sonner";
 import type { Guest, Organization, GuestStatistics } from "@/lib/types";
@@ -296,13 +296,6 @@ export function LocalGuestProvider({
     [guests, reorderGuests]
   );
 
-  // Reset the demo data back to its original state
-  const resetDemo = useCallback(() => {
-    setGuests([...DEMO_GUESTS]); // Clone to trigger re-render
-    setTimeout(() => {
-      toast.success("Demo reset to original state");
-    }, 100);
-  }, []);
 
   return (
     <GuestContext.Provider

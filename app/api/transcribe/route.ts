@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     await safeRequireUser();
     
     const body = await request.json();
-    const { audioData, organizationId } = body;
+    const { audioData } = body;
 
     if (!audioData) {
       return NextResponse.json({ error: 'No audio data provided' }, { status: 400 });
