@@ -21,6 +21,11 @@ import {
 import Image from "next/image";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface ChatbotProps {
   organizationId: string;
@@ -470,55 +475,56 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
                       images.length === 1 ? "grid-cols-1" : "grid-cols-2"
                     )}>
                       {images.map((imageData, imgIndex) => (
-                        <div key={imgIndex} className="relative group">
-                          <Image
-                            src={imageData}
-                            alt={`Uploaded image ${imgIndex + 1}`}
-                            width={96}
-                            height={96}
-                            className={cn(
-                              "w-24 h-24 rounded border-2 object-cover cursor-pointer transition-all",
-                              "hover:scale-105 hover:shadow-lg",
-                              message.role === "user" 
-                                ? "border-primary/20 hover:border-primary/40" 
-                                : "border-muted-foreground/20 hover:border-muted-foreground/40"
-                            )}
-                            onClick={() => {
-                              // Open image in new tab for full view
-                              const newWindow = window.open();
-                              if (newWindow) {
-                                newWindow.document.write(`
-                                  <html>
-                                    <head><title>Image Preview</title></head>
-                                    <body style="margin:0;background:black;display:flex;align-items:center;justify-content:center;min-height:100vh;">
-                                      <img src="${imageData}" style="max-width:100%;max-height:100%;object-fit:contain;" alt="Full size image" />
-                                    </body>
-                                  </html>
-                                `);
-                              }
-                            }}
-                          />
-                          <div className={cn(
-                            "absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded-full font-medium transition-opacity",
-                            "opacity-0 group-hover:opacity-100",
-                            message.role === "user" 
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted-foreground text-white"
-                          )}>
-                            {imgIndex + 1}
-                          </div>
-                          {/* Click to expand hint */}
-                          <div className={cn(
-                            "absolute inset-0 rounded border-2 border-transparent",
-                            "bg-black/0 group-hover:bg-black/10 transition-all",
-                            "flex items-center justify-center",
-                            "opacity-0 group-hover:opacity-100"
-                          )}>
-                            <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">
-                              Click to expand
-                            </span>
-                          </div>
-                        </div>
+                        <Dialog key={imgIndex}>
+                          <DialogTrigger asChild>
+                            <div className="relative group cursor-pointer">
+                              <Image
+                                src={imageData}
+                                alt={`Uploaded image ${imgIndex + 1}`}
+                                width={96}
+                                height={96}
+                                className={cn(
+                                  "w-24 h-24 rounded border-2 object-cover transition-all",
+                                  "hover:scale-105 hover:shadow-lg",
+                                  message.role === "user" 
+                                    ? "border-primary/20 hover:border-primary/40" 
+                                    : "border-muted-foreground/20 hover:border-muted-foreground/40"
+                                )}
+                              />
+                              <div className={cn(
+                                "absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded-full font-medium transition-opacity",
+                                "opacity-0 group-hover:opacity-100",
+                                message.role === "user" 
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted-foreground text-white"
+                              )}>
+                                {imgIndex + 1}
+                              </div>
+                              {/* Click to expand hint */}
+                              <div className={cn(
+                                "absolute inset-0 rounded border-2 border-transparent",
+                                "bg-black/0 group-hover:bg-black/10 transition-all",
+                                "flex items-center justify-center",
+                                "opacity-0 group-hover:opacity-100"
+                              )}>
+                                <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">
+                                  Click to expand
+                                </span>
+                              </div>
+                            </div>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[90vh] p-4">
+                            <div className="flex items-center justify-center">
+                              <Image
+                                src={imageData}
+                                alt={`Full size image ${imgIndex + 1}`}
+                                width={800}
+                                height={800}
+                                className="max-w-full max-h-[80vh] object-contain rounded"
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       ))}
                     </div>
                   )}
