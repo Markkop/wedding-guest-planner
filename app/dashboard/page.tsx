@@ -16,7 +16,7 @@ import type { Organization } from "@/lib/types";
 import { LoadingContent } from "@/components/ui/loading-spinner";
 import { GuestProvider } from "@/lib/collaborative-guest-context";
 import { CollaborationProvider } from "@/lib/collaboration-context";
-import { OnlineUsers } from "@/components/online-users";
+import { OnlineUsersCompact } from "@/components/online-users-compact";
 import { Chatbot } from "@/components/chatbot";
 
 export default function DashboardPage() {
@@ -95,7 +95,11 @@ export default function DashboardPage() {
                   onOrganizationChange={setOrganization}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {/* Online users avatars */}
+                <OnlineUsersCompact />
+                
+                {/* Admin controls */}
                 {organization.role === "admin" && (
                   <>
                     <InviteManager
@@ -112,6 +116,8 @@ export default function DashboardPage() {
                     />
                   </>
                 )}
+                
+                {/* Logout button */}
                 <Button onClick={handleLogout} variant="outline" size="sm">
                   <LogOut className="sm:mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Logout</span>
@@ -126,11 +132,6 @@ export default function DashboardPage() {
                 organizationId={organization.id}
                 organization={organization}
               />
-            </div>
-
-            {/* Online Users - At bottom of content */}
-            <div className="mt-6 flex justify-center">
-              <OnlineUsers />
             </div>
           </div>
 
