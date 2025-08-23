@@ -46,6 +46,19 @@ const findGuestSchema = z.object({
 
 async function analyzeImage(imageData: string): Promise<string> {
   try {
+    // Validate image data format
+    if (!imageData || !imageData.startsWith('data:image/')) {
+      throw new Error('Invalid image data format');
+    }
+
+    // Check image size (base64 data should be reasonable)
+    if (imageData.length > 10 * 1024 * 1024) { // 10MB limit
+      throw new Error('Image too large');
+    }
+
+    console.log('Analyzing image, data length:', imageData.length);
+    console.log('Image data prefix:', imageData.substring(0, 50) + '...');
+
     const response = await generateText({
       model: openai('gpt-4o-mini'),
       messages: [
@@ -65,10 +78,18 @@ async function analyzeImage(imageData: string): Promise<string> {
       ],
     });
 
-    return response.text || '';
+    console.log('Image analysis successful');
+    return response.text || 'No guest information found in the image.';
   } catch (error) {
     console.error('Image analysis error:', error);
-    throw new Error('Failed to analyze image');
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      imageDataLength: imageData?.length || 0,
+      imagePrefix: imageData?.substring(0, 50) || 'No image data'
+    });
+    
+    // Return a graceful fallback instead of throwing
+    return 'I was unable to analyze this image. Please try with a different image or describe the guest information manually.';
   }
 }
 
@@ -101,13 +122,28 @@ export async function POST(request: Request) {
 
           // Check for image data
           if (textContent.includes('data:image/')) {
-            const imageMatch = textContent.match(/(data:image\/[^;]+;base64,[^\s]+)/);
-            if (imageMatch) {
-              const imageData = imageMatch[1];
-              const imageAnalysis = await analyzeImage(imageData);
+            // More flexible regex to capture complete base64 data URLs
+            const imageMatch = textContent.match(/(data:image\/[^;]+;base64,[A-Za-z0-9+/=]+)/g);
+            if (imageMatch && imageMatch.length > 0) {
+              console.log(`Found ${imageMatch.length} image(s) in message`);
+              
+              let processedContent = textContent;
+              
+              // Process each image found
+              for (const imageData of imageMatch) {
+                try {
+                  console.log(`Processing image, length: ${imageData.length}`);
+                  const imageAnalysis = await analyzeImage(imageData);
+                  processedContent = processedContent.replace(imageData, `[Image analyzed: ${imageAnalysis}]`);
+                } catch (error) {
+                  console.error('Failed to process image:', error);
+                  processedContent = processedContent.replace(imageData, '[Image could not be processed]');
+                }
+              }
+              
               return {
                 role: message.role,
-                content: textContent.replace(imageData, `[Image analyzed: ${imageAnalysis}]`),
+                content: processedContent,
               };
             }
           }

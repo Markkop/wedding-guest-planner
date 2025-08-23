@@ -37,6 +37,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [inputValue, setInputValue] = useState("");
+  const [pastedImages, setPastedImages] = useState<string[]>([]);
   const { messages, sendMessage, status } = useChat({
     id: `chat-${organizationId}`, // Maintain conversation state per organization
     transport: new DefaultChatTransport({
@@ -75,12 +76,77 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
     e.preventDefault();
     if (!inputValue.trim() || status !== "ready") return;
 
-    sendMessage({ text: inputValue });
+    // If there are pasted images, combine them with the text message
+    if (pastedImages.length > 0) {
+      // Format images without brackets to match backend regex pattern
+      const imageContext = pastedImages.join(' ');
+      
+      sendMessage({
+        text: `${inputValue} ${imageContext}`,
+      });
+      
+      // Clear pasted images after sending
+      setPastedImages([]);
+      toast.success(`Message sent with ${pastedImages.length} image(s)`);
+    } else {
+      sendMessage({ text: inputValue });
+    }
+    
     setInputValue("");
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      if (item.type.startsWith("image/")) {
+        e.preventDefault(); // Prevent default paste behavior for images
+        
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        try {
+          // Check file size (5MB limit)
+          if (file.size > 5 * 1024 * 1024) {
+            toast.error("Image too large. Please use an image smaller than 5MB.");
+            continue;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const imageData = e.target?.result as string;
+            
+            // Additional check on base64 data size
+            if (imageData.length > 7 * 1024 * 1024) { // ~5MB base64 encoded
+              toast.error("Image data too large after encoding.");
+              return;
+            }
+            
+            setPastedImages(prev => [...prev, imageData]);
+            console.log(`Image pasted, size: ${file.size} bytes, encoded length: ${imageData.length}`);
+          };
+          
+          reader.onerror = (error) => {
+            console.error("FileReader error:", error);
+            toast.error("Failed to read image file");
+          };
+          
+          reader.readAsDataURL(file);
+          
+          toast.success(`Image pasted! Type a message to send it.`);
+        } catch (error) {
+          console.error("Failed to process pasted image:", error);
+          toast.error("Failed to process pasted image");
+        }
+      }
+    }
   };
 
   useEffect(() => {
@@ -101,6 +167,13 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
     console.log("🏢 Organization ID changed:", organizationId);
     console.log("🏢 Current messages when org changed:", messages.length);
   }, [organizationId, messages.length]);
+
+  // Clear pasted images when component unmounts or org changes
+  useEffect(() => {
+    return () => {
+      setPastedImages([]);
+    };
+  }, [organizationId]);
 
   const startRecording = async () => {
     try {
@@ -198,25 +271,65 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    if (!files.length) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
+    let addedCount = 0;
+
+    await Promise.all(
+      files.map(
+        (file) =>
+          new Promise<void>((resolve) => {
+            if (!file.type.startsWith("image/")) {
+              toast.error("Please upload image files only");
+              return resolve();
+            }
+
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+              toast.error("Image too large. Please use an image smaller than 5MB.");
+              return resolve();
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const imageData = e.target?.result as string;
+
+              // Additional check on base64 data size (~5MB base64 encoded)
+              if (imageData.length > 7 * 1024 * 1024) {
+                toast.error("Image data too large after encoding.");
+                return resolve();
+              }
+
+              console.log(
+                `Image selected, size: ${file.size} bytes, encoded length: ${imageData.length}`
+              );
+              setPastedImages((prev) => {
+                addedCount += 1;
+                return [...prev, imageData];
+              });
+              resolve();
+            };
+
+            reader.onerror = (error) => {
+              console.error("FileReader error:", error);
+              toast.error("Failed to read image file");
+              resolve();
+            };
+
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+
+    // Clear the file input so the same file can be selected again
+    event.target.value = "";
+
+    if (addedCount > 0) {
+      toast.success(
+        `${addedCount} image${addedCount > 1 ? "s" : ""} added! Type a message to send.`
+      );
     }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const imageData = e.target?.result as string;
-
-      // Send message with image context
-      sendMessage({
-        text: `I've uploaded an image with guest information. Please extract all the names and any other relevant details like categories, food preferences, or confirmation status from this image: ${imageData}`,
-      });
-    };
-
-    reader.readAsDataURL(file);
   };
 
   const formatTime = (seconds: number) => {
@@ -277,7 +390,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
               <p className="text-xs mt-2">Try:</p>
               <ul className="text-xs mt-1 space-y-1">
                 <li>&quot;Add John Doe and Jane Smith&quot;</li>
-                <li>&quot;Upload a screenshot of names&quot;</li>
+                <li>&quot;Upload or paste images with guest info&quot;</li>
                 <li>&quot;Record audio with guest details&quot;</li>
               </ul>
             </div>
@@ -299,8 +412,21 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
               return "";
             })();
             
-            // Skip rendering empty messages
-            if (!textContent.trim()) {
+            // Extract images from message content
+            const imageMatches = textContent.match(/(data:image\/[^;]+;base64,[A-Za-z0-9+/=]+)/g);
+            const images = imageMatches || [];
+            
+            // Clean text content by removing image data URLs
+            let cleanTextContent = textContent.replace(/(data:image\/[^;]+;base64,[A-Za-z0-9+/=]+)/g, '').trim();
+            
+            // For assistant messages, also clean up image analysis markers
+            if (message.role === "assistant") {
+              cleanTextContent = cleanTextContent.replace(/\[Image analyzed: ([^\]]+)\]/g, '📷 $1');
+              cleanTextContent = cleanTextContent.replace(/\[Image could not be processed\]/g, '❌ Could not process image');
+            }
+            
+            // Skip rendering if no clean text and no images
+            if (!cleanTextContent && images.length === 0) {
               console.log(`💬 Skipping empty message ${index}`);
               return null;
             }
@@ -326,9 +452,80 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
                       : "bg-primary text-primary-foreground"
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">
-                    {textContent}
-                  </p>
+                  {/* Display clean text content */}
+                  {cleanTextContent && (
+                    <p className={cn(
+                      "text-sm whitespace-pre-wrap",
+                      images.length > 0 && "mb-3"
+                    )}>
+                      {cleanTextContent}
+                    </p>
+                  )}
+                  
+                  {/* Display image previews */}
+                  {images.length > 0 && (
+                    <div className={cn(
+                      "grid gap-2",
+                      images.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                    )}>
+                      {images.map((imageData, imgIndex) => (
+                        <div key={imgIndex} className="relative group">
+                          <img
+                            src={imageData}
+                            alt={`Uploaded image ${imgIndex + 1}`}
+                            className={cn(
+                              "w-24 h-24 rounded border-2 object-cover cursor-pointer transition-all",
+                              "hover:scale-105 hover:shadow-lg",
+                              message.role === "user" 
+                                ? "border-primary/20 hover:border-primary/40" 
+                                : "border-muted-foreground/20 hover:border-muted-foreground/40"
+                            )}
+                            onClick={() => {
+                              // Open image in new tab for full view
+                              const newWindow = window.open();
+                              if (newWindow) {
+                                newWindow.document.write(`
+                                  <html>
+                                    <head><title>Image Preview</title></head>
+                                    <body style="margin:0;background:black;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+                                      <img src="${imageData}" style="max-width:100%;max-height:100%;object-fit:contain;" alt="Full size image" />
+                                    </body>
+                                  </html>
+                                `);
+                              }
+                            }}
+                          />
+                          <div className={cn(
+                            "absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded-full font-medium transition-opacity",
+                            "opacity-0 group-hover:opacity-100",
+                            message.role === "user" 
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted-foreground text-white"
+                          )}>
+                            {imgIndex + 1}
+                          </div>
+                          {/* Click to expand hint */}
+                          <div className={cn(
+                            "absolute inset-0 rounded border-2 border-transparent",
+                            "bg-black/0 group-hover:bg-black/10 transition-all",
+                            "flex items-center justify-center",
+                            "opacity-0 group-hover:opacity-100"
+                          )}>
+                            <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">
+                              Click to expand
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Show image count if more than 2 */}
+                  {images.length > 2 && (
+                    <p className="text-xs opacity-70 mt-2">
+                      {images.length} images attached
+                    </p>
+                  )}
                 </div>
                 {message.role === "user" && (
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -356,13 +553,37 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
 
         {/* Input Area */}
         <form onSubmit={handleSubmit} className="border-t p-4">
+          {/* Pasted Images Indicator */}
+          {pastedImages.length > 0 && (
+            <div className="mb-2 flex items-center justify-between bg-blue-50 p-2 rounded-md border border-blue-200">
+              <span className="text-sm text-blue-700">
+                📎 {pastedImages.length} image(s) ready to send
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setPastedImages([]);
+                  toast.info("Pasted images cleared");
+                }}
+                className="h-6 text-blue-600 hover:text-blue-800"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2">
             <Input
               value={inputValue}
               onChange={handleInputChange}
-              placeholder="Type a message..."
+              onPaste={handlePaste}
+              placeholder={pastedImages.length > 0 ? `Type a message to send with ${pastedImages.length} image(s)...` : "Type a message..."}
               disabled={status !== "ready" || isRecording}
-              className="flex-1"
+              className={cn(
+                "flex-1",
+                pastedImages.length > 0 && "border-blue-300 bg-blue-50/50"
+              )}
             />
 
             {/* File Input (hidden) */}
@@ -370,6 +591,7 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               onChange={handleImageUpload}
               className="hidden"
             />
@@ -413,7 +635,8 @@ export function Chatbot({ organizationId, onGuestsUpdate }: ChatbotProps) {
                 status !== "ready" ||
                 !inputValue ||
                 !inputValue.trim() ||
-                isRecording
+                isRecording ||
+                (pastedImages.length > 0 && !inputValue.trim()) // Require text when images are pasted
               }
             >
               {status !== "ready" ? (
