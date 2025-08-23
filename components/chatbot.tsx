@@ -411,6 +411,7 @@ export function Chatbot({ organizationId }: ChatbotProps) {
 
           {messages.map((message, index) => {
             console.log(`💬 Rendering message ${index}:`, message);
+            const isFromAssistant = message.role !== "user";
             
             // Check for tool calls in the message
             const toolParts = message.parts?.filter((part) => 
@@ -446,7 +447,7 @@ export function Chatbot({ organizationId }: ChatbotProps) {
             
             // Generate tool action descriptions if no text but has tool calls
             let toolActionDescription = "";
-            if (message.role === "assistant" && !cleanTextContent && toolParts.length > 0) {
+            if (isFromAssistant && !cleanTextContent && toolParts.length > 0) {
               const toolCallParts = toolParts.filter((part) => part.type.startsWith("tool-"));
               
               if (toolCallParts.length > 0) {
@@ -492,58 +493,52 @@ export function Chatbot({ organizationId }: ChatbotProps) {
               return null;
             }
             
-            return (
-              <div
-                key={message.id || `message-${index}`}
-                className={cn(
-                  "mb-4 flex gap-2",
-                  message.role === "assistant" ? "justify-start" : "justify-end"
-                )}
-              >
-                {message.role === "assistant" && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="h-4 w-4" />
-                  </div>
-                )}
+            // Build array of message bubble nodes
+            const bubbles: React.ReactNode[] = [];
+
+            const addBubble = (content: React.ReactNode, key: string) => {
+              bubbles.push(
+                <div
+                  key={key}
+                  className={cn(
+                    "mb-1 flex gap-2",
+                    isFromAssistant ? "justify-start" : "justify-end"
+                  )}
+                >
+                  {isFromAssistant && (
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                  )}
+                  {content}
+                  {!isFromAssistant && (
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            // Main text bubble
+            if (cleanTextContent || images.length > 0) {
+              addBubble(
                 <div
                   className={cn(
                     "rounded-lg px-3 py-2 max-w-[80%]",
-                    message.role === "assistant"
-                      ? toolActionDescription ? "bg-blue-50 text-blue-800 border border-blue-200" : "bg-muted text-foreground"
+                    isFromAssistant
+                      ? "bg-muted text-foreground"
                       : "bg-primary text-primary-foreground"
                   )}
                 >
-                  {/* Display tool action description if no text */}
-                  {toolActionDescription && !cleanTextContent && (
-                    <div className={cn(
-                      "space-y-1",
-                      images.length > 0 && "mb-3"
-                    )}>
-                      {toolActionDescription.split('\n').map((action, actionIndex) => (
-                        <p key={actionIndex} className="text-sm font-medium flex items-center gap-2">
-                          <Bot className="h-3 w-3 opacity-70" />
-                          {action}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Display clean text content */}
                   {cleanTextContent && (
-                    <p className={cn(
-                      "text-sm whitespace-pre-wrap",
-                      images.length > 0 && "mb-3"
-                    )}>
-                      {cleanTextContent}
-                    </p>
+                    <p className="text-sm whitespace-pre-wrap mb-1">{cleanTextContent}</p>
                   )}
-                  
-                  {/* Display image previews */}
                   {images.length > 0 && (
                     <div className={cn(
                       "grid gap-2",
                       images.length === 1 ? "grid-cols-1" : "grid-cols-2"
-                    )}>
+                    )}>{/* image rendering kept unchanged */}
                       {images.map((imageData, imgIndex) => (
                         <Dialog key={imgIndex}>
                           <DialogTrigger asChild>
@@ -556,7 +551,7 @@ export function Chatbot({ organizationId }: ChatbotProps) {
                                 className={cn(
                                   "w-24 h-24 rounded border-2 object-cover transition-all",
                                   "hover:scale-105 hover:shadow-lg",
-                                  message.role === "user" 
+                                  !isFromAssistant 
                                     ? "border-primary/20 hover:border-primary/40" 
                                     : "border-muted-foreground/20 hover:border-muted-foreground/40"
                                 )}
@@ -564,7 +559,7 @@ export function Chatbot({ organizationId }: ChatbotProps) {
                               <div className={cn(
                                 "absolute top-1 right-1 text-xs px-1.5 py-0.5 rounded-full font-medium transition-opacity",
                                 "opacity-0 group-hover:opacity-100",
-                                message.role === "user" 
+                                !isFromAssistant 
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-muted-foreground text-white"
                               )}>
@@ -601,19 +596,61 @@ export function Chatbot({ organizationId }: ChatbotProps) {
                       ))}
                     </div>
                   )}
-                  
-                  {/* Show image count if more than 2 */}
-                  {images.length > 2 && (
-                    <p className="text-xs opacity-70 mt-2">
-                      {images.length} images attached
+                </div>,
+                `${message.id}-main`
+              );
+            }
+
+            // Tool bubbles
+            if (isFromAssistant) {
+              toolParts.forEach((part, toolIdx) => {
+                const toolName = part.type.replace("tool-", "");
+                const args = (part as { input?: Record<string, unknown> }).input || {};
+                let description = `⚙️ Processing ${toolName}`;
+                switch (toolName) {
+                  case "createGuest":
+                    description = `➕ Adding ${(args as { name?: string }).name || "guest"}`;
+                    break;
+                  case "createMultipleGuests":
+                    description = `➕ Adding ${Array.isArray((args as { guests?: unknown[] }).guests) ? (args as { guests: unknown[] }).guests.length : "multiple"} guests`;
+                    break;
+                  case "updateGuest":
+                    description = "✏️ Updating guest";
+                    break;
+                  case "deleteGuest":
+                    description = "🗑️ Removing guest";
+                    break;
+                  case "bulkUpdateGuests":
+                    description = `✏️ Updating ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
+                    break;
+                  case "bulkDeleteGuests":
+                    description = `🗑️ Removing ${Array.isArray((args as { guestIds?: unknown[] }).guestIds) ? (args as { guestIds: unknown[] }).guestIds.length : "multiple"} guests`;
+                    break;
+                  case "getGuests":
+                    description = "📋 Fetching guest list";
+                    break;
+                  case "findGuest":
+                    description = `🔍 Searching for ${(args as { name?: string }).name || "guest"}`;
+                    break;
+                  case "getOrganizationInfo":
+                    description = "ℹ️ Getting organization details";
+                    break;
+                }
+                addBubble(
+                  <div className="rounded-lg px-3 py-2 bg-blue-50 text-blue-800 border border-blue-200 max-w-[80%]">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Bot className="h-3 w-3 opacity-70" />{description}
                     </p>
-                  )}
-                </div>
-                {message.role === "user" && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                )}
+                  </div>,
+                  `${message.id}-tool-${toolIdx}`
+                );
+              });
+            }
+
+            // Wrap bubbles with spacing between messages
+            return (
+              <div key={message.id || `message-${index}`} className="mb-4 space-y-1">
+                {bubbles}
               </div>
             );
           })}
