@@ -59,7 +59,7 @@ export async function broadcastToOrganization(organizationId: string, data: Reco
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
     const user = await getStackServerApp().getUser();
@@ -67,7 +67,7 @@ export async function GET(
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { organizationId } = params;
+    const { organizationId } = await params;
     
     // TODO: Verify user has access to this organization
     // For now, we'll trust the user is authorized since they're logged in
@@ -138,7 +138,11 @@ export async function GET(
             timestamp: new Date().toISOString(),
           });
           
-          controller.close();
+          try {
+            controller.close();
+          } catch {
+            // Controller might already be closed
+          }
         });
 
         // Keep connection alive with heartbeat
