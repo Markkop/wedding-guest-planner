@@ -57,7 +57,7 @@ export function SettingsDialog({ organization, onSettingsChange }: SettingsDialo
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Settings className="sm:mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">Manage Settings</span>
+          <span className="hidden sm:inline">Settings</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">

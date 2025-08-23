@@ -67,12 +67,12 @@ export function InviteManager({ organization, onInviteRefresh }: InviteManagerPr
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Users className="sm:mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">Manage Invites</span>
+          <span className="hidden sm:inline">Invites</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Manage Organization Invites</DialogTitle>
+          <DialogTitle>Organization Invites</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 pb-4">
