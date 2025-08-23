@@ -145,7 +145,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   guestIndex={index}
                   visibleColumns={visibleColumns}
                   organization={organization}
-                  isRemotelyUpdated={remoteUpdatedGuests.has(guest.id)}
+                  isRemotelyUpdated={remoteUpdatedGuests?.has?.(guest.id) ?? false}
                   onUpdate={handleUpdateGuest}
                   onDelete={handleDeleteGuest}
                   onReorder={handleReorder}
