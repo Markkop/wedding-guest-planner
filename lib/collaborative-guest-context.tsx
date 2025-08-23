@@ -33,6 +33,7 @@ interface GuestContextType {
   loading: boolean;
   stats: GuestStatistics;
   organization: Organization | null;
+  remoteUpdatedGuests: Set<string>;
   setOrganization: (org: Organization | null) => void;
   loadGuests: (organizationId: string) => Promise<void>;
   addGuest: (name: string) => Promise<void>;
@@ -56,10 +57,12 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [remoteUpdatedGuests, setRemoteUpdatedGuests] = useState<Set<string>>(new Set());
   const updateQueue = useRef<UpdateQueueItem[]>([]);
   const processingQueue = useRef(false);
   // Track the latest update timestamp for each guest field to prevent race conditions
   const latestFieldUpdates = useRef<Record<string, Record<string, number>>>({});
+  const remoteUpdateTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
   
   // Get collaboration functions
   const { broadcastGuestUpdate, onGuestUpdate } = useCollaboration();
@@ -129,6 +132,29 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  // Helper to mark a guest as remotely updated and clear after 5 seconds
+  const markGuestAsRemotelyUpdated = useCallback((guestId: string) => {
+    // Clear any existing timer for this guest
+    if (remoteUpdateTimers.current.has(guestId)) {
+      clearTimeout(remoteUpdateTimers.current.get(guestId)!);
+    }
+
+    // Add guest to the set of remotely updated guests
+    setRemoteUpdatedGuests(prev => new Set([...prev, guestId]));
+
+    // Set a timer to remove the highlight after 5 seconds
+    const timer = setTimeout(() => {
+      setRemoteUpdatedGuests(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(guestId);
+        return newSet;
+      });
+      remoteUpdateTimers.current.delete(guestId);
+    }, 5000);
+
+    remoteUpdateTimers.current.set(guestId, timer);
+  }, []);
+
   // Handle remote guest updates from other users
   const handleRemoteGuestUpdate = useCallback((update: {
     type: string;
@@ -148,6 +174,8 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
             // Check if guest already exists (avoid duplicates)
             const exists = prev.some(g => g.id === update.guest!.id);
             if (!exists) {
+              // Mark as remotely updated
+              markGuestAsRemotelyUpdated(update.guest!.id);
               return [...prev, update.guest!].sort((a, b) => a.display_order - b.display_order);
             }
             return prev;
@@ -162,6 +190,9 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           // Check if this update is stale
           if (!isUpdateStale(update.guestId, fields, timestamp)) {
             recordFieldUpdate(update.guestId, fields, timestamp);
+            
+            // Mark as remotely updated
+            markGuestAsRemotelyUpdated(update.guestId);
             
             setGuests(prev => prev.map(guest => {
               if (guest.id === update.guestId) {
@@ -190,6 +221,9 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
               .map((id: string) => guestMap.get(id))
               .filter(Boolean) as Guest[];
             
+            // Mark all reordered guests as remotely updated
+            reorderedGuests.forEach(guest => markGuestAsRemotelyUpdated(guest.id));
+            
             // Add any guests that weren't in the reorder list (shouldn't happen, but safety)
             const orderedIds = new Set(update.guestIds!);
             const remainingGuests = prev.filter(g => !orderedIds.has(g.id));
@@ -199,7 +233,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         }
         break;
     }
-  }, [isUpdateStale, recordFieldUpdate]);
+  }, [isUpdateStale, recordFieldUpdate, markGuestAsRemotelyUpdated]);
 
   // Subscribe to remote updates
   useEffect(() => {
@@ -609,6 +643,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         loading,
         stats,
         organization,
+        remoteUpdatedGuests,
         setOrganization,
         loadGuests,
         addGuest,

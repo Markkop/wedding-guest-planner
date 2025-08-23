@@ -33,6 +33,7 @@ interface SortableRowProps {
   guestIndex: number;
   visibleColumns: VisibleColumns;
   organization: Organization;
+  isRemotelyUpdated?: boolean;
   onUpdate: (guestId: string, updates: Partial<Guest>) => void;
   onDelete: (guestId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
@@ -45,6 +46,7 @@ export function SortableRow({
   guestIndex,
   visibleColumns,
   organization,
+  isRemotelyUpdated = false,
   onUpdate,
   onDelete,
   onReorder,
@@ -237,7 +239,8 @@ export function SortableRow({
         "transition-all cursor-move hover:bg-gray-50",
         isBeingDragged && "opacity-50",
         isDraggedOver && "bg-indigo-50",
-        isDeclined && "bg-gray-50 opacity-60"
+        isDeclined && "bg-gray-50 opacity-60",
+        isRemotelyUpdated && "remote-update-highlight"
       )}
     >
       <TableCell className="font-medium pl-4">{index}</TableCell>

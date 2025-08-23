@@ -34,6 +34,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     reorderGuests,
     moveGuestToEnd,
     setOrganization,
+    remoteUpdatedGuests,
   } = useGuests();
 
   const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
@@ -144,6 +145,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   guestIndex={index}
                   visibleColumns={visibleColumns}
                   organization={organization}
+                  isRemotelyUpdated={remoteUpdatedGuests.has(guest.id)}
                   onUpdate={handleUpdateGuest}
                   onDelete={handleDeleteGuest}
                   onReorder={handleReorder}
