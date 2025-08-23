@@ -32,6 +32,7 @@ interface GuestContextType {
   loading: boolean;
   stats: GuestStatistics;
   organization: Organization | null;
+  remoteUpdatedGuests: Set<string>;
   setOrganization: (org: Organization | null) => void;
   loadGuests: (organizationId: string) => Promise<void>;
   addGuest: (name: string) => Promise<void>;
@@ -502,6 +503,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         loading,
         stats,
         organization,
+        remoteUpdatedGuests: new Set<string>(),
         setOrganization,
         loadGuests,
         addGuest,

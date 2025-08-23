@@ -17,13 +17,19 @@ interface OnlineUser {
 }
 
 interface GuestUpdate {
-  type: "guest_updated" | "guest_added" | "guest_deleted" | "guests_reordered";
+  type: "guest_updated" | "guest_added" | "guest_deleted" | "guests_reordered" | "guest_moved" | "guests_swapped";
   userId: string;
   userName: string;
   guestId?: string;
+  guestName?: string;
   updates?: Partial<Guest>;
   guest?: Guest;
   guestIds?: string[]; // For reordering
+  action?: string; // For position changes (e.g., "moved to position 3")
+  guest1Id?: string; // For swapping
+  guest1Name?: string;
+  guest2Id?: string;
+  guest2Name?: string;
   timestamp: string;
   isAI?: boolean; // Flag for AI-initiated updates
 }
@@ -122,6 +128,8 @@ export function CollaborationProvider({ children, organizationId }: Collaboratio
         case "guest_added":
         case "guest_deleted":
         case "guests_reordered":
+        case "guest_moved":
+        case "guests_swapped":
           // Don't process our own updates, unless they're AI-initiated
           if (data.userId !== user?.id || data.isAI) {
             updateCallbacks.current.forEach(callback => callback(data));

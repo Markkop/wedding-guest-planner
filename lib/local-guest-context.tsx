@@ -319,6 +319,7 @@ export function LocalGuestProvider({
         deleteGuest,
         reorderGuests,
         moveGuestToEnd,
+        remoteUpdatedGuests: new Set<string>(),
       }}
     >
       <CollaborativeGuestContext.Provider
@@ -334,6 +335,7 @@ export function LocalGuestProvider({
           deleteGuest,
           reorderGuests,
           moveGuestToEnd,
+          remoteUpdatedGuests: new Set<string>(),
         }}
       >
         {children}

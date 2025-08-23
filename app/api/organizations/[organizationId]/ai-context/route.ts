@@ -4,10 +4,10 @@ import type { EventConfiguration } from '@/lib/types';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const { organizationId } = params;
+    const { organizationId } = await params;
     const organization = await OrganizationService.getOrganization(organizationId);
     const config = organization.configuration as EventConfiguration;
 

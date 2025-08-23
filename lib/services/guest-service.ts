@@ -265,6 +265,175 @@ export class GuestService {
     return { success: true };
   }
 
+  static async moveGuestToBeginning(guestId: string) {
+    const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
+    });
+
+    const guestCheck = await sql`
+      SELECT g.*, om.user_id
+      FROM guests g
+      JOIN organization_members om ON g.organization_id = om.organization_id
+      WHERE g.id = ${guestId} AND om.user_id = ${user.id}
+    `;
+
+    if (guestCheck.length === 0) {
+      throw new Error('Guest not found or access denied');
+    }
+
+    const guest = guestCheck[0];
+
+    // Shift all existing guests down by 1
+    await sql`
+      UPDATE guests
+      SET display_order = display_order + 1
+      WHERE organization_id = ${guest.organization_id}
+    `;
+
+    // Move the target guest to position 1
+    await sql`
+      UPDATE guests
+      SET display_order = 1
+      WHERE id = ${guestId}
+    `;
+
+    return { success: true };
+  }
+
+  static async moveGuestToPosition(guestId: string, targetPosition: number) {
+    const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
+    });
+
+    const guestCheck = await sql`
+      SELECT g.*, om.user_id
+      FROM guests g
+      JOIN organization_members om ON g.organization_id = om.organization_id
+      WHERE g.id = ${guestId} AND om.user_id = ${user.id}
+    `;
+
+    if (guestCheck.length === 0) {
+      throw new Error('Guest not found or access denied');
+    }
+
+    const guest = guestCheck[0];
+    const currentPosition = guest.display_order;
+
+    if (targetPosition < 1) {
+      throw new Error('Target position must be 1 or greater');
+    }
+
+    // Get total number of guests to validate target position
+    const countResult = await sql`
+      SELECT COUNT(*) as total
+      FROM guests
+      WHERE organization_id = ${guest.organization_id}
+    `;
+
+    const totalGuests = Number(countResult[0].total);
+    
+    // If target position is beyond the total, treat it as "move to end"
+    const effectiveTargetPosition = targetPosition > totalGuests ? totalGuests : targetPosition;
+
+    if (currentPosition === effectiveTargetPosition) {
+      return { success: true, message: 'Guest is already at the target position' };
+    }
+
+    if (currentPosition < effectiveTargetPosition) {
+      // Moving down: shift guests between current and target positions up
+      await sql`
+        UPDATE guests
+        SET display_order = display_order - 1
+        WHERE organization_id = ${guest.organization_id}
+          AND display_order > ${currentPosition}
+          AND display_order <= ${effectiveTargetPosition}
+      `;
+    } else {
+      // Moving up: shift guests between target and current positions down
+      await sql`
+        UPDATE guests
+        SET display_order = display_order + 1
+        WHERE organization_id = ${guest.organization_id}
+          AND display_order >= ${effectiveTargetPosition}
+          AND display_order < ${currentPosition}
+      `;
+    }
+
+    // Move the target guest to the new position
+    await sql`
+      UPDATE guests
+      SET display_order = ${effectiveTargetPosition}
+      WHERE id = ${guestId}
+    `;
+
+    return { success: true };
+  }
+
+  static async swapGuestPositions(guestId1: string, guestId2: string) {
+    const user = await safeRequireUser();
+
+    // Sync Stack Auth user to local database first
+    await AuthService.syncUserToDatabase({
+      id: user.id,
+      primaryEmail: user.primaryEmail || '',
+      displayName: user.displayName ?? undefined,
+      profileImageUrl: user.profileImageUrl ?? undefined
+    });
+
+    // Get both guests and verify access
+    const guestsCheck = await sql`
+      SELECT g.*, om.user_id
+      FROM guests g
+      JOIN organization_members om ON g.organization_id = om.organization_id
+      WHERE g.id IN (${guestId1}, ${guestId2}) AND om.user_id = ${user.id}
+    `;
+
+    if (guestsCheck.length !== 2) {
+      throw new Error('One or both guests not found or access denied');
+    }
+
+    const guest1 = guestsCheck.find(g => g.id === guestId1);
+    const guest2 = guestsCheck.find(g => g.id === guestId2);
+
+    if (!guest1 || !guest2) {
+      throw new Error('Could not find both guests');
+    }
+
+    if (guest1.organization_id !== guest2.organization_id) {
+      throw new Error('Both guests must be in the same organization');
+    }
+
+    const position1 = guest1.display_order;
+    const position2 = guest2.display_order;
+
+    // Swap positions
+    await sql`
+      UPDATE guests
+      SET display_order = ${position2}
+      WHERE id = ${guestId1}
+    `;
+
+    await sql`
+      UPDATE guests
+      SET display_order = ${position1}
+      WHERE id = ${guestId2}
+    `;
+
+    return { success: true };
+  }
+
   static async getGuestStatistics(organizationId: string) {
     const user = await safeRequireUser();
 

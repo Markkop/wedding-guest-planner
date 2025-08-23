@@ -41,6 +41,33 @@ const findGuestSchema = z.object({
   name: z.string().describe('The name of the guest to find (can be partial match)'),
 });
 
+// Schema for moving guest to specific position
+const moveGuestToPositionSchema = z.object({
+  guestId: z.string().describe('The ID of the guest to move'),
+  position: z.number().int().positive().describe('The target position (1-based index)'),
+});
+
+// Schema for moving guest to beginning
+const moveGuestToBeginningSchema = z.object({
+  guestId: z.string().describe('The ID of the guest to move to the beginning'),
+});
+
+// Schema for moving guest to end
+const moveGuestToEndSchema = z.object({
+  guestId: z.string().describe('The ID of the guest to move to the end'),
+});
+
+// Schema for swapping guest positions
+const swapGuestPositionsSchema = z.object({
+  guestId1: z.string().describe('The ID of the first guest'),
+  guestId2: z.string().describe('The ID of the second guest'),
+});
+
+// Schema for reordering guests
+const reorderGuestsSchema = z.object({
+  guestIds: z.array(z.string()).describe('Array of guest IDs in the desired order'),
+});
+
 
 
 
@@ -214,10 +241,22 @@ CURRENT GUEST LIST (${currentGuests.length} guests):
 ${formatGuestContext(currentGuests)}
 
 When working with guests:
-- You can reference guests by their name or ID when editing/deleting
+- You can reference guests by their name or ID when editing/deleting/moving
 - Always use the ID values (not labels) for categories, age groups, food preferences, and confirmation stages
 - **When working with multiple guests at the same time**, use multiple individual tool calls to attend to the user's request (e.g., if user asks to add 3 guests, make 3 separate createGuest calls)
 - **For multiple operations**, explain what you're doing and process each guest individually with separate tool calls
+
+Position management capabilities:
+- Move guests to specific positions (1-based indexing) with moveGuestToPosition
+- Move guests to the beginning of the list with moveGuestToBeginning
+- Move guests to the end of the list with moveGuestToEnd
+- Swap positions between two guests with swapGuestPositions
+- Completely reorder the guest list with reorderGuests
+- Always reference guests by name when possible, and find their IDs using the findGuest tool if needed
+- Position 1 is the first position, position 2 is the second, etc.
+- When users say "move X before Y" or "move X after Y", calculate the appropriate position based on the current list order
+- ALWAYS explain what you're doing when moving guests (e.g., "I'll move Sarah to position 3 in your guest list")
+- Provide clear feedback about the position change (e.g., "Sarah has been moved to position 3")
 
 MANDATORY when CREATING GUESTS:
 - **ALWAYS** provide categories array with at least one category ID: ["${(aiContext?.categories || config.categories)[0]?.id}"]
@@ -386,6 +425,165 @@ Be helpful, conversational, and informative. When users provide lists of names o
               return { success: true, guests: matchingGuests };
             } catch (error) {
               return { success: false, error: error instanceof Error ? error.message : 'Failed to find guest' };
+            }
+          },
+        },
+        moveGuestToPosition: {
+          description: 'Move a guest to a specific position in the guest list. Always explain what you are doing and provide clear feedback.',
+          inputSchema: moveGuestToPositionSchema,
+          execute: async ({ guestId, position }) => {
+            try {
+              // Get guest info before moving for broadcast
+              const guests = await GuestService.getGuests(organizationId);
+              const existingGuest = guests.find(g => g.id === guestId);
+              
+              await GuestService.moveGuestToPosition(guestId, position);
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              if (user) {
+                await broadcastToOrganization(organizationId, {
+                  type: "guest_moved",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guestId,
+                  guestName: existingGuest?.name || "Unknown",
+                  action: `moved to position ${position}`,
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+              }
+              
+              return { success: true, guestName: existingGuest?.name, targetPosition: position };
+            } catch (error) {
+              return { success: false, error: error instanceof Error ? error.message : 'Failed to move guest to position' };
+            }
+          },
+        },
+        moveGuestToBeginning: {
+          description: 'Move a guest to the beginning (first position) of the guest list. Always explain the action clearly.',
+          inputSchema: moveGuestToBeginningSchema,
+          execute: async ({ guestId }) => {
+            try {
+              // Get guest info before moving for broadcast
+              const guests = await GuestService.getGuests(organizationId);
+              const existingGuest = guests.find(g => g.id === guestId);
+              
+              await GuestService.moveGuestToBeginning(guestId);
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              if (user) {
+                await broadcastToOrganization(organizationId, {
+                  type: "guest_moved",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guestId,
+                  guestName: existingGuest?.name || "Unknown",
+                  action: "moved to beginning",
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+              }
+              
+              return { success: true, guestName: existingGuest?.name };
+            } catch (error) {
+              return { success: false, error: error instanceof Error ? error.message : 'Failed to move guest to beginning' };
+            }
+          },
+        },
+        moveGuestToEnd: {
+          description: 'Move a guest to the end (last position) of the guest list. Always explain the action clearly.',
+          inputSchema: moveGuestToEndSchema,
+          execute: async ({ guestId }) => {
+            try {
+              // Get guest info before moving for broadcast
+              const guests = await GuestService.getGuests(organizationId);
+              const existingGuest = guests.find(g => g.id === guestId);
+              
+              await GuestService.moveGuestToEnd(guestId);
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              if (user) {
+                await broadcastToOrganization(organizationId, {
+                  type: "guest_moved",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guestId,
+                  guestName: existingGuest?.name || "Unknown",
+                  action: "moved to end",
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+              }
+              
+              return { success: true, guestName: existingGuest?.name };
+            } catch (error) {
+              return { success: false, error: error instanceof Error ? error.message : 'Failed to move guest to end' };
+            }
+          },
+        },
+        swapGuestPositions: {
+          description: 'Swap the positions of two guests in the guest list. Always explain which guests are being swapped.',
+          inputSchema: swapGuestPositionsSchema,
+          execute: async ({ guestId1, guestId2 }) => {
+            try {
+              // Get guest info before swapping for broadcast
+              const guests = await GuestService.getGuests(organizationId);
+              const guest1 = guests.find(g => g.id === guestId1);
+              const guest2 = guests.find(g => g.id === guestId2);
+              
+              await GuestService.swapGuestPositions(guestId1, guestId2);
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              if (user) {
+                await broadcastToOrganization(organizationId, {
+                  type: "guests_swapped",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guest1Id: guestId1,
+                  guest1Name: guest1?.name || "Unknown",
+                  guest2Id: guestId2,
+                  guest2Name: guest2?.name || "Unknown",
+                  action: "swapped positions",
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+              }
+              
+              return { success: true, guest1Name: guest1?.name, guest2Name: guest2?.name };
+            } catch (error) {
+              return { success: false, error: error instanceof Error ? error.message : 'Failed to swap guest positions' };
+            }
+          },
+        },
+        reorderGuests: {
+          description: 'Completely reorder the guest list according to a specific arrangement. Always explain the reordering action clearly.',
+          inputSchema: reorderGuestsSchema,
+          execute: async ({ guestIds }) => {
+            try {
+              await GuestService.reorderGuests(organizationId, guestIds);
+              
+              // Broadcast the change to other connected users
+              const user = await getStackServerApp().getUser();
+              if (user) {
+                await broadcastToOrganization(organizationId, {
+                  type: "guests_reordered",
+                  userId: user.id,
+                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  guestIds,
+                  guestCount: guestIds.length,
+                  action: "reordered guest list",
+                  timestamp: new Date().toISOString(),
+                  isAI: true,
+                });
+              }
+              
+              return { success: true, reorderedCount: guestIds.length };
+            } catch (error) {
+              return { success: false, error: error instanceof Error ? error.message : 'Failed to reorder guests' };
             }
           },
         },

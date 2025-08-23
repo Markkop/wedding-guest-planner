@@ -33,7 +33,7 @@ function getAvatarColor(userId: string): string {
 }
 
 export function OnlineUsersCompact() {
-  const { onlineUsers, isConnected, currentUser } = useCollaboration();
+  const { onlineUsers, isConnected } = useCollaboration();
 
   // Don't show anything if not connected
   if (!isConnected) {
@@ -48,22 +48,6 @@ export function OnlineUsersCompact() {
   return (
     <TooltipProvider>
       <div className="flex items-center gap-1">
-        {/* Current user avatar */}
-        {currentUser && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Avatar className="h-8 w-8 border-2 border-background ring-2 ring-green-500 ring-offset-1">
-                <AvatarFallback className={`text-xs font-medium text-white ${getAvatarColor(currentUser.id)}`}>
-                  {getInitials(currentUser.name)}
-                </AvatarFallback>
-              </Avatar>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>{currentUser.name} (You)</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-        
         {/* Other online users */}
         <div className="flex -space-x-2">
           {onlineUsers.slice(0, 5).map((user) => (

@@ -9,7 +9,8 @@
     "start": "next start",
     "start:sandbox": "NEXT_BUILD_SANDBOX=1 next start -p 4000",
     "clean": "rimraf .next .next-buildcheck .turbo",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.19",

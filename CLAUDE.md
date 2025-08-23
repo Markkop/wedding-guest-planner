@@ -16,9 +16,11 @@ pnpm start             # Start production server
 pnpm start:sandbox     # Start production on port 4000 using sandbox build
 pnpm clean             # Clean all build artifacts
 pnpm lint              # Run ESLint
+pnpm tsc               # Run TypeScript compiler
 ```
 
 **Important**: Use `pnpm build:sandbox` when dev server is running to prevent ENOENT errors. Sandbox builds output to `.next-buildcheck`.
+No need to always run build, lint and tsc should be enough to catch errors, try to run them after big changes.
 
 ## Tech Stack
 

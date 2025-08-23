@@ -4,7 +4,7 @@ import { broadcastToOrganization } from "../stream/route";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
     const user = await getStackServerApp().getUser();
@@ -12,7 +12,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { organizationId } = params;
+    const { organizationId } = await params;
     const body = await request.json();
 
     // TODO: Verify user has access to this organization

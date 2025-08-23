@@ -161,8 +161,14 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     timestamp: string;
     guest?: Guest;
     guestId?: string;
+    guestName?: string;
     updates?: Partial<Guest>;
     guestIds?: string[];
+    action?: string;
+    guest1Id?: string;
+    guest1Name?: string;
+    guest2Id?: string;
+    guest2Name?: string;
   }) => {
     console.log("🔄 Received remote guest update:", update);
     const timestamp = new Date(update.timestamp).getTime();
@@ -232,8 +238,42 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           });
         }
         break;
+        
+      case "guest_moved":
+      case "guests_swapped":
+        // For single guest moves or swaps, we need to refresh the guest list to get the updated order
+        // These operations change display_order values, so we should fetch fresh data
+        if (update.guestId || (update.guest1Id && update.guest2Id)) {
+          // Mark affected guests as remotely updated
+          if (update.guestId) {
+            markGuestAsRemotelyUpdated(update.guestId);
+          }
+          if (update.guest1Id) {
+            markGuestAsRemotelyUpdated(update.guest1Id);
+          }
+          if (update.guest2Id) {
+            markGuestAsRemotelyUpdated(update.guest2Id);
+          }
+          
+          // Refresh the guest list to get the correct order
+          if (organization?.id) {
+            // Delay the loadGuests call to avoid dependency issue
+            setTimeout(() => {
+              // Re-fetch the guests to get the updated order
+              fetch(`/api/organizations/${organization.id}/guests`)
+                .then(response => response.json())
+                .then(data => {
+                  if (data.guests) {
+                    setGuests(data.guests);
+                  }
+                })
+                .catch(console.error);
+            }, 100);
+          }
+        }
+        break;
     }
-  }, [isUpdateStale, recordFieldUpdate, markGuestAsRemotelyUpdated]);
+  }, [isUpdateStale, recordFieldUpdate, markGuestAsRemotelyUpdated, organization?.id]);
 
   // Subscribe to remote updates
   useEffect(() => {
