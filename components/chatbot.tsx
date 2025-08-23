@@ -29,7 +29,7 @@ export function Chatbot({ organizationId }: ChatbotProps) {
     handleImageUpload,
     clearPastedImages,
   } = useChatImages(organizationId);
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     id: `chat-${organizationId}`,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -92,6 +92,11 @@ export function Chatbot({ organizationId }: ChatbotProps) {
     setInputValue(e.target.value);
   };
 
+  const handleClearChat = () => {
+    setMessages([]);
+    chatbotToast.success("Chat history cleared");
+  };
+
 
   useEffect(() => {
     console.log("🏢 Organization ID changed:", organizationId);
@@ -115,7 +120,10 @@ export function Chatbot({ organizationId }: ChatbotProps) {
             : "scale-0 opacity-0 pointer-events-none"
         )}
       >
-        <ChatHeader onClose={() => setIsOpen(false)} />
+        <ChatHeader 
+          onClose={() => setIsOpen(false)}
+          onClearChat={handleClearChat}
+        />
         
         <ChatMessages messages={messages} status={status} />
         
