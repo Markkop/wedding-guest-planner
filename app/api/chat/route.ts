@@ -105,6 +105,10 @@ export async function POST(request: Request) {
     // Get organization configuration for context
     const organization = await OrganizationService.getOrganization(organizationId);
     const config = organization.configuration as EventConfiguration;
+    
+    // Get dynamic AI context for better integration
+    const contextResponse = await fetch(`${request.url.split('/api/chat')[0]}/api/organizations/${organizationId}/ai-context`);
+    const { context: aiContext } = contextResponse.ok ? await contextResponse.json() : { context: null };
 
     // Get current guests for better AI context
     const currentGuests = await GuestService.getGuests(organizationId);
@@ -199,12 +203,12 @@ CRITICAL CONTEXT UNDERSTANDING:
 
 IMPORTANT: Only respond to the user's CURRENT request. Never re-execute actions from previous messages in the conversation history.
 
-Current organization configuration:
-- Event Type: ${organization.event_type}
-- Categories: ${config.categories.map(c => `${c.label} (${c.id})`).join(', ')}
-- Age Groups: ${config.ageGroups.enabled ? config.ageGroups.groups.map(g => `${g.label} (${g.id})`).join(', ') : 'Not enabled'}
-- Food Preferences: ${config.foodPreferences.enabled ? config.foodPreferences.options.map(f => `${f.label} (${f.id})`).join(', ') : 'Not enabled'}
-- Confirmation Stages: ${config.confirmationStages.enabled ? config.confirmationStages.stages.map(s => `${s.label} (${s.id})`).join(', ') : 'Not enabled'}
+Current organization configuration (${aiContext?.organizationName || organization.name}):
+- Event Type: ${aiContext?.eventType || organization.event_type}
+- Categories: ${(aiContext?.categories || config.categories).map((c: {id: string, label: string}) => `${c.label} (${c.id})`).join(', ')}
+- Age Groups: ${aiContext?.ageGroups?.enabled ? aiContext.ageGroups.options.map((g: {id: string, label: string}) => `${g.label} (${g.id})`).join(', ') : 'Not enabled'}
+- Food Preferences: ${aiContext?.foodPreferences?.enabled ? aiContext.foodPreferences.options.map((f: {id: string, label: string}) => `${f.label} (${f.id})`).join(', ') : 'Not enabled'}
+- Confirmation Stages: ${aiContext?.confirmationStages?.enabled ? aiContext.confirmationStages.options.map((s: {id: string, label: string}) => `${s.label} (${s.id})`).join(', ') : 'Not enabled'}
 
 CURRENT GUEST LIST (${currentGuests.length} guests):
 ${formatGuestContext(currentGuests)}
@@ -216,10 +220,10 @@ When working with guests:
 - **For multiple operations**, explain what you're doing and process each guest individually with separate tool calls
 
 MANDATORY when CREATING GUESTS:
-- **ALWAYS** provide categories array with at least one category ID: ["${config.categories[0]?.id}"]
-- **ALWAYS** provide confirmation_stage: "${config.confirmationStages.stages[0]?.id || 'invited'}"
-${config.ageGroups.enabled ? `- **ALWAYS** provide age_group when age groups are enabled: "${config.ageGroups.groups[0]?.id}"` : '- age_group: Not needed (age groups disabled)'}
-${config.foodPreferences.enabled ? `- **ALWAYS** provide food_preference when food preferences are enabled: "${config.foodPreferences.options[0]?.id}"` : '- food_preference: Not needed (food preferences disabled)'}
+- **ALWAYS** provide categories array with at least one category ID: ["${(aiContext?.categories || config.categories)[0]?.id}"]
+- **ALWAYS** provide confirmation_stage: "${(aiContext?.confirmationStages.enabled ? aiContext.confirmationStages.options[0]?.id : config.confirmationStages.stages[0]?.id) || 'invited'}"
+${(aiContext?.ageGroups || config.ageGroups).enabled ? `- **ALWAYS** provide age_group when age groups are enabled: "${(aiContext?.ageGroups || config.ageGroups).groups?.[0]?.id || (aiContext?.ageGroups || config.ageGroups).options?.[0]?.id}"` : '- age_group: Not needed (age groups disabled)'}
+${(aiContext?.foodPreferences || config.foodPreferences).enabled ? `- **ALWAYS** provide food_preference when food preferences are enabled: "${(aiContext?.foodPreferences || config.foodPreferences).options?.[0]?.id}"` : '- food_preference: Not needed (food preferences disabled)'}
 
 NEVER create a guest without providing these required fields in your tool calls!
 
