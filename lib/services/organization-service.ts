@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import { safeRequireUser, safeGetUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
 import { EventConfigService } from './event-config-service';
+import { TierService } from './tier-service';
 import type { EventConfiguration } from '@/lib/types';
 
 export class OrganizationService {
@@ -83,6 +84,12 @@ export class OrganizationService {
     }
 
     const org = orgResult[0];
+
+    // Check if the organization admin can invite users (tier restriction)
+    const canInvite = await TierService.canInviteToOrganization(org.admin_id);
+    if (!canInvite.allowed) {
+      throw new Error('The organization admin cannot invite users with their current plan');
+    }
 
     const existingMember = await sql`
       SELECT * FROM organization_members

@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Users, WifiOff } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useUser } from "@stackframe/stack";
 
 function getInitials(name: string): string {
   return name
@@ -36,6 +37,7 @@ function getAvatarColor(userId: string): string {
 
 export function OnlineUsers() {
   const { onlineUsers, isConnected } = useCollaboration();
+  const currentUser = useUser();
 
   if (!isConnected) {
     return (
@@ -48,8 +50,16 @@ export function OnlineUsers() {
     );
   }
 
-  // Show connected status even with no other users
-  const totalUsers = onlineUsers.length + 1; // +1 for current user
+  // Create a combined list with current user and online users
+  const allUsers = currentUser ? [
+    {
+      id: currentUser.id,
+      name: `${currentUser.displayName || currentUser.primaryEmail || "You"} (you)`
+    },
+    ...onlineUsers
+  ] : onlineUsers;
+
+  const totalUsers = allUsers.length;
 
   return (
     <TooltipProvider>
@@ -62,12 +72,12 @@ export function OnlineUsers() {
         </div>
         
         <div className="flex -space-x-2">
-          {onlineUsers.slice(0, 5).map((user) => (
+          {allUsers.slice(0, 5).map((user) => (
             <Tooltip key={user.id}>
               <TooltipTrigger asChild>
                 <Avatar className="h-8 w-8 border-2 border-background">
                   <AvatarFallback className={`text-xs font-medium text-white ${getAvatarColor(user.id)}`}>
-                    {getInitials(user.name)}
+                    {getInitials(user.name.replace(" (you)", ""))}
                   </AvatarFallback>
                 </Avatar>
               </TooltipTrigger>
@@ -77,19 +87,19 @@ export function OnlineUsers() {
             </Tooltip>
           ))}
           
-          {onlineUsers.length > 5 && (
+          {allUsers.length > 5 && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Avatar className="h-8 w-8 border-2 border-background">
                   <AvatarFallback className="text-xs font-medium bg-muted text-muted-foreground">
-                    +{onlineUsers.length - 5}
+                    +{allUsers.length - 5}
                   </AvatarFallback>
                 </Avatar>
               </TooltipTrigger>
               <TooltipContent side="top">
                 <div>
-                  <p className="font-medium mb-1">And {onlineUsers.length - 5} more:</p>
-                  {onlineUsers.slice(5).map(user => (
+                  <p className="font-medium mb-1">And {allUsers.length - 5} more:</p>
+                  {allUsers.slice(5).map(user => (
                     <p key={user.id} className="text-sm">{user.name}</p>
                   ))}
                 </div>

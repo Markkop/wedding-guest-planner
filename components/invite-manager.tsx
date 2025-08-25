@@ -1,14 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useUser } from '@stackframe/stack';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Copy, RefreshCw, Users, Link } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Copy, RefreshCw, Users, Link, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Organization } from '@/lib/types';
+import type { TierType } from '@/lib/tiers';
 
 interface InviteManagerProps {
   organization: Organization;
@@ -16,9 +19,31 @@ interface InviteManagerProps {
 }
 
 export function InviteManager({ organization, onInviteRefresh }: InviteManagerProps) {
+  const user = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentInviteCode, setCurrentInviteCode] = useState(organization.invite_code);
+  const [userTier, setUserTier] = useState<TierType>('free');
+  const [canInvite, setCanInvite] = useState(true);
+
+  useEffect(() => {
+    const checkInvitePermission = async () => {
+      if (!user) return;
+      
+      try {
+        const response = await fetch('/api/user/tier-info');
+        if (response.ok) {
+          const data = await response.json();
+          setUserTier(data.tier);
+          setCanInvite(data.tier !== 'free');
+        }
+      } catch (error) {
+        console.error('Error checking user tier:', error);
+      }
+    };
+
+    checkInvitePermission();
+  }, [user]);
 
   const inviteUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${currentInviteCode}`;
 
@@ -41,6 +66,11 @@ export function InviteManager({ organization, onInviteRefresh }: InviteManagerPr
   };
 
   const refreshInviteCode = async () => {
+    if (!canInvite) {
+      toast.error('Upgrade to Plus or Pro to invite collaborators');
+      return;
+    }
+    
     setIsRefreshing(true);
     try {
       const response = await fetch(`/api/organizations/${organization.id}/refresh-invite`, {
@@ -48,15 +78,17 @@ export function InviteManager({ organization, onInviteRefresh }: InviteManagerPr
       });
       
       if (!response.ok) {
-        throw new Error('Failed to refresh invite code');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to refresh invite code');
       }
 
       const data = await response.json();
       setCurrentInviteCode(data.inviteCode);
       toast.success('Invite code refreshed successfully!');
       onInviteRefresh?.();
-    } catch {
-      toast.error('Failed to refresh invite code');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to refresh invite code';
+      toast.error(message);
     } finally {
       setIsRefreshing(false);
     }
@@ -65,17 +97,41 @@ export function InviteManager({ organization, onInviteRefresh }: InviteManagerPr
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Users className="sm:mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">Invites</span>
+        <Button variant="outline" size="sm" disabled={!canInvite}>
+          {canInvite ? (
+            <Users className="sm:mr-2 h-4 w-4" />
+          ) : (
+            <Lock className="sm:mr-2 h-4 w-4" />
+          )}
+          <span className="hidden sm:inline">
+            {canInvite ? 'Invites' : 'Invites (Pro)'}
+          </span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Organization Invites</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            Organization Invites
+            {!canInvite && (
+              <Badge variant="secondary">
+                <Lock className="h-3 w-3 mr-1" />
+                Requires Upgrade
+              </Badge>
+            )}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 pb-4">
+          {!canInvite && (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="pt-6">
+                <div className="text-sm text-orange-800">
+                  <p className="font-medium mb-2">🔒 Invite feature requires an upgrade</p>
+                  <p>You&apos;re currently on the <Badge variant="outline">{userTier}</Badge> plan. Upgrade to Plus or Pro to invite collaborators to your organization.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">

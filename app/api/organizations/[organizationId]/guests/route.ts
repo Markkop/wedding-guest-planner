@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GuestService } from '@/lib/services/guest-service';
+import { TierService } from '@/lib/services/tier-service';
+import { safeRequireUser } from '@/lib/auth/safe-stack';
 import { z } from 'zod';
 
 const createGuestSchema = z.object({
@@ -36,9 +38,16 @@ export async function POST(
   { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
+    const user = await safeRequireUser();
     const { organizationId } = await params;
     const body = await request.json();
     const data = createGuestSchema.parse(body);
+    
+    // Check guest limits
+    const canAdd = await TierService.canAddGuestToOrganization(user.id, organizationId);
+    if (!canAdd.allowed) {
+      return NextResponse.json({ error: canAdd.reason }, { status: 403 });
+    }
     
     const guest = await GuestService.createGuest(organizationId, data);
     

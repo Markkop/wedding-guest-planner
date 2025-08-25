@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { GuestService } from '@/lib/services/guest-service';
 import { OrganizationService } from '@/lib/services/organization-service';
+import { TierService } from '@/lib/services/tier-service';
 import { safeRequireUser, getStackServerApp } from '@/lib/auth/safe-stack';
 import { EventConfiguration, Guest } from '@/lib/types';
 import type { UIMessage } from 'ai';
@@ -122,7 +123,13 @@ async function analyzeImage(imageData: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
-    await safeRequireUser();
+    const user = await safeRequireUser();
+    
+    // Check AI message usage limits
+    const usageCheck = await TierService.incrementAiMessageUsage(user.id);
+    if (!usageCheck.success) {
+      return NextResponse.json({ error: usageCheck.reason }, { status: 429 });
+    }
     
     // Standard JSON request from useChat
     const body = await request.json();
@@ -297,15 +304,21 @@ Be helpful, conversational, and informative. When users provide lists of names o
           inputSchema: guestSchema,
           execute: async (guest) => {
             try {
+              // Check guest limits
+              const canAdd = await TierService.canAddGuestToOrganization(user.id, organizationId);
+              if (!canAdd.allowed) {
+                return { success: false, error: canAdd.reason };
+              }
+              
               const newGuest = await GuestService.createGuest(organizationId, guest);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              if (broadcastUser) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_added",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guest: newGuest,
                   timestamp: new Date().toISOString(),
                   isAI: true,
@@ -330,12 +343,12 @@ Be helpful, conversational, and informative. When users provide lists of names o
               const updatedGuest = await GuestService.updateGuest(guestId, updates);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              if (broadcastUser) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_updated",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   updates,
@@ -366,14 +379,14 @@ Be helpful, conversational, and informative. When users provide lists of names o
               console.log("🤖 AI GuestService.deleteGuest completed successfully");
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              console.log("🤖 AI got user for broadcast:", user?.id);
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              console.log("🤖 AI got user for broadcast:", broadcastUser?.id);
+              if (broadcastUser) {
                 console.log("🤖 AI broadcasting guest deletion:", guestId);
                 await broadcastToOrganization(organizationId, {
                   type: "guest_deleted",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   timestamp: new Date().toISOString(),
@@ -440,12 +453,12 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.moveGuestToPosition(guestId, position);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              if (broadcastUser) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   action: `moved to position ${position}`,
@@ -472,12 +485,12 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.moveGuestToBeginning(guestId);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              if (broadcastUser) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   action: "moved to beginning",
@@ -504,12 +517,12 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.moveGuestToEnd(guestId);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              if (broadcastUser) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   action: "moved to end",
@@ -537,12 +550,12 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.swapGuestPositions(guestId1, guestId2);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              if (broadcastUser) {
                 await broadcastToOrganization(organizationId, {
                   type: "guests_swapped",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guest1Id: guestId1,
                   guest1Name: guest1?.name || "Unknown",
                   guest2Id: guestId2,
@@ -567,12 +580,12 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.reorderGuests(organizationId, guestIds);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
-              if (user) {
+              const broadcastUser = await getStackServerApp().getUser();
+              if (broadcastUser) {
                 await broadcastToOrganization(organizationId, {
                   type: "guests_reordered",
-                  userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userId: broadcastUser.id,
+                  userName: broadcastUser.displayName || broadcastUser.primaryEmail || "AI Assistant",
                   guestIds,
                   guestCount: guestIds.length,
                   action: "reordered guest list",

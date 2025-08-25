@@ -277,6 +277,152 @@ function LandingContent() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="py-16 bg-white">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Choose Your Plan
+            </h2>
+            <p className="text-xl text-gray-600">
+              Start free, upgrade as you grow
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Free Plan */}
+            <div className="border border-gray-200 rounded-lg p-6 bg-white">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2">Free</h3>
+                <div className="text-3xl font-bold mb-4">$0</div>
+                <p className="text-gray-600 mb-6">Perfect for small events</p>
+              </div>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Up to 30 guests
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Up to 10 AI messages/day
+                </li>
+                <li className="flex items-center">
+                  <span className="text-red-500 mr-2">✗</span>
+                  <span className="text-gray-500">Invite collaborators</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Drag & drop reordering
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Export guest lists
+                </li>
+              </ul>
+              <Link href="/handler/sign-up">
+                <Button className="w-full" variant="outline">
+                  Get Started Free
+                </Button>
+              </Link>
+            </div>
+
+            {/* Plus Plan */}
+            <div className="border-2 border-indigo-600 rounded-lg p-6 bg-white relative">
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <Badge className="bg-indigo-600">Most Popular</Badge>
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2">Plus</h3>
+                <div className="text-3xl font-bold mb-1">
+                  $10 <span className="text-sm font-normal text-gray-600">USD</span>
+                </div>
+                <div className="text-lg font-semibold mb-4">
+                  R$50 <span className="text-sm font-normal text-gray-600">BRL</span>
+                </div>
+                <p className="text-gray-600 mb-6">per month</p>
+              </div>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Up to 200 guests
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Up to 50 AI messages/day
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Invite collaborators
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Advanced guest management
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Priority support
+                </li>
+              </ul>
+              <Link href="/handler/sign-up">
+                <Button className="w-full">
+                  Start Plus Plan
+                </Button>
+              </Link>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="border border-gray-200 rounded-lg p-6 bg-white">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold mb-2">Pro</h3>
+                <div className="text-3xl font-bold mb-1">
+                  $30 <span className="text-sm font-normal text-gray-600">USD</span>
+                </div>
+                <div className="text-lg font-semibold mb-4">
+                  R$150 <span className="text-sm font-normal text-gray-600">BRL</span>
+                </div>
+                <p className="text-gray-600 mb-6">per month</p>
+              </div>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Up to 500 guests
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Up to 100 AI messages/day
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Unlimited collaborators
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Feature requests
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  White-glove support
+                </li>
+              </ul>
+              <Link href="/handler/sign-up">
+                <Button className="w-full" variant="outline">
+                  Start Pro Plan
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="text-center mt-8 text-sm text-gray-600">
+            <p>
+              * Note: Voice transcription doesn&apos;t count as an AI request, but becomes unavailable once you reach your AI message limit.
+            </p>
+            <p className="mt-2">
+              All plans include drag & drop reordering, export functionality, and real-time collaboration.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-indigo-600 py-16">
         <div className="mx-auto max-w-3xl px-4 text-center">

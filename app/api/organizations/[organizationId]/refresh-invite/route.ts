@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stackServerApp } from '@/stack';
+import { TierService } from '@/lib/services/tier-service';
 import { Client } from 'pg';
 
 export async function POST(
@@ -34,6 +35,12 @@ export async function POST(
 
     if (memberResult.rows[0].role !== 'admin') {
       return NextResponse.json({ error: 'Only admins can refresh invite codes' }, { status: 403 });
+    }
+
+    // Check if user can invite others (tier restriction)
+    const canInvite = await TierService.canInviteToOrganization(user.id);
+    if (!canInvite.allowed) {
+      return NextResponse.json({ error: canInvite.reason }, { status: 403 });
     }
 
     // Generate new invite code

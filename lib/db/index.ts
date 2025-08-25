@@ -12,6 +12,10 @@ export type User = {
   password_hash: string;
   name?: string;
   avatar_url?: string;
+  tier: 'free' | 'plus' | 'pro';
+  ai_messages_used_today: number;
+  ai_messages_reset_at: Date;
+  is_super_admin: boolean;
   created_at: Date;
   updated_at: Date;
 };
