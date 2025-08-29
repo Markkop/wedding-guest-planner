@@ -33,6 +33,22 @@ export interface ConfirmationStageConfig {
   color?: string;
 }
 
+export interface CustomFieldOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface CustomFieldConfig {
+  id: string;
+  label: string;
+  type: 'single-select' | 'multi-select' | 'text' | 'number';
+  options?: CustomFieldOption[]; // For select types
+  required?: boolean;
+  order?: number;
+  placeholder?: string;
+}
+
 export interface EventConfiguration {
   categories: CategoryConfig[];
   categoriesConfig?: {
@@ -51,6 +67,7 @@ export interface EventConfiguration {
     enabled: boolean;
     stages: ConfirmationStageConfig[];
   };
+  customFields?: CustomFieldConfig[];
 }
 
 export interface EventTypePreset {

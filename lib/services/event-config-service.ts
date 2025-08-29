@@ -150,6 +150,20 @@ export class EventConfigService {
       return false;
     }
 
+    // Validate custom fields if they exist
+    if (config.customFields) {
+      for (const field of config.customFields) {
+        if (!field.id || !field.label || !field.type) {
+          return false;
+        }
+        // For select types, ensure options exist
+        if ((field.type === 'single-select' || field.type === 'multi-select') && 
+            (!field.options || field.options.length === 0)) {
+          return false;
+        }
+      }
+    }
+
     return true;
   }
 
@@ -162,18 +176,21 @@ export class EventConfigService {
   ): EventConfiguration {
     return {
       categories: overrides.categories || baseConfig.categories,
+      categoriesConfig: overrides.categoriesConfig || baseConfig.categoriesConfig,
       ageGroups: {
         enabled: overrides.ageGroups?.enabled ?? baseConfig.ageGroups.enabled,
         groups: overrides.ageGroups?.groups || baseConfig.ageGroups.groups
       },
       foodPreferences: {
         enabled: overrides.foodPreferences?.enabled ?? baseConfig.foodPreferences.enabled,
+        allowMultiple: overrides.foodPreferences?.allowMultiple ?? baseConfig.foodPreferences?.allowMultiple,
         options: overrides.foodPreferences?.options || baseConfig.foodPreferences.options
       },
       confirmationStages: {
         enabled: overrides.confirmationStages?.enabled ?? baseConfig.confirmationStages.enabled,
         stages: overrides.confirmationStages?.stages || baseConfig.confirmationStages.stages
-      }
+      },
+      customFields: overrides.customFields || baseConfig.customFields || []
     };
   }
 }

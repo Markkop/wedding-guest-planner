@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { CustomFieldsManager } from '@/components/custom-fields-manager';
 import type { 
   EventConfiguration, 
   EventTypePreset,
   CategoryConfig,
   AgeGroupConfig,
   FoodPreferenceConfig,
-  ConfirmationStageConfig 
+  ConfirmationStageConfig
 } from '@/lib/types';
 
 interface EventConfigFormProps {
@@ -39,7 +40,8 @@ export function EventConfigForm({
       categoriesConfig: { allowMultiple: false },
       ageGroups: { enabled: false, groups: [] },
       foodPreferences: { enabled: false, allowMultiple: true, options: [] },
-      confirmationStages: { enabled: true, stages: [] }
+      confirmationStages: { enabled: true, stages: [] },
+      customFields: []
     }
   );
   const [saving, setSaving] = useState(false);
@@ -530,6 +532,19 @@ export function EventConfigForm({
               </>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Fields */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Custom Fields</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CustomFieldsManager
+            fields={config.customFields || []}
+            onChange={(fields) => setConfig({ ...config, customFields: fields })}
+          />
         </CardContent>
       </Card>
 

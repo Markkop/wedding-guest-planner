@@ -128,6 +128,12 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                 organization.configuration?.confirmationStages?.enabled && (
                   <TableHead className="w-32">Status</TableHead>
                 )}
+              {/* Custom Field Headers */}
+              {organization.configuration?.customFields?.map((field) => (
+                <TableHead key={field.id} className="w-32">
+                  {field.label}
+                </TableHead>
+              ))}
               <TableHead className="w-32">Actions</TableHead>
             </TableRow>
           </TableHeader>

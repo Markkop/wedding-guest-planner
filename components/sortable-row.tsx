@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { GuestNameCell } from "./guest-table/guest-name-cell";
 import { GuestActionsCell } from "./guest-table/guest-actions-cell";
+import { CustomFieldCell } from "./guest-table/custom-field-cell";
 import { getFoodIcon } from "@/lib/utils/food-icons";
 import type { Guest, VisibleColumns, EventConfiguration } from "@/lib/types";
 
@@ -416,6 +417,24 @@ export function SortableRow({
           </Button>
         </TableCell>
       )}
+
+      {/* Custom Fields */}
+      {config.customFields?.map((field) => (
+        <TableCell key={field.id}>
+          <CustomFieldCell
+            fieldConfig={field}
+            value={guest.custom_fields?.[field.id]}
+            isDeclined={isDeclined}
+            onUpdate={(value) => {
+              const updatedCustomFields = {
+                ...(guest.custom_fields || {}),
+                [field.id]: value,
+              };
+              onUpdate(guest.id, { custom_fields: updatedCustomFields });
+            }}
+          />
+        </TableCell>
+      ))}
 
       <TableCell>
         <GuestActionsCell

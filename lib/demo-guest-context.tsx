@@ -43,7 +43,8 @@ const DEMO_ORGANIZATION: Organization = {
         { id: 'confirmed', label: 'Confirmed', order: 2 },
         { id: 'declined', label: 'Declined', order: 3 }
       ]
-    }
+    },
+    customFields: []
   },
   created_at: new Date('2024-01-01'),
   updated_at: new Date(),

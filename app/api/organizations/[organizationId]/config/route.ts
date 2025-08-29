@@ -27,20 +27,41 @@ const confirmationStageConfigSchema = z.object({
   order: z.number()
 });
 
+const customFieldOptionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  value: z.string().min(1)
+});
+
+const customFieldConfigSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  type: z.enum(['single-select', 'multi-select', 'text', 'number']),
+  options: z.array(customFieldOptionSchema).optional(),
+  required: z.boolean().optional(),
+  order: z.number().optional(),
+  placeholder: z.string().optional()
+});
+
 const eventConfigSchema = z.object({
   categories: z.array(categoryConfigSchema).min(1),
+  categoriesConfig: z.object({
+    allowMultiple: z.boolean()
+  }).optional(),
   ageGroups: z.object({
     enabled: z.boolean(),
     groups: z.array(ageGroupConfigSchema)
   }),
   foodPreferences: z.object({
     enabled: z.boolean(),
+    allowMultiple: z.boolean().optional(),
     options: z.array(foodPreferenceConfigSchema)
   }),
   confirmationStages: z.object({
     enabled: z.boolean(),
     stages: z.array(confirmationStageConfigSchema)
-  })
+  }),
+  customFields: z.array(customFieldConfigSchema).optional()
 });
 
 const updateConfigSchema = z.object({

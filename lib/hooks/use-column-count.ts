@@ -8,6 +8,10 @@ export function useColumnCount(visibleColumns: VisibleColumns, organization: Org
   if (visibleColumns.food && organization.configuration?.foodPreferences?.enabled) count++;
   if (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled) count++;
   
+  // Add custom fields
+  const customFieldCount = organization.configuration?.customFields?.length || 0;
+  count += customFieldCount;
+  
   count++; // actions column
   
   return count;
