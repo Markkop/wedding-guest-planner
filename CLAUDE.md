@@ -32,6 +32,7 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 - **Authentication**: Stack Auth (`@stackframe/stack`)
 - **Drag & Drop**: `@atlaskit/pragmatic-drag-and-drop`
 - **AI Integration**: OpenAI SDK with AI SDK React hooks
+  Note: when using ShadCn Cli, always use the `-y` and `-o` flags to avoid getting stuck asking you questions.
 
 ## Architecture
 
@@ -48,6 +49,7 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 ### Authentication Flow
 
 1. **Stack Auth Integration** (`lib/auth/`)
+
    - Client: `lib/auth/stack-client.ts` - `getStackClientApp()`
    - Server: `lib/auth/stack-server.ts` - Stack server utilities
    - Safe wrappers for auth operations with error handling
@@ -80,21 +82,26 @@ lib/gateway/               # External service abstraction
 ## Key Implementation Details
 
 ### Drag & Drop Reordering
-- Uses `@atlaskit/pragmatic-drag-and-drop` 
+
+- Uses `@atlaskit/pragmatic-drag-and-drop`
 - Preserves order in `display_order` field
 - Optimistic updates with database sync
 
 ### Guest Confirmation System
+
 Three-stage progression:
+
 1. Save the Date
 2. Invitation Sent
 3. Final Confirmation
 
 ### Food Preferences
+
 - Multiple selection support via array
 - Icons: utensils (none), leaf (vegetarian), vegan, wheat (gluten-free), milk (dairy-free)
 
 ### Partner Categories
+
 - Customizable via organization configuration
 - Stored as array to support multiple categories
 - Visual indicators with initials (Y/M, A/B, etc.)
@@ -102,6 +109,7 @@ Three-stage progression:
 ## Environment Variables
 
 Required in `.env.local`:
+
 ```
 DATABASE_URL                              # Neon PostgreSQL connection
 NEXT_PUBLIC_STACK_PROJECT_ID             # Stack Auth project ID
