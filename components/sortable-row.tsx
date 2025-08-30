@@ -31,6 +31,7 @@ interface SortableRowProps {
   isRemotelyUpdated?: boolean;
   onUpdate: (guestId: string, updates: Partial<Guest>) => void;
   onDelete: (guestId: string) => void;
+  onClone: (guest: Guest) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onMoveToEnd: (guestId: string) => void;
 }
@@ -44,6 +45,7 @@ export function SortableRow({
   isRemotelyUpdated = false,
   onUpdate,
   onDelete,
+  onClone,
   onReorder,
   onMoveToEnd,
 }: SortableRowProps) {
@@ -430,6 +432,7 @@ export function SortableRow({
               <GuestActionsCell
                 onMoveToEnd={handleMoveToEnd}
                 onDelete={() => onDelete(guest.id)}
+                onClone={() => onClone(guest)}
                 isDeclined={isDeclined}
               />
             </TableCell>

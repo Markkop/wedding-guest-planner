@@ -24,6 +24,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     loading,
     loadGuests,
     addGuest,
+    cloneGuest,
     updateGuest,
     deleteGuest,
     reorderGuests,
@@ -64,6 +65,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
 
   async function handleDeleteGuest(guestId: string) {
     await deleteGuest(guestId);
+  }
+
+  async function handleCloneGuest(guest: Guest) {
+    await cloneGuest(guest);
   }
 
   // Setup global drag monitor
@@ -127,6 +132,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   }
                   onUpdate={handleUpdateGuest}
                   onDelete={handleDeleteGuest}
+                  onClone={handleCloneGuest}
                   onReorder={handleReorder}
                   onMoveToEnd={handleMoveToEnd}
                 />

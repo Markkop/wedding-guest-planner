@@ -37,6 +37,7 @@ interface GuestContextType {
   setOrganization: (org: Organization | null) => void;
   loadGuests: (organizationId: string) => Promise<void>;
   addGuest: (name: string) => Promise<void>;
+  cloneGuest: (guest: Guest) => Promise<void>;
   updateGuest: (guestId: string, updates: Partial<Guest>) => Promise<void>;
   deleteGuest: (guestId: string) => Promise<void>;
   reorderGuests: (fromIndex: number, toIndex: number) => Promise<void>;
@@ -536,6 +537,88 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     [organization, guests.length]
   );
 
+  const cloneGuest = useCallback(
+    async (guestToClone: Guest) => {
+      if (!organization) return;
+
+      const tempId = `temp-${Date.now()}`;
+      const clonedName = `${guestToClone.name}'s +1`;
+      
+      // Find the index of the guest to clone
+      const sourceIndex = guests.findIndex(g => g.id === guestToClone.id);
+      const insertPosition = sourceIndex + 1;
+      
+      // The new guest should be inserted right after the source
+      const newGuest: Guest = {
+        ...guestToClone,
+        id: tempId,
+        name: clonedName,
+        display_order: guestToClone.display_order + 0.5, // Insert between current and next
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      // Optimistic update - insert at the correct position
+      setGuests((prev) => {
+        const newGuests = [...prev];
+        newGuests.splice(insertPosition, 0, newGuest);
+        // Update display_order for all guests after the insertion point
+        return newGuests.map((g, idx) => ({
+          ...g,
+          display_order: idx
+        }));
+      });
+
+      // Add to queue
+      const updateId = `add-${Date.now()}`;
+      updateQueue.current.push({
+        id: updateId,
+        type: "add",
+        guestId: tempId,
+        previousState: undefined,
+        newState: newGuest,
+        apiCall: () =>
+          fetch(`/api/organizations/${organization.id}/guests`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: clonedName,
+              categories: guestToClone.categories,
+              age_group: guestToClone.age_group,
+              food_preferences: guestToClone.food_preferences,
+              food_preference: guestToClone.food_preference,
+              confirmation_stage: guestToClone.confirmation_stage,
+              custom_fields: guestToClone.custom_fields,
+              display_order: guestToClone.display_order + 0.5,
+            }),
+          }),
+        timestamp: Date.now(),
+        status: "pending",
+        retryCount: 0,
+      });
+      
+      // After creating, we need to reorder all guests to fix display_order values
+      // This ensures the database has correct sequential ordering
+      setTimeout(() => {
+        const updatedGuests = guests.filter(g => g.id !== tempId);
+        updatedGuests.splice(insertPosition, 0, newGuest);
+        const reorderedGuests = updatedGuests.map((g, idx) => ({
+          ...g,
+          display_order: idx
+        }));
+        
+        fetch(`/api/organizations/${organization.id}/guests/reorder`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            guestIds: reorderedGuests.map(g => g.id)
+          }),
+        });
+      }, 100);
+    },
+    [organization, guests]
+  );
+
   const updateGuest = useCallback(
     async (guestId: string, updates: Partial<Guest>) => {
       const originalGuest = guests.find((g) => g.id === guestId);
@@ -687,6 +770,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         setOrganization,
         loadGuests,
         addGuest,
+        cloneGuest,
         updateGuest,
         deleteGuest,
         reorderGuests,

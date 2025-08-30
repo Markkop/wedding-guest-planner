@@ -13,10 +13,11 @@ import { cn } from '@/lib/utils';
 interface GuestActionsCellProps {
   onMoveToEnd: () => void;
   onDelete: () => void;
+  onClone: () => void;
   isDeclined?: boolean;
 }
 
-export function GuestActionsCell({ onMoveToEnd, onDelete, isDeclined = false }: GuestActionsCellProps) {
+export function GuestActionsCell({ onMoveToEnd, onDelete, onClone, isDeclined = false }: GuestActionsCellProps) {
   return (
     <div className="flex gap-1">          
       <TooltipProvider>
@@ -38,6 +39,24 @@ export function GuestActionsCell({ onMoveToEnd, onDelete, isDeclined = false }: 
             </Button>
           </TooltipTrigger>
           <TooltipContent>Move to end</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              onClick={onClone}
+              className={cn(
+                "h-7 px-1.5 cursor-pointer text-xs font-semibold",
+                isDeclined && "opacity-50 text-gray-400 hover:text-gray-500"
+              )}
+            >
+              +1
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Add +1</TooltipContent>
         </Tooltip>
       </TooltipProvider>
       
