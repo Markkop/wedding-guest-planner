@@ -194,9 +194,24 @@ export function SortableRow({
 
   const isDeclined = guest.confirmation_stage === "declined";
 
+  // Helper function to get sorted custom fields
+  const getSortedCustomFields = () => {
+    const customFields = config.customFields || [];
+
+    // Separate fields with displayOrder from those without
+    const withOrder = customFields.filter((f) => f.displayOrder !== undefined);
+    const withoutOrder = customFields.filter(
+      (f) => f.displayOrder === undefined
+    );
+
+    // Sort fields with displayOrder
+    withOrder.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+    return { withOrder, withoutOrder };
+  };
+
   // Get confirmation stage styling
   const getConfirmationStageButtonStyle = (stageId: string) => {
-
     switch (stageId) {
       case "listed":
         return {
@@ -233,20 +248,176 @@ export function SortableRow({
     }
   };
 
-  return (
-    <TableRow
-      ref={rowRef}
-      className={cn(
-        "transition-all cursor-move hover:bg-gray-50",
-        isBeingDragged && "opacity-50",
-        isDraggedOver && "bg-indigo-50",
-        isDeclined && "bg-gray-50 opacity-60",
-        isRemotelyUpdated && "remote-update-highlight"
-      )}
-    >
-      <TableCell className="font-medium pl-4">{index}</TableCell>
+  // Categories cell
+  const categoriesCell = visibleColumns.categories ? (
+    <TableCell key="categories">
+      <div className="flex gap-1 justify-start min-w-max">
+        {(config.categories || []).map((category) => (
+          <TooltipProvider key={category.id}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={
+                    guest.categories.includes(category.id)
+                      ? "default"
+                      : "outline"
+                  }
+                  onClick={() => toggleCategory(category.id)}
+                  className={cn(
+                    "h-7 min-w-7 p-0 cursor-pointer",
+                    isDeclined && "opacity-50 grayscale"
+                  )}
+                  style={{
+                    backgroundColor: guest.categories.includes(category.id)
+                      ? isDeclined
+                        ? "#9CA3AF"
+                        : category.color
+                      : undefined,
+                    borderColor: guest.categories.includes(category.id)
+                      ? isDeclined
+                        ? "#9CA3AF"
+                        : category.color
+                      : isDeclined
+                      ? "#9CA3AF"
+                      : undefined,
+                    color:
+                      isDeclined && guest.categories.includes(category.id)
+                        ? "#ffffff"
+                        : undefined,
+                  }}
+                >
+                  {category.initial}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{category.label}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
+      </div>
+    </TableCell>
+  ) : null;
 
+  // Age cell
+  const ageCell =
+    visibleColumns.age && config.ageGroups.enabled ? (
+      <TableCell key="age">
+        <div className="flex gap-1">
+          {(config.ageGroups?.groups || []).map((ageGroup) => {
+            const isSelected = guest.age_group === ageGroup.id;
+            return (
+              <TooltipProvider key={ageGroup.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={isSelected ? "default" : "outline"}
+                      onClick={() => updateAgeGroup(ageGroup.id)}
+                      className="h-7 min-w-7 p-0 text-xs cursor-pointer"
+                      style={{
+                        backgroundColor: isSelected
+                          ? isDeclined
+                            ? "#9CA3AF"
+                            : undefined
+                          : undefined,
+                        borderColor: isDeclined ? "#9CA3AF" : undefined,
+                        color: isDeclined
+                          ? isSelected
+                            ? "#ffffff"
+                            : "#6B7280"
+                          : undefined,
+                      }}
+                    >
+                      {ageGroup.minAge
+                        ? ageGroup.minAge
+                        : ageGroup.label.slice(0, 2)}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{ageGroup.label}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          })}
+        </div>
+      </TableCell>
+    ) : null;
+
+  // Food cell
+  const foodCell =
+    visibleColumns.food && config.foodPreferences.enabled ? (
+      <TableCell key="food">
+        <div className="flex gap-1">
+          {(config.foodPreferences?.options || []).map((foodPref) => {
+            const allowMultiple = config.foodPreferences?.allowMultiple ?? true;
+            const isSelected = allowMultiple
+              ? (guest.food_preferences || []).includes(foodPref.id)
+              : guest.food_preference === foodPref.id;
+
+            return (
+              <TooltipProvider key={foodPref.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant={isSelected ? "default" : "outline"}
+                      onClick={() => updateFoodPreference(foodPref.id)}
+                      className="h-7 w-7 p-0 cursor-pointer"
+                      style={{
+                        backgroundColor: isSelected
+                          ? isDeclined
+                            ? "#9CA3AF"
+                            : undefined
+                          : undefined,
+                        borderColor: isDeclined ? "#9CA3AF" : undefined,
+                      }}
+                    >
+                      {getFoodIcon(foodPref.id, isSelected, isDeclined)}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{foodPref.label}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          })}
+        </div>
+      </TableCell>
+    ) : null;
+
+  // Confirmation cell
+  const confirmationCell =
+    visibleColumns.confirmations && config.confirmationStages.enabled ? (
+      <TableCell key="confirmation">
+        <Button
+          size="sm"
+          variant={
+            getConfirmationStageButtonStyle(guest.confirmation_stage).variant
+          }
+          onClick={cycleConfirmationStage}
+          className={cn(
+            "h-8 min-w-20 cursor-pointer",
+            getConfirmationStageButtonStyle(guest.confirmation_stage).className
+          )}
+        >
+          {getConfirmationStageInfo(guest.confirmation_stage).label}
+        </Button>
+      </TableCell>
+    ) : null;
+
+  // Build cells array in the same order as headers
+  const buildCellsArray = () => {
+    const { withOrder, withoutOrder } = getSortedCustomFields();
+
+    // Build standard cells in order
+    const standardCells: React.ReactElement[] = [];
+
+    standardCells.push(
+      <TableCell key="index" className="font-medium pl-4">
+        {index}
+      </TableCell>
+    );
+    standardCells.push(
       <TableCell
+        key="name"
         className={cn(
           "sticky left-0 z-10 border-r md:static md:border-r-0 w-auto md:min-w-[200px]",
           isBeingDragged
@@ -264,162 +435,36 @@ export function SortableRow({
           onUpdate={handleNameUpdate}
         />
       </TableCell>
+    );
 
-      {visibleColumns.categories && (
-        <TableCell>
-          <div className="flex gap-1 justify-start min-w-max">
-            {(config.categories || []).map((category) => (
-              <TooltipProvider key={category.id}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant={
-                        guest.categories.includes(category.id)
-                          ? "default"
-                          : "outline"
-                      }
-                      onClick={() => toggleCategory(category.id)}
-                      className={cn(
-                        "h-7 min-w-7 p-0 cursor-pointer",
-                        isDeclined && "opacity-50 grayscale"
-                      )}
-                      style={{
-                        // Apply category color only when the option is selected
-                        backgroundColor: guest.categories.includes(category.id)
-                          ? isDeclined
-                            ? "#9CA3AF"
-                            : category.color
-                          : undefined,
-                        // For unselected options, keep the default outline border (no custom color)
-                        borderColor: guest.categories.includes(category.id)
-                          ? isDeclined
-                            ? "#9CA3AF"
-                            : category.color
-                          : isDeclined
-                          ? "#9CA3AF"
-                          : undefined,
-                        // Ensure text remains visible when the button is greyed out due to declined status
-                        color:
-                          isDeclined && guest.categories.includes(category.id)
-                            ? "#ffffff"
-                            : undefined,
-                      }}
-                    >
-                      {category.initial}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{category.label}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
-          </div>
-        </TableCell>
-      )}
+    if (visibleColumns.categories && categoriesCell) {
+      standardCells.push(categoriesCell);
+    }
 
-      {visibleColumns.age && config.ageGroups.enabled && (
-        <TableCell>
-          <div className="flex gap-1">
-            {(config.ageGroups?.groups || []).map((ageGroup) => {
-              const isSelected = guest.age_group === ageGroup.id;
-              return (
-                <TooltipProvider key={ageGroup.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant={isSelected ? "default" : "outline"}
-                        onClick={() => updateAgeGroup(ageGroup.id)}
-                        className="h-7 min-w-7 p-0 text-xs cursor-pointer"
-                        style={{
-                          backgroundColor: isSelected
-                            ? isDeclined
-                              ? "#9CA3AF"
-                              : undefined
-                            : undefined,
-                          borderColor: isDeclined ? "#9CA3AF" : undefined,
-                          color: isDeclined
-                            ? isSelected
-                              ? "#ffffff"
-                              : "#6B7280"
-                            : undefined,
-                        }}
-                      >
-                        {ageGroup.minAge
-                          ? ageGroup.minAge
-                          : ageGroup.label.slice(0, 2)}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{ageGroup.label}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              );
-            })}
-          </div>
-        </TableCell>
-      )}
+    if (visibleColumns.age && config.ageGroups.enabled && ageCell) {
+      standardCells.push(ageCell);
+    }
 
-      {visibleColumns.food && config.foodPreferences.enabled && (
-        <TableCell>
-          <div className="flex gap-1">
-            {(config.foodPreferences?.options || []).map((foodPref) => {
-              const allowMultiple =
-                config.foodPreferences?.allowMultiple ?? true;
-              const isSelected = allowMultiple
-                ? (guest.food_preferences || []).includes(foodPref.id)
-                : guest.food_preference === foodPref.id;
+    if (visibleColumns.food && config.foodPreferences.enabled && foodCell) {
+      standardCells.push(foodCell);
+    }
 
-              return (
-                <TooltipProvider key={foodPref.id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant={isSelected ? "default" : "outline"}
-                        onClick={() => updateFoodPreference(foodPref.id)}
-                        className="h-7 w-7 p-0 cursor-pointer"
-                        style={{
-                          backgroundColor: isSelected
-                            ? isDeclined
-                              ? "#9CA3AF"
-                              : undefined
-                            : undefined,
-                          borderColor: isDeclined ? "#9CA3AF" : undefined,
-                        }}
-                      >
-                        {getFoodIcon(foodPref.id, isSelected, isDeclined)}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{foodPref.label}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              );
-            })}
-          </div>
-        </TableCell>
-      )}
+    if (
+      visibleColumns.confirmations &&
+      config.confirmationStages.enabled &&
+      confirmationCell
+    ) {
+      standardCells.push(confirmationCell);
+    }
 
-      {visibleColumns.confirmations && config.confirmationStages.enabled && (
-        <TableCell>
-          <Button
-            size="sm"
-            variant={
-              getConfirmationStageButtonStyle(guest.confirmation_stage).variant
-            }
-            onClick={cycleConfirmationStage}
-            className={cn(
-              "h-8 min-w-20 cursor-pointer",
-              getConfirmationStageButtonStyle(guest.confirmation_stage)
-                .className
-            )}
-          >
-            {getConfirmationStageInfo(guest.confirmation_stage).label}
-          </Button>
-        </TableCell>
-      )}
-
-      {/* Custom Fields */}
-      {config.customFields?.map((field) => (
+    // Insert custom fields with displayOrder at their specified positions
+    const currentCells = [...standardCells];
+    withOrder.forEach((field) => {
+      const position = Math.min(
+        field.displayOrder ?? currentCells.length,
+        currentCells.length
+      );
+      const customCell = (
         <TableCell key={field.id}>
           <CustomFieldCell
             fieldConfig={field}
@@ -434,15 +479,56 @@ export function SortableRow({
             }}
           />
         </TableCell>
-      ))}
+      );
+      currentCells.splice(position, 0, customCell);
+    });
 
-      <TableCell>
+    // Add custom fields without displayOrder after standard columns
+    withoutOrder.forEach((field) => {
+      currentCells.push(
+        <TableCell key={field.id}>
+          <CustomFieldCell
+            fieldConfig={field}
+            value={guest.custom_fields?.[field.id]}
+            isDeclined={isDeclined}
+            onUpdate={(value) => {
+              const updatedCustomFields = {
+                ...(guest.custom_fields || {}),
+                [field.id]: value,
+              };
+              onUpdate(guest.id, { custom_fields: updatedCustomFields });
+            }}
+          />
+        </TableCell>
+      );
+    });
+
+    // Add actions cell at the end
+    currentCells.push(
+      <TableCell key="actions">
         <GuestActionsCell
           onMoveToEnd={handleMoveToEnd}
           onDelete={() => onDelete(guest.id)}
           isDeclined={isDeclined}
         />
       </TableCell>
+    );
+
+    return currentCells;
+  };
+
+  return (
+    <TableRow
+      ref={rowRef}
+      className={cn(
+        "transition-all cursor-move hover:bg-gray-50",
+        isBeingDragged && "opacity-50",
+        isDraggedOver && "bg-indigo-50",
+        isDeclined && "bg-gray-50 opacity-60",
+        isRemotelyUpdated && "remote-update-highlight"
+      )}
+    >
+      {buildCellsArray()}
     </TableRow>
   );
 }

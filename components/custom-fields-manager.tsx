@@ -1,34 +1,47 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Plus, Trash2, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { useState } from "react";
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import type { CustomFieldConfig, CustomFieldOption } from '@/lib/types';
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import type {
+  CustomFieldConfig,
+  CustomFieldOption,
+  CustomFieldCardType,
+} from "@/lib/types";
 
 interface CustomFieldsManagerProps {
   fields: CustomFieldConfig[];
   onChange: (fields: CustomFieldConfig[]) => void;
 }
 
-export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerProps) {
+export function CustomFieldsManager({
+  fields,
+  onChange,
+}: CustomFieldsManagerProps) {
   const [expandedField, setExpandedField] = useState<string | null>(null);
 
   const addField = () => {
     const newField: CustomFieldConfig = {
       id: `field-${Date.now()}`,
-      label: 'New Field',
-      type: 'text',
+      label: "New Field",
+      type: "text",
       order: fields.length,
     };
     onChange([...fields, newField]);
@@ -47,24 +60,27 @@ export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerPro
     onChange(fields.filter((field) => field.id !== id));
   };
 
-  const moveField = (id: string, direction: 'up' | 'down') => {
+  const moveField = (id: string, direction: "up" | "down") => {
     const index = fields.findIndex((f) => f.id === id);
     if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === fields.length - 1)
+      (direction === "up" && index === 0) ||
+      (direction === "down" && index === fields.length - 1)
     ) {
       return;
     }
 
     const newFields = [...fields];
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    [newFields[index], newFields[newIndex]] = [newFields[newIndex], newFields[index]];
-    
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    [newFields[index], newFields[newIndex]] = [
+      newFields[newIndex],
+      newFields[index],
+    ];
+
     // Update order values
     newFields.forEach((field, i) => {
       field.order = i;
     });
-    
+
     onChange(newFields);
   };
 
@@ -74,7 +90,7 @@ export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerPro
 
     const newOption: CustomFieldOption = {
       id: `option-${Date.now()}`,
-      label: 'New Option',
+      label: "New Option",
       value: `option-${Date.now()}`,
     };
 
@@ -140,7 +156,7 @@ export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerPro
                     variant="ghost"
                     onClick={(e) => {
                       e.stopPropagation();
-                      moveField(field.id, 'up');
+                      moveField(field.id, "up");
                     }}
                     disabled={index === 0}
                   >
@@ -151,7 +167,7 @@ export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerPro
                     variant="ghost"
                     onClick={(e) => {
                       e.stopPropagation();
-                      moveField(field.id, 'down');
+                      moveField(field.id, "down");
                     }}
                     disabled={index === fields.length - 1}
                   >
@@ -173,52 +189,121 @@ export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerPro
 
             {expandedField === field.id && (
               <CardContent className="p-3 pt-0 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor={`label-${field.id}`}>Field Label</Label>
+                      <Input
+                        id={`label-${field.id}`}
+                        value={field.label}
+                        onChange={(e) =>
+                          updateField(field.id, { label: e.target.value })
+                        }
+                        placeholder="Enter field label"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor={`type-${field.id}`}>Field Type</Label>
+                      <Select
+                        value={field.type}
+                        onValueChange={(value: CustomFieldConfig["type"]) =>
+                          updateField(field.id, { type: value })
+                        }
+                      >
+                        <SelectTrigger id={`type-${field.id}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Text</SelectItem>
+                          <SelectItem value="number">Number</SelectItem>
+                          <SelectItem value="single-select">
+                            Single Select
+                          </SelectItem>
+                          <SelectItem value="multi-select">
+                            Multi Select
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <div>
-                    <Label htmlFor={`label-${field.id}`}>Field Label</Label>
+                    <Label htmlFor={`display-order-${field.id}`}>
+                      Column Position (0 = first column, leave empty for
+                      default)
+                    </Label>
                     <Input
-                      id={`label-${field.id}`}
-                      value={field.label}
+                      id={`display-order-${field.id}`}
+                      type="number"
+                      min="0"
+                      value={field.displayOrder ?? ""}
                       onChange={(e) =>
-                        updateField(field.id, { label: e.target.value })
+                        updateField(field.id, {
+                          displayOrder: e.target.value
+                            ? Number(e.target.value)
+                            : undefined,
+                        })
                       }
-                      placeholder="Enter field label"
+                      placeholder="Leave empty to show after status"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor={`type-${field.id}`}>Field Type</Label>
+                    <Label htmlFor={`card-type-${field.id}`}>
+                      Statistics Card
+                    </Label>
                     <Select
-                      value={field.type}
-                      onValueChange={(value: CustomFieldConfig['type']) =>
-                        updateField(field.id, { type: value })
+                      value={field.cardType || "none"}
+                      onValueChange={(value: CustomFieldCardType) =>
+                        updateField(field.id, { cardType: value })
                       }
                     >
-                      <SelectTrigger id={`type-${field.id}`}>
+                      <SelectTrigger id={`card-type-${field.id}`}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="number">Number</SelectItem>
-                        <SelectItem value="single-select">
-                          Single Select
-                        </SelectItem>
-                        <SelectItem value="multi-select">
-                          Multi Select
-                        </SelectItem>
+                        <SelectItem value="none">No card</SelectItem>
+                        {field.type === "multi-select" && (
+                          <SelectItem value="at-least-one">
+                            Count: At least one option selected
+                          </SelectItem>
+                        )}
+                        {(field.type === "single-select" ||
+                          field.type === "multi-select") && (
+                          <>
+                            <SelectItem value="total-count">
+                              Count: Total selections
+                            </SelectItem>
+                            <SelectItem value="most-popular">
+                              Most popular option
+                            </SelectItem>
+                            <SelectItem value="options-breakdown">
+                              Count: Options breakdown
+                            </SelectItem>
+                          </>
+                        )}
+                        {(field.type === "text" || field.type === "number") && (
+                          <SelectItem value="filled-count">
+                            Count: Fields with values
+                          </SelectItem>
+                        )}
+                        {field.type === "number" && (
+                          <SelectItem value="average">Average value</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                {(field.type === 'text' || field.type === 'number') && (
+                {(field.type === "text" || field.type === "number") && (
                   <div>
                     <Label htmlFor={`placeholder-${field.id}`}>
                       Placeholder
                     </Label>
                     <Input
                       id={`placeholder-${field.id}`}
-                      value={field.placeholder || ''}
+                      value={field.placeholder || ""}
                       onChange={(e) =>
                         updateField(field.id, { placeholder: e.target.value })
                       }
@@ -238,8 +323,8 @@ export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerPro
                   <Label htmlFor={`required-${field.id}`}>Required field</Label>
                 </div>
 
-                {(field.type === 'single-select' ||
-                  field.type === 'multi-select') && (
+                {(field.type === "single-select" ||
+                  field.type === "multi-select") && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label>Options</Label>
@@ -266,7 +351,7 @@ export function CustomFieldsManager({ fields, onChange }: CustomFieldsManagerPro
                                 label: e.target.value,
                                 value: e.target.value
                                   .toLowerCase()
-                                  .replace(/\s+/g, '-'),
+                                  .replace(/\s+/g, "-"),
                               })
                             }
                             placeholder="Option label"

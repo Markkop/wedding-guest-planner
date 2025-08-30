@@ -40,7 +40,9 @@ const customFieldConfigSchema = z.object({
   options: z.array(customFieldOptionSchema).optional(),
   required: z.boolean().optional(),
   order: z.number().optional(),
-  placeholder: z.string().optional()
+  displayOrder: z.number().optional(),
+  placeholder: z.string().optional(),
+  cardType: z.enum(['none', 'at-least-one', 'total-count', 'most-popular', 'filled-count', 'average', 'options-breakdown']).optional()
 });
 
 const eventConfigSchema = z.object({
@@ -97,25 +99,25 @@ export async function PUT(
     const { organizationId } = await params;
     const body = await request.json();
     const data = updateConfigSchema.parse(body);
-    
+
     const updatedOrg = await OrganizationService.updateOrganization(organizationId, data);
     return NextResponse.json({ organization: updatedOrg });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid configuration', details: error.errors }, { status: 400 });
     }
-    
+
     if (error instanceof Error) {
       if (error.message === 'Not authenticated') {
         return NextResponse.json({ error: error.message }, { status: 401 });
       }
-      if (error.message === 'Only admins can update organization configuration' || 
-          error.message === 'Access denied') {
+      if (error.message === 'Only admins can update organization configuration' ||
+        error.message === 'Access denied') {
         return NextResponse.json({ error: error.message }, { status: 403 });
       }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    
+
     console.error('Failed to update organization config:', error);
     return NextResponse.json({ error: 'Failed to update configuration' }, { status: 500 });
   }

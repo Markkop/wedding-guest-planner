@@ -1,24 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Check, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { CustomFieldConfig } from '@/lib/types';
+} from "@/components/ui/tooltip";
+import { Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { CustomFieldConfig } from "@/lib/types";
 
 interface CustomFieldCellProps {
   fieldConfig: CustomFieldConfig;
@@ -34,17 +27,17 @@ export function CustomFieldCell({
   onUpdate,
 }: CustomFieldCellProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState<string>('');
+  const [editValue, setEditValue] = useState<string>("");
 
   const startEditing = () => {
-    if (fieldConfig.type === 'text' || fieldConfig.type === 'number') {
-      setEditValue(String(value || ''));
+    if (fieldConfig.type === "text" || fieldConfig.type === "number") {
+      setEditValue(String(value || ""));
       setIsEditing(true);
     }
   };
 
   const handleSave = () => {
-    if (fieldConfig.type === 'number') {
+    if (fieldConfig.type === "number") {
       const numValue = editValue ? Number(editValue) : null;
       onUpdate(numValue);
     } else {
@@ -55,19 +48,19 @@ export function CustomFieldCell({
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditValue('');
+    setEditValue("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSave();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       handleCancel();
     }
   };
 
   // Render text or number field
-  if (fieldConfig.type === 'text' || fieldConfig.type === 'number') {
+  if (fieldConfig.type === "text" || fieldConfig.type === "number") {
     if (isEditing) {
       return (
         <div className="flex items-center gap-1">
@@ -104,15 +97,15 @@ export function CustomFieldCell({
       <div
         onClick={startEditing}
         className={cn(
-          'cursor-pointer px-2 py-1 hover:bg-muted rounded min-w-[100px]',
-          isDeclined && 'opacity-50'
+          "cursor-pointer px-2 py-1 hover:bg-muted rounded min-w-[100px]",
+          isDeclined && "opacity-50"
         )}
       >
-        {value !== null && value !== undefined && value !== '' ? (
+        {value !== null && value !== undefined && value !== "" ? (
           String(value)
         ) : (
           <span className="text-muted-foreground">
-            {fieldConfig.placeholder || 'Click to edit'}
+            {fieldConfig.placeholder || "Click to edit"}
           </span>
         )}
       </div>
@@ -120,32 +113,48 @@ export function CustomFieldCell({
   }
 
   // Render single select field
-  if (fieldConfig.type === 'single-select') {
+  if (fieldConfig.type === "single-select") {
+    const selectedValue = value !== null && value !== undefined ? String(value) : "";
+
     return (
-      <Select
-        value={String(value || '')}
-        onValueChange={onUpdate}
-        disabled={isDeclined}
-      >
-        <SelectTrigger className="h-7 w-32">
-          <SelectValue placeholder="Select..." />
-        </SelectTrigger>
-        <SelectContent>
-          {!fieldConfig.required && (
-            <SelectItem value="">None</SelectItem>
-          )}
-          {fieldConfig.options?.map((option) => (
-            <SelectItem key={option.id} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex gap-1 flex-wrap">
+        {fieldConfig.options?.map((option) => {
+          const isSelected = selectedValue === option.value;
+          return (
+            <TooltipProvider key={option.id}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant={isSelected ? "default" : "outline"}
+                    onClick={() => {
+                      // Toggle behavior: if already selected, clear it (unless required)
+                      if (isSelected && !fieldConfig.required) {
+                        onUpdate("");
+                      } else {
+                        onUpdate(option.value);
+                      }
+                    }}
+                    className={cn(
+                      "h-7 px-2 text-xs",
+                      isDeclined && "opacity-50"
+                    )}
+                    disabled={isDeclined}
+                  >
+                    {option.label.slice(0, 3).toUpperCase()}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{option.label}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })}
+      </div>
     );
   }
 
   // Render multi-select field
-  if (fieldConfig.type === 'multi-select') {
+  if (fieldConfig.type === "multi-select") {
     const selectedValues = Array.isArray(value) ? value : [];
 
     return (
@@ -158,7 +167,7 @@ export function CustomFieldCell({
                 <TooltipTrigger asChild>
                   <Button
                     size="sm"
-                    variant={isSelected ? 'default' : 'outline'}
+                    variant={isSelected ? "default" : "outline"}
                     onClick={() => {
                       if (isSelected) {
                         onUpdate(
@@ -169,8 +178,8 @@ export function CustomFieldCell({
                       }
                     }}
                     className={cn(
-                      'h-7 px-2 text-xs',
-                      isDeclined && 'opacity-50'
+                      "h-7 px-2 text-xs",
+                      isDeclined && "opacity-50"
                     )}
                     disabled={isDeclined}
                   >

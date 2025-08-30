@@ -39,14 +39,25 @@ export interface CustomFieldOption {
   value: string;
 }
 
+export type CustomFieldCardType =
+  | 'none'
+  | 'at-least-one' // Shows count of guests with at least one option selected (multi-select only)
+  | 'total-count' // Shows total count of all selections across all guests
+  | 'most-popular' // Shows the most selected option and its count
+  | 'filled-count' // Shows count of guests with any value (text/number fields)
+  | 'average' // Shows average value (number fields only)
+  | 'options-breakdown' // Shows counts for each option separated by / and total in parentheses
+
 export interface CustomFieldConfig {
   id: string;
   label: string;
   type: 'single-select' | 'multi-select' | 'text' | 'number';
   options?: CustomFieldOption[]; // For select types
   required?: boolean;
-  order?: number;
+  order?: number; // Order within custom fields
+  displayOrder?: number; // Column position in table (0 = first, 1 = after name, etc.)
   placeholder?: string;
+  cardType?: CustomFieldCardType; // What kind of statistics card to show
 }
 
 export interface EventConfiguration {
