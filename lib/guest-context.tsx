@@ -327,7 +327,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           ? config.confirmationStages.stages[0]?.id
           : "invited",
         custom_fields: {},
-        display_order: guests.length,
+        display_order: guests.length + 1,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -385,7 +385,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         // Update display_order for all guests after the insertion point
         return newGuests.map((g, idx) => ({
           ...g,
-          display_order: idx
+          display_order: idx + 1
         }));
       });
 
@@ -401,7 +401,10 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           fetch(`/api/organizations/${organization.id}/guests`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: clonedName }),
+            body: JSON.stringify({ 
+              name: clonedName,
+              target_position: guestToClone.display_order + 1
+            }),
           }),
         timestamp: Date.now(),
         status: "pending",

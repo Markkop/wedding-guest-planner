@@ -8,6 +8,7 @@ const createGuestSchema = z.object({
   age_group: z.string().optional(),
   food_preference: z.string().optional(),
   confirmation_stage: z.string().optional(),
+  target_position: z.number().optional(),
 });
 
 export async function GET(

@@ -43,6 +43,7 @@ export class GuestService {
       food_preference?: string;
       food_preferences?: string[];
       confirmation_stage?: string;
+      target_position?: number;
     }
   ) {
     const user = await safeRequireUser();
@@ -64,13 +65,26 @@ export class GuestService {
       throw new Error('Access denied');
     }
 
-    const maxOrderResult = await sql`
-      SELECT COALESCE(MAX(display_order), 0) as max_order
-      FROM guests
-      WHERE organization_id = ${organizationId}
-    `;
+    let nextOrder: number;
 
-    const nextOrder = (maxOrderResult[0].max_order || 0) + 1;
+    if (data.target_position !== undefined) {
+      // Insert at specific position - shift all guests at or after this position down
+      await sql`
+        UPDATE guests
+        SET display_order = display_order + 1
+        WHERE organization_id = ${organizationId}
+          AND display_order >= ${data.target_position}
+      `;
+      nextOrder = data.target_position;
+    } else {
+      // Add to end (default behavior)
+      const maxOrderResult = await sql`
+        SELECT COALESCE(MAX(display_order), 0) as max_order
+        FROM guests
+        WHERE organization_id = ${organizationId}
+      `;
+      nextOrder = (maxOrderResult[0].max_order || 0) + 1;
+    }
 
     // Get organization configuration to set defaults
     const orgResult = await sql`
