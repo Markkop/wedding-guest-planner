@@ -18,15 +18,9 @@ import { cn } from "@/lib/utils";
 import { GuestNameCell } from "./guest-table/guest-name-cell";
 import { GuestActionsCell } from "./guest-table/guest-actions-cell";
 import { CustomFieldCell } from "./guest-table/custom-field-cell";
+import { useColumnOrder } from "./guest-table/use-column-order";
 import { getFoodIcon } from "@/lib/utils/food-icons";
-import type { Guest, VisibleColumns, EventConfiguration } from "@/lib/types";
-
-interface Organization {
-  id: string;
-  name: string;
-  event_type: string;
-  configuration: EventConfiguration;
-}
+import type { Guest, VisibleColumns, Organization } from "@/lib/types";
 
 interface SortableRowProps {
   guest: Guest;
@@ -193,22 +187,6 @@ export function SortableRow({
   };
 
   const isDeclined = guest.confirmation_stage === "declined";
-
-  // Helper function to get sorted custom fields
-  const getSortedCustomFields = () => {
-    const customFields = config.customFields || [];
-
-    // Separate fields with displayOrder from those without
-    const withOrder = customFields.filter((f) => f.displayOrder !== undefined);
-    const withoutOrder = customFields.filter(
-      (f) => f.displayOrder === undefined
-    );
-
-    // Sort fields with displayOrder
-    withOrder.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-
-    return { withOrder, withoutOrder };
-  };
 
   // Get confirmation stage styling
   const getConfirmationStageButtonStyle = (stageId: string) => {
@@ -403,118 +381,88 @@ export function SortableRow({
       </TableCell>
     ) : null;
 
-  // Build cells array in the same order as headers
+  // Build cells array using column order hook
+  const { keys, customFieldMap } = useColumnOrder(organization, visibleColumns);
+
   const buildCellsArray = () => {
-    const { withOrder, withoutOrder } = getSortedCustomFields();
+    return keys
+      .map((key) => {
+        if (key === "index") {
+          return (
+            <TableCell key="index" className="font-medium pl-4">
+              {index}
+            </TableCell>
+          );
+        }
 
-    // Build standard cells in order
-    const standardCells: React.ReactElement[] = [];
+        if (key === "name") {
+          return (
+            <TableCell
+              key="name"
+              className={cn(
+                "sticky left-0 z-10 border-r md:static md:border-r-0 w-auto md:min-w-[200px]",
+                isBeingDragged
+                  ? "bg-white opacity-50 md:bg-transparent"
+                  : isDraggedOver
+                  ? "bg-indigo-50 md:bg-indigo-50"
+                  : isDeclined
+                  ? "bg-gray-50 md:bg-gray-50"
+                  : "bg-white md:bg-transparent"
+              )}
+            >
+              <GuestNameCell
+                name={guest.name}
+                isDeclined={isDeclined}
+                onUpdate={handleNameUpdate}
+              />
+            </TableCell>
+          );
+        }
 
-    standardCells.push(
-      <TableCell key="index" className="font-medium pl-4">
-        {index}
-      </TableCell>
-    );
-    standardCells.push(
-      <TableCell
-        key="name"
-        className={cn(
-          "sticky left-0 z-10 border-r md:static md:border-r-0 w-auto md:min-w-[200px]",
-          isBeingDragged
-            ? "bg-white opacity-50 md:bg-transparent"
-            : isDraggedOver
-            ? "bg-indigo-50 md:bg-indigo-50"
-            : isDeclined
-            ? "bg-gray-50 md:bg-gray-50"
-            : "bg-white md:bg-transparent"
-        )}
-      >
-        <GuestNameCell
-          name={guest.name}
-          isDeclined={isDeclined}
-          onUpdate={handleNameUpdate}
-        />
-      </TableCell>
-    );
+        if (key === "categories") return categoriesCell;
+        if (key === "age") return ageCell;
+        if (key === "food") return foodCell;
+        if (key === "status") return confirmationCell;
 
-    if (visibleColumns.categories && categoriesCell) {
-      standardCells.push(categoriesCell);
-    }
+        if (key === "actions") {
+          return (
+            <TableCell key="actions">
+              <GuestActionsCell
+                onMoveToEnd={handleMoveToEnd}
+                onDelete={() => onDelete(guest.id)}
+                isDeclined={isDeclined}
+              />
+            </TableCell>
+          );
+        }
 
-    if (visibleColumns.age && config.ageGroups.enabled && ageCell) {
-      standardCells.push(ageCell);
-    }
+        // Custom field
+        if (key.startsWith("custom:")) {
+          const fieldId = key.slice(7);
+          const field = customFieldMap[fieldId];
+          if (!field) return null;
 
-    if (visibleColumns.food && config.foodPreferences.enabled && foodCell) {
-      standardCells.push(foodCell);
-    }
+          return (
+            <TableCell key={key}>
+              <CustomFieldCell
+                fieldConfig={field}
+                value={guest.custom_fields?.[fieldId]}
+                isDeclined={isDeclined}
+                onUpdate={(value) => {
+                  const updatedCustomFields = {
+                    ...(guest.custom_fields || {}),
+                    [fieldId]: value,
+                  };
+                  onUpdate(guest.id, { custom_fields: updatedCustomFields });
+                }}
+              />
+            </TableCell>
+          );
+        }
 
-    if (
-      visibleColumns.confirmations &&
-      config.confirmationStages.enabled &&
-      confirmationCell
-    ) {
-      standardCells.push(confirmationCell);
-    }
-
-    // Insert custom fields with displayOrder at their specified positions
-    const currentCells = [...standardCells];
-    withOrder.forEach((field) => {
-      const position = Math.min(
-        field.displayOrder ?? currentCells.length,
-        currentCells.length
-      );
-      const customCell = (
-        <TableCell key={field.id}>
-          <CustomFieldCell
-            fieldConfig={field}
-            value={guest.custom_fields?.[field.id]}
-            isDeclined={isDeclined}
-            onUpdate={(value) => {
-              const updatedCustomFields = {
-                ...(guest.custom_fields || {}),
-                [field.id]: value,
-              };
-              onUpdate(guest.id, { custom_fields: updatedCustomFields });
-            }}
-          />
-        </TableCell>
-      );
-      currentCells.splice(position, 0, customCell);
-    });
-
-    // Add custom fields without displayOrder after standard columns
-    withoutOrder.forEach((field) => {
-      currentCells.push(
-        <TableCell key={field.id}>
-          <CustomFieldCell
-            fieldConfig={field}
-            value={guest.custom_fields?.[field.id]}
-            isDeclined={isDeclined}
-            onUpdate={(value) => {
-              const updatedCustomFields = {
-                ...(guest.custom_fields || {}),
-                [field.id]: value,
-              };
-              onUpdate(guest.id, { custom_fields: updatedCustomFields });
-            }}
-          />
-        </TableCell>
-      );
-    });
-
-    // Add actions cell at the end
-    currentCells.push(
-      <TableCell key="actions">
-        <GuestActionsCell
-          onMoveToEnd={handleMoveToEnd}
-          onDelete={() => onDelete(guest.id)}
-          isDeclined={isDeclined}
-        />
-      </TableCell>
-    );
-
-    return currentCells;
+        return null;
+      })
+      .filter(Boolean);
   };
 
   return (

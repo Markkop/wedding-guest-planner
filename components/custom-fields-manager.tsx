@@ -241,7 +241,7 @@ export function CustomFieldsManager({
                       onChange={(e) =>
                         updateField(field.id, {
                           displayOrder: e.target.value
-                            ? Number(e.target.value)
+                            ? Math.max(0, Number(e.target.value))
                             : undefined,
                         })
                       }

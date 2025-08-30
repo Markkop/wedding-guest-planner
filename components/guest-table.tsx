@@ -3,18 +3,13 @@
 import { useEffect, useState, useRef } from "react";
 import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { useGuests } from "@/lib/collaborative-guest-context";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableHeader } from "@/components/ui/table";
 import { SortableRow } from "./sortable-row";
 import { ColumnSettings } from "./guest-table/column-settings";
 import { AddGuestSection } from "./guest-table/add-guest-section";
 import { TableLoading } from "./guest-table/table-loading";
 import { EmptyState } from "./guest-table/empty-state";
+import { GuestTableHeader } from "./guest-table/guest-table-header";
 import { useColumnCount } from "@/lib/hooks/use-column-count";
 import type { VisibleColumns, Guest, Organization } from "@/lib/types";
 
@@ -45,20 +40,6 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       organization.configuration?.confirmationStages?.enabled ?? false,
   });
   const tableBodyRef = useRef<HTMLTableSectionElement | null>(null);
-
-  // Helper function to get sorted custom fields
-  const getSortedCustomFields = () => {
-    const customFields = organization.configuration?.customFields || [];
-    
-    // Separate fields with displayOrder from those without
-    const withOrder = customFields.filter(f => f.displayOrder !== undefined);
-    const withoutOrder = customFields.filter(f => f.displayOrder === undefined);
-    
-    // Sort fields with displayOrder
-    withOrder.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-    
-    return { withOrder, withoutOrder };
-  };
 
   useEffect(() => {
     setOrganization(organization);
@@ -122,76 +103,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
       <div className="overflow-x-auto flex-1">
         <Table>
           <TableHeader>
-            <TableRow>
-              {(() => {
-                const { withOrder, withoutOrder } = getSortedCustomFields();
-                const headers: React.ReactElement[] = [];
-                
-                // Build standard columns in order
-                const standardColumns: React.ReactElement[] = [];
-                
-                standardColumns.push(
-                  <TableHead key="index" className="w-12 pl-4">#</TableHead>
-                );
-                standardColumns.push(
-                  <TableHead key="name" className="sticky left-0 bg-white z-10 border-r md:static md:bg-transparent md:border-r-0 w-auto md:min-w-[200px]">
-                    Name
-                  </TableHead>
-                );
-                
-                if (visibleColumns.categories) {
-                  standardColumns.push(
-                    <TableHead key="categories" className="w-40">Categories</TableHead>
-                  );
-                }
-                
-                if (visibleColumns.age && organization.configuration?.ageGroups?.enabled) {
-                  standardColumns.push(
-                    <TableHead key="age" className="w-24">Age</TableHead>
-                  );
-                }
-                
-                if (visibleColumns.food && organization.configuration?.foodPreferences?.enabled) {
-                  standardColumns.push(
-                    <TableHead key="food" className="w-32">Food</TableHead>
-                  );
-                }
-                
-                if (visibleColumns.confirmations && organization.configuration?.confirmationStages?.enabled) {
-                  standardColumns.push(
-                    <TableHead key="status" className="w-32">Status</TableHead>
-                  );
-                }
-                
-                // Insert custom fields with displayOrder at their specified positions
-                let currentHeaders = [...standardColumns];
-                withOrder.forEach(field => {
-                  const position = Math.min(field.displayOrder ?? currentHeaders.length, currentHeaders.length);
-                  const customHeader = (
-                    <TableHead key={field.id} className="w-32">
-                      {field.label}
-                    </TableHead>
-                  );
-                  currentHeaders.splice(position, 0, customHeader);
-                });
-                
-                // Add custom fields without displayOrder after standard columns
-                withoutOrder.forEach(field => {
-                  currentHeaders.push(
-                    <TableHead key={field.id} className="w-32">
-                      {field.label}
-                    </TableHead>
-                  );
-                });
-                
-                // Add actions column at the end
-                currentHeaders.push(
-                  <TableHead key="actions" className="w-32">Actions</TableHead>
-                );
-                
-                return currentHeaders;
-              })()}
-            </TableRow>
+            <GuestTableHeader
+              organization={organization}
+              visibleColumns={visibleColumns}
+            />
           </TableHeader>
           <TableBody ref={tableBodyRef}>
             {loading ? (
@@ -207,7 +122,9 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   guestIndex={index}
                   visibleColumns={visibleColumns}
                   organization={organization}
-                  isRemotelyUpdated={remoteUpdatedGuests?.has?.(guest.id) ?? false}
+                  isRemotelyUpdated={
+                    remoteUpdatedGuests?.has?.(guest.id) ?? false
+                  }
                   onUpdate={handleUpdateGuest}
                   onDelete={handleDeleteGuest}
                   onReorder={handleReorder}
