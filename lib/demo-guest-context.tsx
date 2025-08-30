@@ -126,6 +126,7 @@ interface DemoGuestContextType {
   stats: GuestStatistics;
   organization: Organization;
   addGuest: (name: string) => Promise<void>;
+  cloneGuest: (guest: Guest) => Promise<void>;
   updateGuest: (guestId: string, updates: Partial<Guest>) => Promise<void>;
   deleteGuest: (guestId: string) => Promise<void>;
   reorderGuests: (fromIndex: number, toIndex: number) => Promise<void>;
@@ -259,6 +260,38 @@ export function DemoGuestProvider({ children }: { children: React.ReactNode }) {
     await reorderGuests(guestIndex, guests.length - 1);
   }, [guests, reorderGuests]);
 
+  const cloneGuest = useCallback(async (guestToClone: Guest) => {
+    const clonedName = `${guestToClone.name}'s +1`;
+    
+    // Find the index of the guest to clone
+    const sourceIndex = guests.findIndex(g => g.id === guestToClone.id);
+    const insertPosition = sourceIndex + 1;
+    
+    // Create new guest with unique ID
+    const newGuest: Guest = {
+      ...guestToClone,
+      id: `guest-${Date.now()}`,
+      name: clonedName,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    // Insert at the correct position and update all display_order values
+    setGuests((prev) => {
+      const newGuests = [...prev];
+      newGuests.splice(insertPosition, 0, newGuest);
+      // Update display_order for all guests
+      return newGuests.map((g, idx) => ({
+        ...g,
+        display_order: idx
+      }));
+    });
+
+    setTimeout(() => {
+      toast.success(`Added ${clonedName}`);
+    }, 100);
+  }, [guests]);
+
   const resetDemo = useCallback(() => {
     setGuests([...DEMO_GUESTS]); // Create new array to trigger re-render
     setTimeout(() => {
@@ -274,6 +307,7 @@ export function DemoGuestProvider({ children }: { children: React.ReactNode }) {
         stats,
         organization: DEMO_ORGANIZATION,
         addGuest,
+        cloneGuest,
         updateGuest,
         deleteGuest,
         reorderGuests,

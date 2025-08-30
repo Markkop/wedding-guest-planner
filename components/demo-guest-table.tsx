@@ -24,6 +24,7 @@ export function DemoGuestTable() {
     loading,
     organization,
     addGuest,
+    cloneGuest,
     updateGuest,
     deleteGuest,
     reorderGuests,
@@ -91,6 +92,10 @@ export function DemoGuestTable() {
     await moveGuestToEnd(guestId);
   }
 
+  async function handleCloneGuest(guest: Guest) {
+    await cloneGuest(guest);
+  }
+
   const columnCount = useColumnCount(visibleColumns, organization);
 
   return (
@@ -144,6 +149,7 @@ export function DemoGuestTable() {
                   organization={organization}
                   onUpdate={handleUpdateGuest}
                   onDelete={handleDeleteGuest}
+                  onClone={handleCloneGuest}
                   onReorder={handleReorder}
                   onMoveToEnd={handleMoveToEnd}
                 />

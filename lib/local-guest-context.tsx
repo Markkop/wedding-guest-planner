@@ -226,6 +226,41 @@ export function LocalGuestProvider({
     [guests.length]
   );
 
+  const cloneGuest = useCallback(
+    async (guestToClone: Guest) => {
+      const clonedName = `${guestToClone.name}'s +1`;
+      
+      // Find the index of the guest to clone
+      const sourceIndex = guests.findIndex(g => g.id === guestToClone.id);
+      const insertPosition = sourceIndex + 1;
+      
+      // Create new guest with unique ID
+      const newGuest: Guest = {
+        ...guestToClone,
+        id: `guest-${Date.now()}`,
+        name: clonedName,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      // Insert at the correct position and update all display_order values
+      setGuests((prev) => {
+        const newGuests = [...prev];
+        newGuests.splice(insertPosition, 0, newGuest);
+        // Update display_order for all guests
+        return newGuests.map((g, idx) => ({
+          ...g,
+          display_order: idx
+        }));
+      });
+
+      setTimeout(() => {
+        toast.success(`Added ${clonedName}`);
+      }, 100);
+    },
+    [guests]
+  );
+
   const updateGuest = useCallback(
     async (guestId: string, updates: Partial<Guest>) => {
       // Optimistic update
@@ -315,6 +350,7 @@ export function LocalGuestProvider({
         setOrganization,
         loadGuests,
         addGuest,
+        cloneGuest,
         updateGuest,
         deleteGuest,
         reorderGuests,
@@ -331,6 +367,7 @@ export function LocalGuestProvider({
           setOrganization,
           loadGuests,
           addGuest,
+          cloneGuest,
           updateGuest,
           deleteGuest,
           reorderGuests,
