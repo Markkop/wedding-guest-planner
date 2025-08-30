@@ -21,6 +21,17 @@ export const metadata: Metadata = {
   keywords:
     "wedding planner, guest management, RSVP, event planning, seating chart, wedding guests",
   authors: [{ name: "Guest Planner Team" }],
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/manifest.json",
   openGraph: {
     title: "Guest Planner - Wedding Guest Management Made Simple",
     description:
