@@ -145,6 +145,7 @@ export function DemoGuestTable() {
                   guest={guest}
                   index={index + 1}
                   guestIndex={index}
+                  guests={guests}
                   visibleColumns={visibleColumns}
                   organization={organization}
                   onUpdate={handleUpdateGuest}

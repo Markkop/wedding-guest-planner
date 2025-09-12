@@ -111,6 +111,7 @@ export interface Guest {
   food_preferences?: string[];
   confirmation_stage: string;
   custom_fields: Record<string, unknown>;
+  family_color?: string; // Hex color for family/group identification
   display_order: number;
   created_at: Date;
   updated_at: Date;
@@ -157,6 +158,7 @@ export interface ExportData {
     food_preference?: string;
     confirmation_stage: string;
     custom_fields: Record<string, unknown>;
+    family_color?: string;
     display_order: number;
   }>;
   members: Array<{

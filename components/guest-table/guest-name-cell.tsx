@@ -5,17 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GuestColorPicker } from "@/components/guest-color-picker";
+import type { Guest } from "@/lib/types";
 
 interface GuestNameCellProps {
   name: string;
   isDeclined: boolean;
   onUpdate: (name: string) => void;
+  // Additional props for color picker
+  guest: Guest;
+  guests: Guest[];
+  guestIndex: number;
+  onColorChange: (color: string | null) => void;
 }
 
 export function GuestNameCell({
   name,
   isDeclined,
   onUpdate,
+  guest,
+  guests,
+  guestIndex,
+  onColorChange,
 }: GuestNameCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(name);
@@ -55,10 +66,7 @@ export function GuestNameCell({
             isDeclined && "opacity-50 text-gray-400"
           )}
         >
-          <Check className={cn(
-            "h-4 w-4",
-            isDeclined && "text-gray-400"
-          )} />
+          <Check className={cn("h-4 w-4", isDeclined && "text-gray-400")} />
         </Button>
         <Button
           size="icon"
@@ -69,10 +77,7 @@ export function GuestNameCell({
             isDeclined && "opacity-50 text-gray-400"
           )}
         >
-          <X className={cn(
-            "h-4 w-4",
-            isDeclined && "text-gray-400"
-          )} />
+          <X className={cn("h-4 w-4", isDeclined && "text-gray-400")} />
         </Button>
       </div>
     );
@@ -103,6 +108,15 @@ export function GuestNameCell({
       >
         <Pencil className="h-3 w-3" />
       </Button>
+      <GuestColorPicker
+        currentColor={guest.family_color}
+        guestIndex={guestIndex}
+        guests={guests}
+        onColorChange={onColorChange}
+        disabled={isDeclined}
+        size="sm"
+        className="hidden md:block"
+      />
     </div>
   );
 }

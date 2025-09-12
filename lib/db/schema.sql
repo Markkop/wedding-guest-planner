@@ -15,10 +15,8 @@ CREATE TABLE IF NOT EXISTS organizations (
   name VARCHAR(255) NOT NULL,
   invite_code VARCHAR(20) UNIQUE NOT NULL,
   admin_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  partner1_label VARCHAR(50) DEFAULT 'Bride',
-  partner1_initial CHAR(1) DEFAULT 'B',
-  partner2_label VARCHAR(50) DEFAULT 'Groom',
-  partner2_initial CHAR(1) DEFAULT 'G',
+  event_type VARCHAR(100) DEFAULT 'wedding', -- Type of event
+  configuration JSONB DEFAULT '{}', -- Event configuration (categories, stages, etc.)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -38,11 +36,13 @@ CREATE TABLE IF NOT EXISTS guests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
-  category VARCHAR(10) NOT NULL, -- 'partner1' or 'partner2'
-  age_group VARCHAR(10) DEFAULT 'adult', -- 'adult', '7years', '11years'
-  food_preference VARCHAR(20) DEFAULT 'none', -- 'none', 'vegetarian', 'vegan', 'gluten_free', 'dairy_free'
-  confirmation_stage INT DEFAULT 0, -- 0-3
-  declined BOOLEAN DEFAULT FALSE,
+  categories TEXT[] DEFAULT ARRAY[]::TEXT[], -- Array of category IDs
+  age_group VARCHAR(50), -- Dynamic age group from configuration
+  food_preference VARCHAR(50), -- Single food preference
+  food_preferences JSONB DEFAULT '[]', -- Array of food preferences (for multi-select)
+  confirmation_stage VARCHAR(50) DEFAULT 'invited', -- Dynamic confirmation stage
+  custom_fields JSONB DEFAULT '{}', -- Custom fields defined by organization
+  family_color VARCHAR(7) CHECK (family_color IS NULL OR family_color ~ '^#[0-9a-fA-F]{6}$'), -- Hex color for family/group identification
   display_order INT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

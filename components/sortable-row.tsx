@@ -26,6 +26,7 @@ interface SortableRowProps {
   guest: Guest;
   index: number;
   guestIndex: number;
+  guests: Guest[]; // Added for color picker
   visibleColumns: VisibleColumns;
   organization: Organization;
   isRemotelyUpdated?: boolean;
@@ -40,6 +41,7 @@ export function SortableRow({
   guest,
   index,
   guestIndex,
+  guests,
   visibleColumns,
   organization,
   isRemotelyUpdated = false,
@@ -120,6 +122,10 @@ export function SortableRow({
 
   const handleNameUpdate = (name: string) => {
     onUpdate(guest.id, { name });
+  };
+
+  const handleColorChange = (color: string | null) => {
+    onUpdate(guest.id, { family_color: color || undefined });
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -416,6 +422,10 @@ export function SortableRow({
                 name={guest.name}
                 isDeclined={isDeclined}
                 onUpdate={handleNameUpdate}
+                guest={guest}
+                guests={guests}
+                guestIndex={guestIndex}
+                onColorChange={handleColorChange}
               />
             </TableCell>
           );

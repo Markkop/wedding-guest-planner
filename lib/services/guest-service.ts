@@ -43,6 +43,8 @@ export class GuestService {
       food_preference?: string;
       food_preferences?: string[];
       confirmation_stage?: string;
+      custom_fields?: Record<string, unknown>;
+      family_color?: string;
       target_position?: number;
     }
   ) {
@@ -90,13 +92,13 @@ export class GuestService {
     const orgResult = await sql`
       SELECT configuration FROM organizations WHERE id = ${organizationId}
     `;
-    
+
     if (orgResult.length === 0) {
       throw new Error('Organization not found');
     }
-    
+
     const config = orgResult[0].configuration as EventConfiguration;
-    
+
     // Set defaults based on configuration
     const categories = data.categories || [config?.categories?.[0]?.id || ''];
     const ageGroup = data.age_group || (config?.ageGroups?.enabled ? config?.ageGroups?.groups?.[0]?.id : null);
@@ -107,7 +109,8 @@ export class GuestService {
     const result = await sql`
       INSERT INTO guests (
         organization_id, name, categories, age_group, 
-        food_preference, food_preferences, confirmation_stage, display_order, created_by
+        food_preference, food_preferences, confirmation_stage, 
+        custom_fields, family_color, display_order, created_by
       )
       VALUES (
         ${organizationId},
@@ -117,6 +120,8 @@ export class GuestService {
         ${foodPreference},
         ${JSON.stringify(foodPreferences)},
         ${confirmationStage},
+        ${data.custom_fields ? JSON.stringify(data.custom_fields) : null},
+        ${data.family_color || null},
         ${nextOrder},
         ${user.id}
       )
@@ -136,6 +141,7 @@ export class GuestService {
       food_preferences: string[];
       confirmation_stage: string;
       custom_fields: Record<string, unknown>;
+      family_color: string;
     }>
   ) {
     const user = await safeRequireUser();
@@ -173,6 +179,7 @@ export class GuestService {
         food_preferences = COALESCE(${data.food_preferences ? JSON.stringify(data.food_preferences) : null}, food_preferences),
         confirmation_stage = COALESCE(${data.confirmation_stage}, confirmation_stage),
         custom_fields = COALESCE(${data.custom_fields ? JSON.stringify(data.custom_fields) : null}, custom_fields),
+        family_color = COALESCE(${data.family_color}, family_color),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${guestId}
       RETURNING *
@@ -203,7 +210,7 @@ export class GuestService {
     }
 
     await sql`DELETE FROM guests WHERE id = ${guestId}`;
-    
+
     return { success: true };
   }
 
@@ -357,7 +364,7 @@ export class GuestService {
     `;
 
     const totalGuests = Number(countResult[0].total);
-    
+
     // If target position is beyond the total, treat it as "move to end"
     const effectiveTargetPosition = targetPosition > totalGuests ? totalGuests : targetPosition;
 
@@ -472,13 +479,13 @@ export class GuestService {
     const orgResult = await sql`
       SELECT configuration FROM organizations WHERE id = ${organizationId}
     `;
-    
+
     if (orgResult.length === 0) {
       throw new Error('Organization not found');
     }
-    
+
     const config = orgResult[0].configuration as EventConfiguration;
-    
+
     // Basic stats
     const basicStats = await sql`
       SELECT 
@@ -487,7 +494,7 @@ export class GuestService {
       FROM guests
       WHERE organization_id = ${organizationId}
     `;
-    
+
     // Get confirmation stage counts
     const stageStats = await sql`
       SELECT confirmation_stage, COUNT(*) as count
@@ -495,7 +502,7 @@ export class GuestService {
       WHERE organization_id = ${organizationId}
       GROUP BY confirmation_stage
     `;
-    
+
     // Get category counts (handle TEXT[] array)
     const categoryStats = await sql`
       SELECT 
@@ -505,10 +512,10 @@ export class GuestService {
       WHERE organization_id = ${organizationId}
       GROUP BY unnest(categories)
     `;
-    
+
     const byConfirmationStage: Record<string, number> = {};
     const byCategory: Record<string, number> = {};
-    
+
     // Populate confirmation stage counts
     const stages = config?.confirmationStages?.stages || [];
     for (const stage of stages) {
@@ -517,7 +524,7 @@ export class GuestService {
     for (const stat of stageStats) {
       byConfirmationStage[stat.confirmation_stage] = Number(stat.count);
     }
-    
+
     // Populate category counts
     const categories = config?.categories || [];
     for (const category of categories) {
@@ -526,7 +533,7 @@ export class GuestService {
     for (const stat of categoryStats) {
       byCategory[stat.category] = Number(stat.count);
     }
-    
+
     const stats = {
       total: Number(basicStats[0].total),
       invited: Number(basicStats[0].invited),

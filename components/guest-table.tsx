@@ -125,6 +125,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   guest={guest}
                   index={index + 1}
                   guestIndex={index}
+                  guests={guests}
                   visibleColumns={visibleColumns}
                   organization={organization}
                   isRemotelyUpdated={

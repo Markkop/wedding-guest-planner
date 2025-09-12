@@ -10,6 +10,7 @@ const updateGuestSchema = z.object({
   food_preferences: z.array(z.string()).optional(),
   confirmation_stage: z.string().optional(),
   custom_fields: z.record(z.any()).optional(),
+  family_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color').optional(),
 });
 
 export async function PATCH(
@@ -20,15 +21,15 @@ export async function PATCH(
     const { guestId } = await params;
     const body = await request.json();
     const data = updateGuestSchema.parse(body);
-    
+
     const guest = await GuestService.updateGuest(guestId, data);
-    
+
     return NextResponse.json({ guest });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
     }
-    
+
     if (error instanceof Error) {
       if (error.message === 'Not authenticated') {
         return NextResponse.json({ error: error.message }, { status: 401 });
@@ -37,7 +38,7 @@ export async function PATCH(
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
     }
-    
+
     return NextResponse.json({ error: 'Failed to update guest' }, { status: 500 });
   }
 }
@@ -49,7 +50,7 @@ export async function DELETE(
   try {
     const { guestId } = await params;
     await GuestService.deleteGuest(guestId);
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof Error) {
@@ -60,7 +61,7 @@ export async function DELETE(
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
     }
-    
+
     return NextResponse.json({ error: 'Failed to delete guest' }, { status: 500 });
   }
 }

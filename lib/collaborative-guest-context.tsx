@@ -43,7 +43,8 @@ interface GuestContextType {
   reorderGuests: (
     fromIndex: number,
     toIndex: number,
-    includePlusOne?: boolean
+    includePlusOne?: boolean,
+    includeFamilyTogether?: boolean
   ) => Promise<void>;
   moveGuestToEnd: (guestId: string) => Promise<void>;
 }
@@ -609,6 +610,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
               food_preference: guestToClone.food_preference,
               confirmation_stage: guestToClone.confirmation_stage,
               custom_fields: guestToClone.custom_fields,
+              family_color: guestToClone.family_color,
               target_position: guestToClone.display_order + 1,
             }),
           }),
@@ -709,35 +711,71 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     async (
       fromIndex: number,
       toIndex: number,
-      includePlusOne: boolean = true
+      includePlusOne: boolean = true,
+      includeFamilyTogether: boolean = false
     ) => {
       if (!organization) return;
 
       let newGuests: Guest[] = [];
       const originalOrder = [...guests];
 
-      if (includePlusOne) {
+      if (includePlusOne || includeFamilyTogether) {
         // Helper to check if g2 is the "+1" of g1
         const isPlusOneOf = (g1: Guest, g2: Guest) =>
           g1.name === `${g2.name}'s +1`;
 
-        // Determine the contiguous block to move (primary + possible +1)
+        // Helper to check if two guests are in the same family (same color)
+        const isSameFamily = (g1: Guest, g2: Guest) =>
+          g1.family_color &&
+          g2.family_color &&
+          g1.family_color === g2.family_color;
+
+        // Determine the contiguous block to move (primary + possible +1 + possible family)
         let blockStart = fromIndex;
         let blockEnd = fromIndex;
 
-        // Case 1: the next guest is the dragged guest's +1
-        if (
-          fromIndex + 1 < guests.length &&
-          isPlusOneOf(guests[fromIndex + 1], guests[fromIndex])
-        ) {
-          blockEnd = fromIndex + 1;
+        // Handle +1 relationships first (if enabled)
+        if (includePlusOne) {
+          // Case 1: the next guest is the dragged guest's +1
+          if (
+            fromIndex + 1 < guests.length &&
+            isPlusOneOf(guests[fromIndex + 1], guests[fromIndex])
+          ) {
+            blockEnd = fromIndex + 1;
+          }
+          // Case 2: the dragged guest itself is a +1 -> move it together with the previous guest
+          else if (
+            fromIndex - 1 >= 0 &&
+            isPlusOneOf(guests[fromIndex], guests[fromIndex - 1])
+          ) {
+            blockStart = fromIndex - 1;
+          }
         }
-        // Case 2: the dragged guest itself is a +1 -> move it together with the previous guest
-        else if (
-          fromIndex - 1 >= 0 &&
-          isPlusOneOf(guests[fromIndex], guests[fromIndex - 1])
-        ) {
-          blockStart = fromIndex - 1;
+
+        // Handle family grouping (if enabled)
+        if (includeFamilyTogether) {
+          // Expand block to include all adjacent family members
+          // Keep expanding backwards while we find family members
+          while (blockStart > 0) {
+            const currentStartGuest = guests[blockStart];
+            const previousGuest = guests[blockStart - 1];
+            if (isSameFamily(currentStartGuest, previousGuest)) {
+              blockStart--;
+            } else {
+              break;
+            }
+          }
+
+          // Keep expanding forwards while we find family members
+          while (blockEnd < guests.length - 1) {
+            const currentEndGuest = guests[blockEnd];
+            const nextGuest = guests[blockEnd + 1];
+            if (isSameFamily(currentEndGuest, nextGuest)) {
+              blockEnd++;
+            } else {
+              break;
+            }
+          }
         }
 
         // Calculate the final insert position taking the removal shift into account

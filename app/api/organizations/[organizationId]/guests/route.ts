@@ -7,7 +7,10 @@ const createGuestSchema = z.object({
   categories: z.array(z.string()).optional(),
   age_group: z.string().optional(),
   food_preference: z.string().optional(),
+  food_preferences: z.array(z.string()).optional(),
   confirmation_stage: z.string().optional(),
+  custom_fields: z.record(z.any()).optional(),
+  family_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color').optional(),
   target_position: z.number().optional(),
 });
 
@@ -40,15 +43,15 @@ export async function POST(
     const { organizationId } = await params;
     const body = await request.json();
     const data = createGuestSchema.parse(body);
-    
+
     const guest = await GuestService.createGuest(organizationId, data);
-    
+
     return NextResponse.json({ guest }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
     }
-    
+
     if (error instanceof Error) {
       if (error.message === 'Not authenticated') {
         return NextResponse.json({ error: error.message }, { status: 401 });
@@ -57,7 +60,7 @@ export async function POST(
         return NextResponse.json({ error: error.message }, { status: 403 });
       }
     }
-    
+
     return NextResponse.json({ error: 'Failed to create guest' }, { status: 500 });
   }
 }
