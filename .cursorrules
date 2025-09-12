@@ -1,0 +1,145 @@
+# Cursor Rules
+
+This file provides guidance to Cursor when working with code in this repository.
+
+## Project Overview
+
+Wedding guest planner application with drag-and-drop reordering, organization-based access, and real-time data persistence. Built with Next.js 15.5.0, TypeScript, Tailwind CSS v4, and Neon Database.
+
+## Development Commands
+
+```bash
+pnpm dev               # Start dev server with Turbopack (DO NOT run automatically)
+pnpm build             # Build production app
+pnpm build:sandbox     # Safe build mode (use when dev server is running)
+pnpm start             # Start production server
+pnpm start:sandbox     # Start production on port 4000 using sandbox build
+pnpm clean             # Clean all build artifacts
+pnpm lint              # Run ESLint
+pnpm tsc               # Run TypeScript compiler
+```
+
+**Important**: Use `pnpm build:sandbox` when dev server is running to prevent ENOENT errors. Sandbox builds output to `.next-buildcheck`.
+No need to always run build, lint and tsc should be enough to catch errors, try to run them after big changes.
+
+## Tech Stack
+
+- **Framework**: Next.js 15.5.0 with App Router, React 19.1.0
+- **Language**: TypeScript with strict mode
+- **Styling**: Tailwind CSS v4 with PostCSS
+- **UI Components**: shadcn/ui (New York style), Lucide React icons
+- **Database**: Neon PostgreSQL (`@neondatabase/serverless`)
+- **Authentication**: Stack Auth (`@stackframe/stack`)
+- **Drag & Drop**: `@atlaskit/pragmatic-drag-and-drop`
+- **AI Integration**: OpenAI SDK with AI SDK React hooks
+  Note: when using ShadCn Cli, always use the `-y` and `-o` flags to avoid getting stuck asking you questions.
+
+## Architecture
+
+### Database Schema (Neon)
+
+```typescript
+// Core tables in lib/db/index.ts
+- users: id, email, password_hash, name, avatar_url
+- organizations: id, name, invite_code, admin_id, event_type, configuration (JSONB)
+- guests: id, organization_id, name, categories[], age_group, food_preferences[], confirmation_stage, display_order
+- organization_members: organization_id, user_id, role (admin|member)
+```
+
+### Authentication Flow
+
+1. **Stack Auth Integration** (`lib/auth/`)
+
+   - Client: `lib/auth/stack-client.ts` - `getStackClientApp()`
+   - Server: `lib/auth/stack-server.ts` - Stack server utilities
+   - Safe wrappers for auth operations with error handling
+
+2. **Organization Access**
+   - Invite code system for joining organizations
+   - Admin role management
+   - Multi-user collaboration support
+
+### Service Layer Architecture
+
+```
+lib/services/
+├── guest-service.ts       # Guest CRUD operations
+├── organization-service.ts # Organization management
+└── event-config-service.ts # Event configuration
+
+lib/gateway/               # External service abstraction
+├── base-gateway.ts        # Interface definitions
+├── mock-gateway.ts        # Mock implementations
+└── index.ts              # Gateway manager
+```
+
+### Component Architecture
+
+- **Guest Table** (`components/guest-table/`): Modular table components with drag-and-drop
+- **Context Providers**: Guest context for state management
+- **UI Components** (`components/ui/`): shadcn/ui New York style components
+
+## Key Implementation Details
+
+### Drag & Drop Reordering
+
+- Uses `@atlaskit/pragmatic-drag-and-drop`
+- Preserves order in `display_order` field
+- Optimistic updates with database sync
+
+### Guest Confirmation System
+
+Three-stage progression:
+
+1. Save the Date
+2. Invitation Sent
+3. Final Confirmation
+
+### Food Preferences
+
+- Multiple selection support via array
+- Icons: utensils (none), leaf (vegetarian), vegan, wheat (gluten-free), milk (dairy-free)
+
+### Partner Categories
+
+- Customizable via organization configuration
+- Stored as array to support multiple categories
+- Visual indicators with initials (Y/M, A/B, etc.)
+
+## Environment Variables
+
+Required in `.env.local`:
+
+```
+DATABASE_URL                              # Neon PostgreSQL connection
+NEXT_PUBLIC_STACK_PROJECT_ID             # Stack Auth project ID
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY # Stack Auth public key
+STACK_SECRET_SERVER_KEY                   # Stack Auth server key (if needed)
+```
+
+## Build Configuration
+
+- **Sandbox Mode**: `NEXT_BUILD_SANDBOX=1` outputs to `.next-buildcheck`
+- **TypeScript**: Strict mode enabled, build errors ignored for rapid development
+- **ESLint**: Configured but skippable during builds
+
+## API Routes Structure
+
+```
+app/api/
+├── guests/[guestId]/        # Individual guest operations
+├── organizations/
+│   ├── [organizationId]/
+│   │   ├── guests/          # Guest operations
+│   │   ├── config/          # Event configuration
+│   │   ├── export/          # Data export
+│   │   └── import/          # Data import
+│   └── by-invite/[code]/    # Join by invite code
+└── invite/[code]/           # Invite management
+```
+
+## Testing & Quality
+
+- Run `pnpm lint` before committing
+- TypeScript strict mode catches type errors
+- Use sandbox builds for testing while dev server runs

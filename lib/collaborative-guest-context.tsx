@@ -40,7 +40,11 @@ interface GuestContextType {
   cloneGuest: (guest: Guest) => Promise<void>;
   updateGuest: (guestId: string, updates: Partial<Guest>) => Promise<void>;
   deleteGuest: (guestId: string) => Promise<void>;
-  reorderGuests: (fromIndex: number, toIndex: number) => Promise<void>;
+  reorderGuests: (
+    fromIndex: number,
+    toIndex: number,
+    includePlusOne?: boolean
+  ) => Promise<void>;
   moveGuestToEnd: (guestId: string) => Promise<void>;
 }
 
@@ -58,13 +62,15 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(false);
   const [organization, setOrganization] = useState<Organization | null>(null);
-  const [remoteUpdatedGuests, setRemoteUpdatedGuests] = useState<Set<string>>(new Set());
+  const [remoteUpdatedGuests, setRemoteUpdatedGuests] = useState<Set<string>>(
+    new Set()
+  );
   const updateQueue = useRef<UpdateQueueItem[]>([]);
   const processingQueue = useRef(false);
   // Track the latest update timestamp for each guest field to prevent race conditions
   const latestFieldUpdates = useRef<Record<string, Record<string, number>>>({});
   const remoteUpdateTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  
+
   // Get collaboration functions
   const { broadcastGuestUpdate, onGuestUpdate } = useCollaboration();
 
@@ -141,11 +147,11 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Add guest to the set of remotely updated guests
-    setRemoteUpdatedGuests(prev => new Set([...prev, guestId]));
+    setRemoteUpdatedGuests((prev) => new Set([...prev, guestId]));
 
     // Set a timer to remove the highlight after 5 seconds
     const timer = setTimeout(() => {
-      setRemoteUpdatedGuests(prev => {
+      setRemoteUpdatedGuests((prev) => {
         const newSet = new Set(prev);
         newSet.delete(guestId);
         return newSet;
@@ -157,124 +163,138 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Handle remote guest updates from other users
-  const handleRemoteGuestUpdate = useCallback((update: {
-    type: string;
-    timestamp: string;
-    guest?: Guest;
-    guestId?: string;
-    guestName?: string;
-    updates?: Partial<Guest>;
-    guestIds?: string[];
-    action?: string;
-    guest1Id?: string;
-    guest1Name?: string;
-    guest2Id?: string;
-    guest2Name?: string;
-  }) => {
-    console.log("🔄 Received remote guest update:", update);
-    const timestamp = new Date(update.timestamp).getTime();
-    
-    switch (update.type) {
-      case "guest_added":
-        if (update.guest) {
-          setGuests(prev => {
-            // Check if guest already exists (avoid duplicates)
-            const exists = prev.some(g => g.id === update.guest!.id);
-            if (!exists) {
-              // Mark as remotely updated
-              markGuestAsRemotelyUpdated(update.guest!.id);
-              return [...prev, update.guest!].sort((a, b) => a.display_order - b.display_order);
-            }
-            return prev;
-          });
-        }
-        break;
-        
-      case "guest_updated":
-        if (update.guestId && update.updates) {
-          const fields = Object.keys(update.updates);
-          
-          // Check if this update is stale
-          if (!isUpdateStale(update.guestId, fields, timestamp)) {
-            recordFieldUpdate(update.guestId, fields, timestamp);
-            
-            // Mark as remotely updated
-            markGuestAsRemotelyUpdated(update.guestId);
-            
-            setGuests(prev => prev.map(guest => {
-              if (guest.id === update.guestId) {
-                return { ...guest, ...update.updates };
+  const handleRemoteGuestUpdate = useCallback(
+    (update: {
+      type: string;
+      timestamp: string;
+      guest?: Guest;
+      guestId?: string;
+      guestName?: string;
+      updates?: Partial<Guest>;
+      guestIds?: string[];
+      action?: string;
+      guest1Id?: string;
+      guest1Name?: string;
+      guest2Id?: string;
+      guest2Name?: string;
+    }) => {
+      console.log("🔄 Received remote guest update:", update);
+      const timestamp = new Date(update.timestamp).getTime();
+
+      switch (update.type) {
+        case "guest_added":
+          if (update.guest) {
+            setGuests((prev) => {
+              // Check if guest already exists (avoid duplicates)
+              const exists = prev.some((g) => g.id === update.guest!.id);
+              if (!exists) {
+                // Mark as remotely updated
+                markGuestAsRemotelyUpdated(update.guest!.id);
+                return [...prev, update.guest!].sort(
+                  (a, b) => a.display_order - b.display_order
+                );
               }
-              return guest;
-            }));
+              return prev;
+            });
           }
-        }
-        break;
-        
-      case "guest_deleted":
-        if (update.guestId) {
-          setGuests(prev => prev.filter(g => g.id !== update.guestId));
-        }
-        break;
-        
-      case "guests_reordered":
-        if (update.guestIds) {
-          setGuests(prev => {
-            // Create a map for O(1) lookup
-            const guestMap = new Map(prev.map(g => [g.id, g]));
-            
-            // Reorder based on the received order
-            const reorderedGuests = update.guestIds!
-              .map((id: string) => guestMap.get(id))
-              .filter(Boolean) as Guest[];
-            
-            // Mark all reordered guests as remotely updated
-            reorderedGuests.forEach(guest => markGuestAsRemotelyUpdated(guest.id));
-            
-            // Add any guests that weren't in the reorder list (shouldn't happen, but safety)
-            const orderedIds = new Set(update.guestIds!);
-            const remainingGuests = prev.filter(g => !orderedIds.has(g.id));
-            
-            return [...reorderedGuests, ...remainingGuests];
-          });
-        }
-        break;
-        
-      case "guest_moved":
-      case "guests_swapped":
-        // For single guest moves or swaps, we need to refresh the guest list to get the updated order
-        // These operations change display_order values, so we should fetch fresh data
-        if (update.guestId || (update.guest1Id && update.guest2Id)) {
-          // Mark affected guests as remotely updated
-          if (update.guestId) {
-            markGuestAsRemotelyUpdated(update.guestId);
-          }
-          if (update.guest1Id) {
-            markGuestAsRemotelyUpdated(update.guest1Id);
-          }
-          if (update.guest2Id) {
-            markGuestAsRemotelyUpdated(update.guest2Id);
-          }
-          
-          // Refresh the guest list to get the correct order
-          if (organization?.id) {
-            // Delay the loadGuests call to avoid dependency issue
-            setTimeout(() => {
-              // Re-fetch the guests to get the updated order
-              fetch(`/api/organizations/${organization.id}/guests`)
-                .then(response => response.json())
-                .then(data => {
-                  if (data.guests) {
-                    setGuests(data.guests);
+          break;
+
+        case "guest_updated":
+          if (update.guestId && update.updates) {
+            const fields = Object.keys(update.updates);
+
+            // Check if this update is stale
+            if (!isUpdateStale(update.guestId, fields, timestamp)) {
+              recordFieldUpdate(update.guestId, fields, timestamp);
+
+              // Mark as remotely updated
+              markGuestAsRemotelyUpdated(update.guestId);
+
+              setGuests((prev) =>
+                prev.map((guest) => {
+                  if (guest.id === update.guestId) {
+                    return { ...guest, ...update.updates };
                   }
+                  return guest;
                 })
-                .catch(console.error);
-            }, 100);
+              );
+            }
           }
-        }
-        break;
-    }
-  }, [isUpdateStale, recordFieldUpdate, markGuestAsRemotelyUpdated, organization?.id]);
+          break;
+
+        case "guest_deleted":
+          if (update.guestId) {
+            setGuests((prev) => prev.filter((g) => g.id !== update.guestId));
+          }
+          break;
+
+        case "guests_reordered":
+          if (update.guestIds) {
+            setGuests((prev) => {
+              // Create a map for O(1) lookup
+              const guestMap = new Map(prev.map((g) => [g.id, g]));
+
+              // Reorder based on the received order
+              const reorderedGuests = update
+                .guestIds!.map((id: string) => guestMap.get(id))
+                .filter(Boolean) as Guest[];
+
+              // Mark all reordered guests as remotely updated
+              reorderedGuests.forEach((guest) =>
+                markGuestAsRemotelyUpdated(guest.id)
+              );
+
+              // Add any guests that weren't in the reorder list (shouldn't happen, but safety)
+              const orderedIds = new Set(update.guestIds!);
+              const remainingGuests = prev.filter((g) => !orderedIds.has(g.id));
+
+              return [...reorderedGuests, ...remainingGuests];
+            });
+          }
+          break;
+
+        case "guest_moved":
+        case "guests_swapped":
+          // For single guest moves or swaps, we need to refresh the guest list to get the updated order
+          // These operations change display_order values, so we should fetch fresh data
+          if (update.guestId || (update.guest1Id && update.guest2Id)) {
+            // Mark affected guests as remotely updated
+            if (update.guestId) {
+              markGuestAsRemotelyUpdated(update.guestId);
+            }
+            if (update.guest1Id) {
+              markGuestAsRemotelyUpdated(update.guest1Id);
+            }
+            if (update.guest2Id) {
+              markGuestAsRemotelyUpdated(update.guest2Id);
+            }
+
+            // Refresh the guest list to get the correct order
+            if (organization?.id) {
+              // Delay the loadGuests call to avoid dependency issue
+              setTimeout(() => {
+                // Re-fetch the guests to get the updated order
+                fetch(`/api/organizations/${organization.id}/guests`)
+                  .then((response) => response.json())
+                  .then((data) => {
+                    if (data.guests) {
+                      setGuests(data.guests);
+                    }
+                  })
+                  .catch(console.error);
+              }, 100);
+            }
+          }
+          break;
+      }
+    },
+    [
+      isUpdateStale,
+      recordFieldUpdate,
+      markGuestAsRemotelyUpdated,
+      organization?.id,
+    ]
+  );
 
   // Subscribe to remote updates
   useEffect(() => {
@@ -309,7 +329,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           setGuests((prev) =>
             prev.map((g) => (g.id === update.guestId ? data.guest : g))
           );
-          
+
           // Broadcast to others
           broadcastGuestUpdate({
             type: "guest_added",
@@ -350,7 +370,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
                 return { ...g, ...filteredUpdate };
               })
             );
-            
+
             // Broadcast to others
             broadcastGuestUpdate({
               type: "guest_updated",
@@ -369,7 +389,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           const newGuests = update.newState as Guest[];
           broadcastGuestUpdate({
             type: "guests_reordered",
-            guestIds: newGuests.map(g => g.id),
+            guestIds: newGuests.map((g) => g.id),
           });
         }
 
@@ -543,11 +563,11 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
 
       const tempId = `temp-${Date.now()}`;
       const clonedName = `${guestToClone.name}'s +1`;
-      
+
       // Find the index of the guest to clone
-      const sourceIndex = guests.findIndex(g => g.id === guestToClone.id);
+      const sourceIndex = guests.findIndex((g) => g.id === guestToClone.id);
       const insertPosition = sourceIndex + 1;
-      
+
       // The new guest should be inserted right after the source
       const newGuest: Guest = {
         ...guestToClone,
@@ -565,7 +585,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         // Update display_order for all guests after the insertion point
         return newGuests.map((g, idx) => ({
           ...g,
-          display_order: idx + 1
+          display_order: idx + 1,
         }));
       });
 
@@ -596,22 +616,22 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         status: "pending",
         retryCount: 0,
       });
-      
+
       // After creating, we need to reorder all guests to fix display_order values
       // This ensures the database has correct sequential ordering
       setTimeout(() => {
-        const updatedGuests = guests.filter(g => g.id !== tempId);
+        const updatedGuests = guests.filter((g) => g.id !== tempId);
         updatedGuests.splice(insertPosition, 0, newGuest);
         const reorderedGuests = updatedGuests.map((g, idx) => ({
           ...g,
-          display_order: idx
+          display_order: idx,
         }));
-        
+
         fetch(`/api/organizations/${organization.id}/guests/reorder`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            guestIds: reorderedGuests.map(g => g.id)
+            guestIds: reorderedGuests.map((g) => g.id),
           }),
         });
       }, 100);
@@ -686,17 +706,72 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
   );
 
   const reorderGuests = useCallback(
-    async (fromIndex: number, toIndex: number) => {
+    async (
+      fromIndex: number,
+      toIndex: number,
+      includePlusOne: boolean = true
+    ) => {
       if (!organization) return;
 
+      let newGuests: Guest[] = [];
       const originalOrder = [...guests];
 
-      // Optimistic update using reorder logic
-      const newGuests = reorder({
-        list: guests,
-        startIndex: fromIndex,
-        finishIndex: toIndex,
-      });
+      if (includePlusOne) {
+        // Helper to check if g2 is the "+1" of g1
+        const isPlusOneOf = (g1: Guest, g2: Guest) =>
+          g1.name === `${g2.name}'s +1`;
+
+        // Determine the contiguous block to move (primary + possible +1)
+        let blockStart = fromIndex;
+        let blockEnd = fromIndex;
+
+        // Case 1: the next guest is the dragged guest's +1
+        if (
+          fromIndex + 1 < guests.length &&
+          isPlusOneOf(guests[fromIndex + 1], guests[fromIndex])
+        ) {
+          blockEnd = fromIndex + 1;
+        }
+        // Case 2: the dragged guest itself is a +1 -> move it together with the previous guest
+        else if (
+          fromIndex - 1 >= 0 &&
+          isPlusOneOf(guests[fromIndex], guests[fromIndex - 1])
+        ) {
+          blockStart = fromIndex - 1;
+        }
+
+        // Calculate the final insert position taking the removal shift into account
+        const blockSize = blockEnd - blockStart + 1;
+        let insertPos = toIndex;
+
+        if (insertPos > blockStart) {
+          // Removing the block shifts the target index to the left
+          insertPos = insertPos - blockSize + 1;
+        }
+
+        // Clamp insert position
+        insertPos = Math.max(0, Math.min(guests.length - blockSize, insertPos));
+
+        // Build the new guest list
+        const movingBlock = guests.slice(blockStart, blockEnd + 1);
+        const withoutBlock = guests.filter(
+          (_, idx) => idx < blockStart || idx > blockEnd
+        );
+        newGuests = [
+          ...withoutBlock.slice(0, insertPos),
+          ...movingBlock,
+          ...withoutBlock.slice(insertPos),
+        ];
+      } else {
+        // Simple single-item reorder
+        newGuests = reorder({
+          list: guests,
+          startIndex: fromIndex,
+          finishIndex: toIndex,
+        });
+      }
+
+      // Optimistic update
       setGuests(newGuests);
 
       // Add to queue

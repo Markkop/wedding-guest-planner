@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useUser } from "@stackframe/stack";
 import { GuestTable } from "@/components/guest-table";
+import { GuestGrid } from "@/components/guest-grid";
+import { ViewToggle } from "@/components/view-toggle";
 import { StatsCards } from "@/components/stats-cards";
 import { OrganizationSelector } from "@/components/organization-selector";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const user = useUser({ or: "redirect" });
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"table" | "grid">("table");
 
   const loadOrganizations = useCallback(async () => {
     try {
@@ -53,7 +56,6 @@ export default function DashboardPage() {
       toast.error("Failed to logout");
     }
   }
-
 
   if (loading) {
     return (
@@ -98,7 +100,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 {/* Online users avatars */}
                 <OnlineUsersCompact />
-                
+
                 {/* Admin controls */}
                 {organization.role === "admin" && (
                   <>
@@ -116,7 +118,7 @@ export default function DashboardPage() {
                     />
                   </>
                 )}
-                
+
                 {/* Logout button */}
                 <Button onClick={handleLogout} variant="outline" size="sm">
                   <LogOut className="sm:mr-2 h-4 w-4" />
@@ -128,17 +130,27 @@ export default function DashboardPage() {
             <StatsCards organization={organization} />
 
             <div className="mt-4">
-              <GuestTable
-                organizationId={organization.id}
-                organization={organization}
-              />
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Guests</h2>
+                <ViewToggle view={view} onViewChange={setView} />
+              </div>
+
+              {view === "table" ? (
+                <GuestTable
+                  organizationId={organization.id}
+                  organization={organization}
+                />
+              ) : (
+                <GuestGrid
+                  organizationId={organization.id}
+                  organization={organization}
+                />
+              )}
             </div>
           </div>
 
           {/* Chatbot */}
-          <Chatbot
-            organizationId={organization.id}
-          />
+          <Chatbot organizationId={organization.id} />
         </div>
       </GuestProvider>
     </CollaborationProvider>

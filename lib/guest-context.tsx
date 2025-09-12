@@ -39,7 +39,11 @@ interface GuestContextType {
   cloneGuest: (guest: Guest) => Promise<void>;
   updateGuest: (guestId: string, updates: Partial<Guest>) => Promise<void>;
   deleteGuest: (guestId: string) => Promise<void>;
-  reorderGuests: (fromIndex: number, toIndex: number) => Promise<void>;
+  reorderGuests: (
+    fromIndex: number,
+    toIndex: number,
+    includePlusOne?: boolean
+  ) => Promise<void>;
   moveGuestToEnd: (guestId: string) => Promise<void>;
 }
 
@@ -363,11 +367,11 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
 
       const tempId = `temp-${Date.now()}`;
       const clonedName = `${guestToClone.name}'s +1`;
-      
+
       // Find the index of the guest to clone
-      const sourceIndex = guests.findIndex(g => g.id === guestToClone.id);
+      const sourceIndex = guests.findIndex((g) => g.id === guestToClone.id);
       const insertPosition = sourceIndex + 1;
-      
+
       // The new guest should be inserted right after the source
       const newGuest: Guest = {
         ...guestToClone,
@@ -385,7 +389,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         // Update display_order for all guests after the insertion point
         return newGuests.map((g, idx) => ({
           ...g,
-          display_order: idx + 1
+          display_order: idx + 1,
         }));
       });
 
@@ -401,9 +405,9 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           fetch(`/api/organizations/${organization.id}/guests`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               name: clonedName,
-              target_position: guestToClone.display_order + 1
+              target_position: guestToClone.display_order + 1,
             }),
           }),
         timestamp: Date.now(),
