@@ -115,7 +115,6 @@ export function GuestNameCell({
         onColorChange={onColorChange}
         disabled={isDeclined}
         size="sm"
-        className="hidden md:block"
       />
     </div>
   );

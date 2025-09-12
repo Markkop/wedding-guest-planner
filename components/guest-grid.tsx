@@ -300,48 +300,51 @@ function GuestGridItem({
           "bg-white border-gray-200 hover:border-gray-300"
       )}
     >
-      <div className=" flex items-center space-x-0.5">
-        <div
-          className="w-5 h-5 rounded-full flex items-center justify-center font-semibold text-[8px] flex-shrink-0"
-          style={{
-            backgroundColor: isDeclined ? "#9CA3AF" : getCategoryColor(),
-            color: isDeclined ? "#FFFFFF" : getTextColor(getCategoryColor()),
-          }}
-        >
-          {index}
+      <div className="flex items-center justify-between space-x-0.5">
+        <div className="flex items-center space-x-0.5 flex-1 min-w-0">
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center font-semibold text-[8px] flex-shrink-0"
+            style={{
+              backgroundColor: isDeclined ? "#9CA3AF" : getCategoryColor(),
+              color: isDeclined ? "#FFFFFF" : getTextColor(getCategoryColor()),
+            }}
+          >
+            {index}
+          </div>
+          <div className="font-medium text-xs text-gray-900 truncate flex-1">
+            {guest.name}
+          </div>
         </div>
-        <div className="font-medium text-xs text-gray-900 truncate flex-1">
-          {guest.name}
-        </div>
-      </div>
 
-      {/* Family color picker */}
-      <div className="absolute top-0 right-0.5">
-        <GuestColorPicker
-          currentColor={guest.family_color}
-          guestIndex={guestIndex}
-          guests={guests}
-          onColorChange={(color) => onColorChange(guest.id, color)}
-          disabled={isDeclined}
-          size="sm"
-        />
-      </div>
-
-      {/* Drag indicator */}
-      <div className="absolute top-1 right-6 opacity-30">
-        <svg
-          className="w-4 h-4 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 8h16M4 16h16"
+        {/* Controls group */}
+        <div className="flex items-center space-x-0.5 flex-shrink-0">
+          {/* Family color picker */}
+          <GuestColorPicker
+            currentColor={guest.family_color}
+            guestIndex={guestIndex}
+            guests={guests}
+            onColorChange={(color) => onColorChange(guest.id, color)}
+            disabled={isDeclined}
+            size="sm"
           />
-        </svg>
+
+          {/* Drag indicator */}
+          <div className="opacity-30">
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 8h16M4 16h16"
+              />
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   );
