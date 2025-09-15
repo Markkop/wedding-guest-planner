@@ -36,7 +36,7 @@ export type Guest = {
   food_preference?: string;
   food_preferences?: string[];
   confirmation_stage: string;
-  custom_fields: Record<string, unknown>; // JSONB
+  custom_fields: Record<string, unknown> | null; // JSONB
   family_color?: string; // Hex color for family/group identification
   display_order: number;
   created_at: Date;

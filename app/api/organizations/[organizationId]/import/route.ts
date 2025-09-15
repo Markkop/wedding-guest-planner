@@ -103,7 +103,7 @@ export async function POST(
             ${guest.age_group || null},
             ${guest.food_preference || null},
             ${guest.confirmation_stage},
-            ${JSON.stringify(guest.custom_fields)},
+            ${guest.custom_fields ? JSON.stringify(guest.custom_fields) : '{}'},
             ${displayOrder},
             ${user.id}
           )

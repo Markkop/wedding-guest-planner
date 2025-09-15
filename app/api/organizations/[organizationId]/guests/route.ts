@@ -9,7 +9,7 @@ const createGuestSchema = z.object({
   food_preference: z.string().optional(),
   food_preferences: z.array(z.string()).optional(),
   confirmation_stage: z.string().optional(),
-  custom_fields: z.record(z.any()).optional(),
+  custom_fields: z.record(z.any()).nullable().optional(),
   family_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color').nullable().optional(),
   target_position: z.number().optional(),
 });

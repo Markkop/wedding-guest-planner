@@ -43,7 +43,7 @@ export class GuestService {
       food_preference?: string;
       food_preferences?: string[];
       confirmation_stage?: string;
-      custom_fields?: Record<string, unknown>;
+      custom_fields?: Record<string, unknown> | null;
       family_color?: string | null;
       target_position?: number;
     }
@@ -120,7 +120,7 @@ export class GuestService {
         ${foodPreference},
         ${JSON.stringify(foodPreferences)},
         ${confirmationStage},
-        ${data.custom_fields ? JSON.stringify(data.custom_fields) : null},
+        ${data.custom_fields ? JSON.stringify(data.custom_fields) : '{}'},
         ${data.family_color || null},
         ${nextOrder},
         ${user.id}
@@ -140,7 +140,7 @@ export class GuestService {
       food_preference: string;
       food_preferences: string[];
       confirmation_stage: string;
-      custom_fields: Record<string, unknown>;
+      custom_fields: Record<string, unknown> | null;
       family_color: string | null;
     }>
   ) {

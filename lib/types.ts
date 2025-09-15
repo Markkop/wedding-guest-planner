@@ -110,7 +110,7 @@ export interface Guest {
   food_preference?: string;
   food_preferences?: string[];
   confirmation_stage: string;
-  custom_fields: Record<string, unknown>;
+  custom_fields: Record<string, unknown> | null;
   family_color?: string | null; // Hex color for family/group identification
   display_order: number;
   created_at: Date;
