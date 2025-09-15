@@ -191,6 +191,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
               if (!exists) {
                 // Mark as remotely updated
                 markGuestAsRemotelyUpdated(update.guest!.id);
+                // Always sort after adding to ensure proper order
                 return [...prev, update.guest!].sort(
                   (a, b) => a.display_order - b.display_order
                 );
@@ -249,7 +250,9 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
               const orderedIds = new Set(update.guestIds!);
               const remainingGuests = prev.filter((g) => !orderedIds.has(g.id));
 
-              return [...reorderedGuests, ...remainingGuests];
+              // Combine and sort by display_order to maintain proper ordering
+              const allGuests = [...reorderedGuests, ...remainingGuests];
+              return allGuests.sort((a, b) => a.display_order - b.display_order);
             });
           }
           break;
@@ -279,7 +282,9 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
                   .then((response) => response.json())
                   .then((data) => {
                     if (data.guests) {
-                      setGuests(data.guests);
+                      // Ensure proper sorting after refetch
+                      const sortedGuests = data.guests.sort((a: Guest, b: Guest) => a.display_order - b.display_order);
+                      setGuests(sortedGuests);
                     }
                   })
                   .catch(console.error);
@@ -530,7 +535,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           ? config.confirmationStages.stages[0]?.id
           : "invited",
         custom_fields: {},
-        display_order: guests.length,
+        display_order: guests.length + 1,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -576,16 +581,16 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         ...guestToClone,
         id: tempId,
         name: clonedName,
-        display_order: guestToClone.display_order + 0.5, // Insert between current and next
+        display_order: insertPosition + 1, // Use proper integer position
         created_at: new Date(),
         updated_at: new Date(),
       };
 
-      // Optimistic update - insert at the correct position
+      // Optimistic update - insert at the correct position and resequence all display_order values
       setGuests((prev) => {
         const newGuests = [...prev];
         newGuests.splice(insertPosition, 0, newGuest);
-        // Update display_order for all guests after the insertion point
+        // Ensure all display_order values are sequential
         return newGuests.map((g, idx) => ({
           ...g,
           display_order: idx + 1,
@@ -613,32 +618,13 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
               confirmation_stage: guestToClone.confirmation_stage,
               custom_fields: guestToClone.custom_fields,
               family_color: guestToClone.family_color,
-              target_position: guestToClone.display_order + 1,
+              target_position: insertPosition + 1,
             }),
           }),
         timestamp: Date.now(),
         status: "pending",
         retryCount: 0,
       });
-
-      // After creating, we need to reorder all guests to fix display_order values
-      // This ensures the database has correct sequential ordering
-      setTimeout(() => {
-        const updatedGuests = guests.filter((g) => g.id !== tempId);
-        updatedGuests.splice(insertPosition, 0, newGuest);
-        const reorderedGuests = updatedGuests.map((g, idx) => ({
-          ...g,
-          display_order: idx,
-        }));
-
-        fetch(`/api/organizations/${organization.id}/guests/reorder`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            guestIds: reorderedGuests.map((g) => g.id),
-          }),
-        });
-      }, 100);
     },
     [organization, guests]
   );

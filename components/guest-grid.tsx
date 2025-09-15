@@ -159,14 +159,26 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
             }`}
           >
             {(() => {
-              const rows = Math.ceil(guests.length / columns);
+              // Column-first arrangement with proper handling of uneven distribution
+              const baseRowsPerColumn = Math.floor(guests.length / columns);
+              const extraGuests = guests.length % columns;
+              
               const arrangedGuests = [];
 
-              for (let row = 0; row < rows; row++) {
+              // For column-first: iterate row by row, then column by column
+              const maxRows = baseRowsPerColumn + (extraGuests > 0 ? 1 : 0);
+              
+              for (let row = 0; row < maxRows; row++) {
                 for (let col = 0; col < columns; col++) {
-                  const index = col * rows + row;
-                  if (index < guests.length) {
-                    arrangedGuests.push(guests[index]);
+                  // Calculate how many rows this column should have
+                  const rowsInThisColumn = col < extraGuests ? baseRowsPerColumn + 1 : baseRowsPerColumn;
+                  
+                  // Only add guest if this row exists in this column
+                  if (row < rowsInThisColumn) {
+                    const index = col * baseRowsPerColumn + (col < extraGuests ? col : extraGuests) + row;
+                    if (index < guests.length) {
+                      arrangedGuests.push(guests[index]);
+                    }
                   }
                 }
               }
