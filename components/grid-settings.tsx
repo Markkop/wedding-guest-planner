@@ -14,10 +14,14 @@ interface GridSettingsProps {
   dragFamilyTogether: boolean;
   showFamilyBgColor: boolean;
   showColorPicker: boolean;
+  showDeleteButton: boolean;
+  showPlusOneButton: boolean;
   onDragPlusOneChange: (checked: boolean) => void;
   onDragFamilyTogetherChange: (checked: boolean) => void;
   onShowFamilyBgColorChange: (checked: boolean) => void;
   onShowColorPickerChange: (checked: boolean) => void;
+  onShowDeleteButtonChange: (checked: boolean) => void;
+  onShowPlusOneButtonChange: (checked: boolean) => void;
 }
 
 export function GridSettings({
@@ -25,10 +29,14 @@ export function GridSettings({
   dragFamilyTogether,
   showFamilyBgColor,
   showColorPicker,
+  showDeleteButton,
+  showPlusOneButton,
   onDragPlusOneChange,
   onDragFamilyTogetherChange,
   onShowFamilyBgColorChange,
   onShowColorPickerChange,
+  onShowDeleteButtonChange,
+  onShowPlusOneButtonChange,
 }: GridSettingsProps) {
   return (
     <DropdownMenu>
@@ -75,6 +83,24 @@ export function GridSettings({
                 }
               />
               <span className="text-sm">Show Color Picker</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <Checkbox
+                checked={showDeleteButton}
+                onCheckedChange={(checked) =>
+                  onShowDeleteButtonChange(!!checked)
+                }
+              />
+              <span className="text-sm">Show Delete Button</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <Checkbox
+                checked={showPlusOneButton}
+                onCheckedChange={(checked) =>
+                  onShowPlusOneButtonChange(!!checked)
+                }
+              />
+              <span className="text-sm">Show +1 Button</span>
             </label>
           </div>
         </div>

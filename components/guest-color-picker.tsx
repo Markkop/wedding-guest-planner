@@ -19,7 +19,7 @@ import { getSuggestedColors, getContrastTextColor, pickRandomColor } from "@/lib
 import type { Guest } from "@/lib/types";
 
 interface GuestColorPickerProps {
-  currentColor?: string;
+  currentColor?: string | null;
   guestIndex: number;
   guests: Guest[];
   onColorChange: (color: string | null) => void;

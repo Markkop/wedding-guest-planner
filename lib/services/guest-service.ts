@@ -44,7 +44,7 @@ export class GuestService {
       food_preferences?: string[];
       confirmation_stage?: string;
       custom_fields?: Record<string, unknown>;
-      family_color?: string;
+      family_color?: string | null;
       target_position?: number;
     }
   ) {
@@ -141,7 +141,7 @@ export class GuestService {
       food_preferences: string[];
       confirmation_stage: string;
       custom_fields: Record<string, unknown>;
-      family_color: string;
+      family_color: string | null;
     }>
   ) {
     const user = await safeRequireUser();

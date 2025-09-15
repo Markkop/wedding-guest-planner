@@ -10,7 +10,7 @@ const updateGuestSchema = z.object({
   food_preferences: z.array(z.string()).optional(),
   confirmation_stage: z.string().optional(),
   custom_fields: z.record(z.any()).optional(),
-  family_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color').optional(),
+  family_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color').nullable().optional(),
 });
 
 export async function PATCH(
@@ -27,7 +27,8 @@ export async function PATCH(
     return NextResponse.json({ guest });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
+      const errorMessage = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
     }
 
     if (error instanceof Error) {

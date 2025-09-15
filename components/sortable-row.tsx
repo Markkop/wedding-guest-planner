@@ -125,7 +125,7 @@ export function SortableRow({
   };
 
   const handleColorChange = (color: string | null) => {
-    onUpdate(guest.id, { family_color: color || undefined });
+    onUpdate(guest.id, { family_color: color });
   };
 
   const toggleCategory = (categoryId: string) => {

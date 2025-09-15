@@ -10,6 +10,14 @@ import { useGuests } from "@/lib/collaborative-guest-context";
 import { cn } from "@/lib/utils";
 import { GuestColorPicker } from "@/components/guest-color-picker";
 import { GridSettings } from "@/components/grid-settings";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Trash2 } from "lucide-react";
 import type { Guest, Organization } from "@/lib/types";
 
 function useResponsiveColumns() {
@@ -43,12 +51,16 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
     loadGuests,
     reorderGuests,
     updateGuest,
+    deleteGuest,
+    cloneGuest,
     setOrganization,
   } = useGuests();
   const [dragPlusOne, setDragPlusOne] = useState(true);
   const [dragFamilyTogether, setDragFamilyTogether] = useState(true);
   const [showFamilyBgColor, setShowFamilyBgColor] = useState(true);
   const [showColorPicker, setShowColorPicker] = useState(true);
+  const [showDeleteButton, setShowDeleteButton] = useState(false);
+  const [showPlusOneButton, setShowPlusOneButton] = useState(false);
   const columns = useResponsiveColumns();
 
   useEffect(() => {
@@ -74,7 +86,15 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
   }
 
   const handleColorChange = (guestId: string, color: string | null) => {
-    updateGuest(guestId, { family_color: color || undefined });
+    updateGuest(guestId, { family_color: color });
+  };
+
+  const handleDeleteGuest = async (guestId: string) => {
+    await deleteGuest(guestId);
+  };
+
+  const handleCloneGuest = async (guest: Guest) => {
+    await cloneGuest(guest);
   };
 
   return (
@@ -87,10 +107,14 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
             dragFamilyTogether={dragFamilyTogether}
             showFamilyBgColor={showFamilyBgColor}
             showColorPicker={showColorPicker}
+            showDeleteButton={showDeleteButton}
+            showPlusOneButton={showPlusOneButton}
             onDragPlusOneChange={setDragPlusOne}
             onDragFamilyTogetherChange={setDragFamilyTogether}
             onShowFamilyBgColorChange={setShowFamilyBgColor}
             onShowColorPickerChange={setShowColorPicker}
+            onShowDeleteButtonChange={setShowDeleteButton}
+            onShowPlusOneButtonChange={setShowPlusOneButton}
           />
           <div className="text-sm text-gray-500 whitespace-nowrap">
             {guests.length} guests
@@ -160,9 +184,13 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
                     guests={guests}
                     onReorder={handleReorder}
                     onColorChange={handleColorChange}
+                    onDelete={handleDeleteGuest}
+                    onClone={handleCloneGuest}
                     organization={organization}
                     showFamilyBgColor={showFamilyBgColor}
                     showColorPicker={showColorPicker}
+                    showDeleteButton={showDeleteButton}
+                    showPlusOneButton={showPlusOneButton}
                   />
                 );
               });
@@ -181,9 +209,13 @@ interface GuestGridItemProps {
   guests: Guest[];
   onReorder: (fromIndex: number, toIndex: number) => void;
   onColorChange: (guestId: string, color: string | null) => void;
+  onDelete: (guestId: string) => void;
+  onClone: (guest: Guest) => void;
   organization: Organization;
   showFamilyBgColor: boolean;
   showColorPicker: boolean;
+  showDeleteButton: boolean;
+  showPlusOneButton: boolean;
 }
 
 function GuestGridItem({
@@ -193,9 +225,13 @@ function GuestGridItem({
   guests,
   onReorder,
   onColorChange,
+  onDelete,
+  onClone,
   organization,
   showFamilyBgColor,
   showColorPicker,
+  showDeleteButton,
+  showPlusOneButton,
 }: GuestGridItemProps) {
   const [isDraggedOver, setIsDraggedOver] = useState(false);
   const [isBeingDragged, setIsBeingDragged] = useState(false);
@@ -358,6 +394,54 @@ function GuestGridItem({
               disabled={isDeclined}
               size="sm"
             />
+          )}
+
+          {/* +1 button */}
+          {showPlusOneButton && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    onClick={() => onClone(guest)}
+                    className={cn(
+                      "h-6 px-1 cursor-pointer text-xs font-semibold",
+                      isDeclined && "opacity-50 text-gray-400 hover:text-gray-500"
+                    )}
+                  >
+                    +1
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add +1</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* Delete button */}
+          {showDeleteButton && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => onDelete(guest.id)}
+                    className={cn(
+                      "h-6 w-6 cursor-pointer",
+                      isDeclined
+                        ? "text-gray-400 hover:text-gray-500"
+                        : "text-red-600 hover:text-red-700"
+                    )}
+                  >
+                    <Trash2 className={cn(
+                      "h-3 w-3",
+                      isDeclined && "text-gray-400"
+                    )} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* Drag indicator */}

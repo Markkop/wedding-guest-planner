@@ -20,7 +20,8 @@ export async function POST(
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
+      const errorMessage = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
     }
     
     if (error instanceof Error) {
