@@ -179,7 +179,10 @@ export class GuestService {
         food_preferences = COALESCE(${data.food_preferences ? JSON.stringify(data.food_preferences) : null}, food_preferences),
         confirmation_stage = COALESCE(${data.confirmation_stage}, confirmation_stage),
         custom_fields = COALESCE(${data.custom_fields ? JSON.stringify(data.custom_fields) : null}, custom_fields),
-        family_color = COALESCE(${data.family_color}, family_color),
+        family_color = CASE 
+          WHEN ${data.family_color !== undefined} THEN ${data.family_color}
+          ELSE family_color
+        END,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${guestId}
       RETURNING *
