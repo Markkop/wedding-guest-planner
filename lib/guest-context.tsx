@@ -297,7 +297,9 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
       );
       const data = await response.json();
       if (response.ok) {
-        setGuests(data.guests || []);
+        // Ensure guests are always sorted by display_order
+        const sortedGuests = (data.guests || []).sort((a: Guest, b: Guest) => a.display_order - b.display_order);
+        setGuests(sortedGuests);
       } else {
         toast.error(data.error || "Failed to fetch guests");
       }
