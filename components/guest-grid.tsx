@@ -7,9 +7,9 @@ import {
   dropTargetForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { useGuests } from "@/lib/collaborative-guest-context";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { GuestColorPicker } from "@/components/guest-color-picker";
+import { GridSettings } from "@/components/grid-settings";
 import type { Guest, Organization } from "@/lib/types";
 
 function useResponsiveColumns() {
@@ -47,6 +47,8 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
   } = useGuests();
   const [dragPlusOne, setDragPlusOne] = useState(true);
   const [dragFamilyTogether, setDragFamilyTogether] = useState(true);
+  const [showFamilyBgColor, setShowFamilyBgColor] = useState(true);
+  const [showColorPicker, setShowColorPicker] = useState(true);
   const columns = useResponsiveColumns();
 
   useEffect(() => {
@@ -79,24 +81,20 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
     <div className="relative rounded-lg bg-white shadow flex flex-col">
       <div className="flex items-center justify-between border-b p-4">
         <h2 className="text-lg font-semibold">Guest Grid</h2>
-        <div className="flex-1 mx-4 flex gap-4 justify-center">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700 select-none">
-            <Checkbox
-              checked={dragPlusOne}
-              onCheckedChange={(v) => setDragPlusOne(!!v)}
-            />
-            Drag +1 Together
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700 select-none">
-            <Checkbox
-              checked={dragFamilyTogether}
-              onCheckedChange={(v) => setDragFamilyTogether(!!v)}
-            />
-            Drag Family Together
-          </label>
-        </div>
-        <div className="text-sm text-gray-500 whitespace-nowrap">
-          {guests.length} guests
+        <div className="flex items-center gap-2">
+          <GridSettings
+            dragPlusOne={dragPlusOne}
+            dragFamilyTogether={dragFamilyTogether}
+            showFamilyBgColor={showFamilyBgColor}
+            showColorPicker={showColorPicker}
+            onDragPlusOneChange={setDragPlusOne}
+            onDragFamilyTogetherChange={setDragFamilyTogether}
+            onShowFamilyBgColorChange={setShowFamilyBgColor}
+            onShowColorPickerChange={setShowColorPicker}
+          />
+          <div className="text-sm text-gray-500 whitespace-nowrap">
+            {guests.length} guests
+          </div>
         </div>
       </div>
 
@@ -163,6 +161,8 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
                     onReorder={handleReorder}
                     onColorChange={handleColorChange}
                     organization={organization}
+                    showFamilyBgColor={showFamilyBgColor}
+                    showColorPicker={showColorPicker}
                   />
                 );
               });
@@ -182,6 +182,8 @@ interface GuestGridItemProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
   onColorChange: (guestId: string, color: string | null) => void;
   organization: Organization;
+  showFamilyBgColor: boolean;
+  showColorPicker: boolean;
 }
 
 function GuestGridItem({
@@ -192,6 +194,8 @@ function GuestGridItem({
   onReorder,
   onColorChange,
   organization,
+  showFamilyBgColor,
+  showColorPicker,
 }: GuestGridItemProps) {
   const [isDraggedOver, setIsDraggedOver] = useState(false);
   const [isBeingDragged, setIsBeingDragged] = useState(false);
@@ -242,7 +246,7 @@ function GuestGridItem({
 
   // Get the faded background color for the guest item
   const getFadedBackgroundColor = () => {
-    if (guest.family_color && !isDraggedOver && !isDeclined) {
+    if (guest.family_color && !isDraggedOver && !isDeclined && showFamilyBgColor) {
       return hexToRgba(guest.family_color, 0.15); // Very faded at 15% opacity
     }
     return undefined;
@@ -345,14 +349,16 @@ function GuestGridItem({
         {/* Controls group */}
         <div className="flex items-center space-x-0.5 flex-shrink-0">
           {/* Family color picker */}
-          <GuestColorPicker
-            currentColor={guest.family_color}
-            guestIndex={guestIndex}
-            guests={guests}
-            onColorChange={(color) => onColorChange(guest.id, color)}
-            disabled={isDeclined}
-            size="sm"
-          />
+          {showColorPicker && (
+            <GuestColorPicker
+              currentColor={guest.family_color}
+              guestIndex={guestIndex}
+              guests={guests}
+              onColorChange={(color) => onColorChange(guest.id, color)}
+              disabled={isDeclined}
+              size="sm"
+            />
+          )}
 
           {/* Drag indicator */}
           <div className="opacity-30">
