@@ -158,6 +158,38 @@ export function getContrastTextColor(backgroundColor: string): string {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
+// Get all colors currently used by guests
+export function getUsedColors(guests: Guest[]): Set<string> {
+  const usedColors = new Set<string>();
+  for (const guest of guests) {
+    if (guest.family_color) {
+      usedColors.add(guest.family_color);
+    }
+  }
+  return usedColors;
+}
+
+// Pick a random color prioritizing unused colors
+export function pickRandomColor(
+  guests: Guest[], 
+  palette: string[] = generateColorPalette()
+): string {
+  const usedColors = getUsedColors(guests);
+  
+  // Get unused colors first
+  const unusedColors = palette.filter(color => !usedColors.has(color));
+  
+  // If we have unused colors, pick randomly from them
+  if (unusedColors.length > 0) {
+    const randomIndex = Math.floor(Math.random() * unusedColors.length);
+    return unusedColors[randomIndex];
+  }
+  
+  // If all colors are used, pick randomly from the entire palette
+  const randomIndex = Math.floor(Math.random() * palette.length);
+  return palette[randomIndex];
+}
+
 // Cache for the color palette to avoid regenerating
 let cachedColorPalette: string[] | null = null;
 

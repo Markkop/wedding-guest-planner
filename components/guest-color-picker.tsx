@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { getSuggestedColors, getContrastTextColor } from "@/lib/utils/colors";
+import { getSuggestedColors, getContrastTextColor, pickRandomColor } from "@/lib/utils/colors";
 import type { Guest } from "@/lib/types";
 
 interface GuestColorPickerProps {
@@ -56,6 +56,12 @@ export function GuestColorPicker({
 
   const handleClearColor = () => {
     onColorChange(null);
+    setIsOpen(false);
+  };
+
+  const handleRandomColor = () => {
+    const randomColor = pickRandomColor(guests);
+    onColorChange(randomColor);
     setIsOpen(false);
   };
 
@@ -107,6 +113,15 @@ export function GuestColorPicker({
 
                 <ScrollArea className="h-48">
                   <div className="grid grid-cols-8 gap-2 p-1">
+                    {/* Random color option as first choice */}
+                    <button
+                      onClick={handleRandomColor}
+                      className="w-8 h-8 rounded-full border-2 border-dashed border-gray-400 hover:border-gray-600 transition-all hover:scale-110 focus:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+                      title="Pick random color (prioritizes unused colors)"
+                    >
+                      <span className="text-gray-600 font-bold text-sm">?</span>
+                    </button>
+
                     {suggestedColors.map((color, index) => {
                       const isSelected = color === currentColor;
                       const textColor = getContrastTextColor(color);
@@ -139,8 +154,7 @@ export function GuestColorPicker({
                 </ScrollArea>
 
                 <div className="text-xs text-gray-500">
-                  Used colors shown first (closest guests first), then remaining
-                  colors
+                  Random option prioritizes unused colors. Used colors shown first (closest guests first), then remaining colors.
                 </div>
               </div>
             </PopoverContent>
