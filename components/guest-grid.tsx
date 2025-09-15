@@ -230,6 +230,24 @@ function GuestGridItem({
     return brightness > 128 ? "#1F2937" : "#FFFFFF"; // gray-800 or white
   };
 
+  // Convert hex color to RGBA with opacity
+  const hexToRgba = (hex: string, opacity: number) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return hex;
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  // Get the faded background color for the guest item
+  const getFadedBackgroundColor = () => {
+    if (guest.family_color && !isDraggedOver && !isDeclined) {
+      return hexToRgba(guest.family_color, 0.15); // Very faded at 15% opacity
+    }
+    return undefined;
+  };
+
   useEffect(() => {
     const itemElement = itemRef.current;
     if (!itemElement) return;
@@ -297,8 +315,16 @@ function GuestGridItem({
         isDeclined && "bg-gray-50 opacity-60 border-gray-300",
         !isDraggedOver &&
           !isDeclined &&
-          "bg-white border-gray-200 hover:border-gray-300"
+          !guest.family_color &&
+          "bg-white border-gray-200 hover:border-gray-300",
+        !isDraggedOver &&
+          !isDeclined &&
+          guest.family_color &&
+          "border-gray-200 hover:border-gray-300"
       )}
+      style={{
+        backgroundColor: getFadedBackgroundColor(),
+      }}
     >
       <div className="flex items-center justify-between space-x-0.5">
         <div className="flex items-center space-x-0.5 flex-1 min-w-0">
