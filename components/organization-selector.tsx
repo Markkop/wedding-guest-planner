@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import type { Organization, EventTypePreset } from '@/lib/types';
 import { LoadingContent, InlineSpinner } from '@/components/ui/loading-spinner';
+import { useUser } from "@stackframe/stack";
 
 const createOrgSchema = z.object({
   name: z.string().min(1, 'Organization name is required'),
@@ -31,11 +32,13 @@ interface OrganizationSelectorProps {
 }
 
 export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelectorProps) {
+  const user = useUser();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [eventPresets, setEventPresets] = useState<EventTypePreset[]>([]);
   const [createLoading, setCreateLoading] = useState(false);
   const [joinLoading, setJoinLoading] = useState(false);
   const [fetchingOrgs, setFetchingOrgs] = useState(true);
+  const [debugLoading, setDebugLoading] = useState(false);
 
   const createForm = useForm<CreateOrgForm>({
     resolver: zodResolver(createOrgSchema),
@@ -130,6 +133,122 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
     }
   }
 
+  async function debugTryDashboard() {
+    setDebugLoading(true);
+    console.group('🔍 DEBUG: Try Dashboard');
+    
+    try {
+      // Step 1: Log environment info
+      console.log('📊 Environment Info:', {
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV
+      });
+
+      // Step 2: Log current user info
+      console.log('👤 Current User:', {
+        user: user ? {
+          id: user.id,
+          email: user.primaryEmail,
+          displayName: user.displayName,
+          isSignedIn: user.isSignedIn
+        } : 'No user',
+        stackAuth: {
+          projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
+          hasPublishableKey: !!process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY
+        }
+      });
+
+      // Step 3: Test API connectivity
+      console.log('🌐 Testing API connectivity...');
+      
+      // Test organizations endpoint
+      const orgResponse = await fetch('/api/organizations', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('📡 Organizations API Response:', {
+        status: orgResponse.status,
+        statusText: orgResponse.statusText,
+        headers: Object.fromEntries(orgResponse.headers.entries())
+      });
+
+      const orgData = await orgResponse.json();
+      console.log('📄 Organizations Data:', orgData);
+
+      // Step 4: Test event presets endpoint
+      const presetsResponse = await fetch('/api/event-presets');
+      const presetsData = await presetsResponse.json();
+      console.log('🎭 Event Presets:', {
+        status: presetsResponse.status,
+        data: presetsData
+      });
+
+      // Step 5: Check current organizations state
+      console.log('🏢 Current Organizations State:', {
+        organizations: organizations,
+        organizationsLength: organizations.length,
+        fetchingOrgs: fetchingOrgs
+      });
+
+      // Step 6: Try to force-select an organization if any exist
+      if (organizations.length > 0) {
+        const firstOrg = organizations[0];
+        console.log('🚀 Force selecting first organization:', firstOrg);
+        
+        setTimeout(() => {
+          console.log('✅ Redirecting to dashboard with organization:', firstOrg.id);
+          onOrganizationSelect(firstOrg);
+        }, 2000);
+        
+        toast.success(`Debug: Found ${organizations.length} organizations. Redirecting to dashboard in 2 seconds...`);
+      } else {
+        // Step 7: Try to fetch organizations again
+        console.log('🔄 No organizations found, retrying fetch...');
+        
+        const retryResponse = await fetch('/api/organizations', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        const retryData = await retryResponse.json();
+        console.log('🔄 Retry Organizations Response:', {
+          status: retryResponse.status,
+          data: retryData
+        });
+
+        if (retryData.organizations && retryData.organizations.length > 0) {
+          console.log('🎉 Found organizations on retry!');
+          setOrganizations(retryData.organizations);
+          
+          setTimeout(() => {
+            console.log('✅ Redirecting to dashboard with first org from retry');
+            onOrganizationSelect(retryData.organizations[0]);
+          }, 2000);
+          
+          toast.success(`Debug: Found ${retryData.organizations.length} organizations on retry. Redirecting in 2 seconds...`);
+        } else {
+          console.log('❌ Still no organizations found');
+          toast.error('Debug: No organizations found even after retry. Check console for details.');
+        }
+      }
+
+    } catch (error) {
+      console.error('💥 Debug Error:', error);
+      toast.error('Debug failed. Check console for details.');
+    } finally {
+      console.groupEnd();
+      setDebugLoading(false);
+    }
+  }
+
   const selectedEventType = createForm.watch('event_type');
   const selectedPreset = eventPresets.find(preset => preset.name === selectedEventType);
 
@@ -170,6 +289,31 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
               </div>
             </div>
           ) : null}
+
+          {/* Debug Button */}
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <h3 className="text-sm font-medium text-yellow-800 mb-2">🔧 Debug Mode</h3>
+            <p className="text-xs text-yellow-700 mb-3">
+              If you should have organizations but don't see them, click this button to debug the issue.
+              Check your browser console for detailed logs.
+            </p>
+            <Button 
+              onClick={debugTryDashboard} 
+              disabled={debugLoading}
+              variant="outline"
+              size="sm"
+              className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+            >
+              {debugLoading ? (
+                <>
+                  <InlineSpinner size="sm" className="mr-2" />
+                  Debugging... Check Console
+                </>
+              ) : (
+                '🔍 Debug & Try Dashboard'
+              )}
+            </Button>
+          </div>
 
           <Tabs defaultValue="create">
             <TabsList className="grid w-full grid-cols-2">
