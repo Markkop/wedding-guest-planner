@@ -9,6 +9,7 @@ import {
 import { useGuests } from "@/lib/collaborative-guest-context";
 import { cn } from "@/lib/utils";
 import { GuestColorPicker } from "@/components/guest-color-picker";
+import { GuestConfirmationCircle } from "@/components/guest-confirmation-circle";
 import { GridSettings } from "@/components/grid-settings";
 import { Button } from "@/components/ui/button";
 import {
@@ -279,50 +280,6 @@ function GuestGridItem({
     onUpdate(guest.id, { confirmation_stage: sortedStages[nextIndex].id });
   };
 
-  const getConfirmationStageInfo = (stageId: string) => {
-    const stage = config.confirmationStages?.stages?.find(
-      (s) => s.id === stageId
-    );
-    if (!stage) return { label: stageId, order: 0 };
-    return stage;
-  };
-
-  const getConfirmationStageButtonStyle = (stageId: string) => {
-    switch (stageId) {
-      case "listed":
-        return {
-          variant: "outline" as const,
-          className: "border-gray-400 text-gray-600 hover:bg-gray-50",
-        };
-      case "invited":
-        return {
-          variant: "default" as const,
-          className: "bg-yellow-500 hover:bg-yellow-600 text-white",
-        };
-      case "confirmed_1":
-      case "confirmed_2":
-      case "confirmed_3":
-        return {
-          variant: "default" as const,
-          className:
-            stageId === "confirmed_1"
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : stageId === "confirmed_2"
-              ? "bg-green-600 hover:bg-green-700 text-white"
-              : "bg-green-700 hover:bg-green-800 text-white",
-        };
-      case "declined":
-        return {
-          variant: "outline" as const,
-          className: "border-gray-400 text-gray-500 hover:bg-gray-50",
-        };
-      default:
-        return {
-          variant: "secondary" as const,
-          className: "",
-        };
-    }
-  };
 
   // Get the category color for the number circle
   const getCategoryColor = () => {
@@ -469,6 +426,15 @@ function GuestGridItem({
 
         {/* Controls group */}
         <div className="flex items-center space-x-0.5 flex-shrink-0">
+          {/* Confirmation circle indicator */}
+          {showConfirmationButton && organization.configuration?.confirmationStages?.enabled && (
+            <GuestConfirmationCircle
+              guest={guest}
+              organization={organization}
+              onCycle={cycleConfirmationStage}
+              size="sm"
+            />
+          )}
           {/* Family color picker */}
           {showColorPicker && (
             <GuestColorPicker
@@ -481,28 +447,6 @@ function GuestGridItem({
             />
           )}
 
-          {/* Confirmation button */}
-          {showConfirmationButton && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant={getConfirmationStageButtonStyle(guest.confirmation_stage).variant}
-                    onClick={cycleConfirmationStage}
-                    className={cn(
-                      "h-6 px-2 text-xs font-semibold cursor-pointer min-w-[3rem]",
-                      getConfirmationStageButtonStyle(guest.confirmation_stage).className,
-                      isDeclined && "opacity-50"
-                    )}
-                  >
-                    {getConfirmationStageInfo(guest.confirmation_stage).label}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Cycle confirmation stage</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
 
           {/* +1 button */}
           {showPlusOneButton && (
