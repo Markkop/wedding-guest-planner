@@ -1,6 +1,5 @@
 import { nanoid } from 'nanoid';
 import { sql } from '@/lib/db';
-import { safeRequireUser, safeGetUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
 import { EventConfigService } from './event-config-service';
 import type { EventConfiguration } from '@/lib/types';
@@ -15,14 +14,15 @@ export class OrganizationService {
     eventType: string = 'wedding',
     customConfig?: Partial<EventConfiguration>
   ) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
 
     const inviteCode = this.generateInviteCode();
@@ -64,14 +64,15 @@ export class OrganizationService {
   }
 
   static async joinOrganization(inviteCode: string) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
 
     const orgResult = await sql`
@@ -102,29 +103,98 @@ export class OrganizationService {
   }
 
   static async getUserOrganizations() {
-    const user = await safeGetUser();
-    if (!user) return [];
+    try {
+      const authResult = await AuthService.getCurrentUser();
+      if (!authResult.userId) return [];
 
-    const result = await sql`
-      SELECT o.*, om.role
-      FROM organizations o
-      JOIN organization_members om ON o.id = om.organization_id
-      WHERE om.user_id = ${user.id}
-      ORDER BY o.created_at DESC
-    `;
+      // Sync Clerk user to local database first (this will migrate if needed)
+      const clerkUser = await AuthService.getCurrentUserFull();
+      if (!clerkUser) {
+        console.error('No Clerk user found');
+        return [];
+      }
 
-    return result;
+      try {
+        await AuthService.syncUserToDatabase({
+          id: clerkUser.id,
+          emailAddresses: clerkUser.emailAddresses,
+          firstName: clerkUser.firstName,
+          lastName: clerkUser.lastName,
+          imageUrl: clerkUser.imageUrl
+        });
+      } catch (syncError) {
+        console.error('Error syncing user to database:', syncError);
+        // Continue with lookup even if sync fails
+      }
+
+      // Try ID-based lookup first (backward compatibility)
+      // After sync, the Clerk ID should be in the database (either existing or migrated)
+      let userId = authResult.userId;
+      let result = await sql`
+        SELECT o.*, om.role
+        FROM organizations o
+        JOIN organization_members om ON o.id = om.organization_id
+        WHERE om.user_id = ${userId}
+        ORDER BY o.created_at DESC
+      `;
+
+      // If no results, try email-based fallback
+      if (result.length === 0) {
+        try {
+          const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+          const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
+          if (effectiveUserId && effectiveUserId !== userId) {
+            userId = effectiveUserId;
+            result = await sql`
+              SELECT o.*, om.role
+              FROM organizations o
+              JOIN organization_members om ON o.id = om.organization_id
+              WHERE om.user_id = ${userId}
+              ORDER BY o.created_at DESC
+            `;
+          }
+        } catch (fallbackError) {
+          console.error('Error in email fallback:', fallbackError);
+          // Return empty array if fallback fails
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in getUserOrganizations:', error);
+      throw error;
+    }
   }
 
   static async getOrganization(organizationId: string) {
-    const user = await safeRequireUser();
+    const authResult = await AuthService.requireUser();
 
-    const result = await sql`
+    // Try ID-based lookup first (backward compatibility)
+    let userId = authResult.userId;
+    let result = await sql`
       SELECT o.*, om.role
       FROM organizations o
       JOIN organization_members om ON o.id = om.organization_id
-      WHERE o.id = ${organizationId} AND om.user_id = ${user.id}
+      WHERE o.id = ${organizationId} AND om.user_id = ${userId}
     `;
+
+    // If no results and we have Clerk user, try email-based fallback
+    if (result.length === 0) {
+      const clerkUser = await AuthService.getCurrentUserFull();
+      if (clerkUser) {
+        const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+        const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
+        if (effectiveUserId && effectiveUserId !== userId) {
+          userId = effectiveUserId;
+          result = await sql`
+            SELECT o.*, om.role
+            FROM organizations o
+            JOIN organization_members om ON o.id = om.organization_id
+            WHERE o.id = ${organizationId} AND om.user_id = ${userId}
+          `;
+        }
+      }
+    }
 
     if (result.length === 0) {
       throw new Error('Organization not found or access denied');
@@ -141,12 +211,30 @@ export class OrganizationService {
       configuration?: EventConfiguration;
     }
   ) {
-    const user = await safeRequireUser();
+    const authResult = await AuthService.requireUser();
 
-    const memberCheck = await sql`
+    // Try ID-based lookup first (backward compatibility)
+    let userId = authResult.userId;
+    let memberCheck = await sql`
       SELECT role FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${userId}
     `;
+
+    // If no results and we have Clerk user, try email-based fallback
+    if (memberCheck.length === 0) {
+      const clerkUser = await AuthService.getCurrentUserFull();
+      if (clerkUser) {
+        const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+        const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
+        if (effectiveUserId && effectiveUserId !== userId) {
+          userId = effectiveUserId;
+          memberCheck = await sql`
+            SELECT role FROM organization_members
+            WHERE organization_id = ${organizationId} AND user_id = ${userId}
+          `;
+        }
+      }
+    }
 
     if (memberCheck.length === 0 || memberCheck[0].role !== 'admin') {
       throw new Error('Only admins can update organization settings');
@@ -171,12 +259,30 @@ export class OrganizationService {
   }
 
   static async getOrganizationMembers(organizationId: string) {
-    const user = await safeRequireUser();
+    const authResult = await AuthService.requireUser();
 
-    const memberCheck = await sql`
+    // Try ID-based lookup first (backward compatibility)
+    let userId = authResult.userId;
+    let memberCheck = await sql`
       SELECT * FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${userId}
     `;
+
+    // If no results and we have Clerk user, try email-based fallback
+    if (memberCheck.length === 0) {
+      const clerkUser = await AuthService.getCurrentUserFull();
+      if (clerkUser) {
+        const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+        const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
+        if (effectiveUserId && effectiveUserId !== userId) {
+          userId = effectiveUserId;
+          memberCheck = await sql`
+            SELECT * FROM organization_members
+            WHERE organization_id = ${organizationId} AND user_id = ${userId}
+          `;
+        }
+      }
+    }
 
     if (memberCheck.length === 0) {
       throw new Error('Access denied');
@@ -206,15 +312,16 @@ export class OrganizationService {
   }
 
   static async updateActiveSession(organizationId: string) {
-    const user = await safeGetUser();
+    const user = await AuthService.getCurrentUserFull();
     if (!user) return;
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
 
     await sql`

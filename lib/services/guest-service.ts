@@ -1,24 +1,45 @@
 import { sql } from '@/lib/db';
-import { safeRequireUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
 import type { Guest } from '@/lib/db';
 import type { EventConfiguration } from '@/lib/types';
 
 export class GuestService {
-  static async getGuests(organizationId: string) {
-    const user = await safeRequireUser();
+  /**
+   * Get effective user ID with email fallback for membership checks
+   */
+  private static async getEffectiveUserIdForCheck(userId: string, emails: string[]): Promise<string> {
+    // Try ID-based lookup first
+    let memberCheck = await sql`
+      SELECT user_id FROM organization_members WHERE user_id = ${userId} LIMIT 1
+    `;
+    if (memberCheck.length > 0) {
+      return userId;
+    }
 
-    // Sync Stack Auth user to local database first
+    // Fall back to email-based lookup
+    const effectiveUserId = await AuthService.getEffectiveUserId(userId, emails);
+    return effectiveUserId || userId;
+  }
+
+  static async getGuests(organizationId: string) {
+    const user = await AuthService.requireUserFull();
+
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${effectiveUserId}
     `;
 
     if (memberCheck.length === 0) {
@@ -48,19 +69,24 @@ export class GuestService {
       target_position?: number;
     }
   ) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${effectiveUserId}
     `;
 
     if (memberCheck.length === 0) {
@@ -123,7 +149,7 @@ export class GuestService {
         ${data.custom_fields ? JSON.stringify(data.custom_fields) : '{}'},
         ${data.family_color || null},
         ${nextOrder},
-        ${user.id}
+        ${effectiveUserId}
       )
       RETURNING *
     `;
@@ -144,21 +170,26 @@ export class GuestService {
       family_color: string | null;
     }>
   ) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const guestCheck = await sql`
       SELECT g.*, om.user_id
       FROM guests g
       JOIN organization_members om ON g.organization_id = om.organization_id
-      WHERE g.id = ${guestId} AND om.user_id = ${user.id}
+      WHERE g.id = ${guestId} AND om.user_id = ${effectiveUserId}
     `;
 
     if (guestCheck.length === 0) {
@@ -191,21 +222,26 @@ export class GuestService {
   }
 
   static async deleteGuest(guestId: string) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const guestCheck = await sql`
       SELECT g.*, om.user_id
       FROM guests g
       JOIN organization_members om ON g.organization_id = om.organization_id
-      WHERE g.id = ${guestId} AND om.user_id = ${user.id}
+      WHERE g.id = ${guestId} AND om.user_id = ${effectiveUserId}
     `;
 
     if (guestCheck.length === 0) {
@@ -218,19 +254,24 @@ export class GuestService {
   }
 
   static async reorderGuests(organizationId: string, guestIds: string[]) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${effectiveUserId}
     `;
 
     if (memberCheck.length === 0) {
@@ -249,21 +290,26 @@ export class GuestService {
   }
 
   static async moveGuestToEnd(guestId: string) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const guestCheck = await sql`
       SELECT g.*, om.user_id
       FROM guests g
       JOIN organization_members om ON g.organization_id = om.organization_id
-      WHERE g.id = ${guestId} AND om.user_id = ${user.id}
+      WHERE g.id = ${guestId} AND om.user_id = ${effectiveUserId}
     `;
 
     if (guestCheck.length === 0) {
@@ -290,14 +336,15 @@ export class GuestService {
   }
 
   static async moveGuestToBeginning(guestId: string) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
 
     const guestCheck = await sql`
@@ -331,14 +378,15 @@ export class GuestService {
   }
 
   static async moveGuestToPosition(guestId: string, targetPosition: number) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
 
     const guestCheck = await sql`
@@ -406,22 +454,27 @@ export class GuestService {
   }
 
   static async swapGuestPositions(guestId1: string, guestId2: string) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     // Get both guests and verify access
     const guestsCheck = await sql`
       SELECT g.*, om.user_id
       FROM guests g
       JOIN organization_members om ON g.organization_id = om.organization_id
-      WHERE g.id IN (${guestId1}, ${guestId2}) AND om.user_id = ${user.id}
+      WHERE g.id IN (${guestId1}, ${guestId2}) AND om.user_id = ${effectiveUserId}
     `;
 
     if (guestsCheck.length !== 2) {
@@ -459,19 +512,24 @@ export class GuestService {
   }
 
   static async getGuestStatistics(organizationId: string) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${effectiveUserId}
     `;
 
     if (memberCheck.length === 0) {

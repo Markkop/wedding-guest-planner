@@ -29,7 +29,7 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 - **Styling**: Tailwind CSS v4 with PostCSS
 - **UI Components**: shadcn/ui (New York style), Lucide React icons
 - **Database**: Neon PostgreSQL (`@neondatabase/serverless`)
-- **Authentication**: Stack Auth (`@stackframe/stack`)
+- **Authentication**: Clerk (`@clerk/nextjs`)
 - **Drag & Drop**: `@atlaskit/pragmatic-drag-and-drop`
 - **AI Integration**: OpenAI SDK with AI SDK React hooks
   Note: when using ShadCn Cli, always use the `-y` and `-o` flags to avoid getting stuck asking you questions.
@@ -48,11 +48,11 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 
 ### Authentication Flow
 
-1. **Stack Auth Integration** (`lib/auth/`)
+1. **Clerk Integration** (`lib/auth/`)
 
-   - Client: `lib/auth/stack-client.ts` - `getStackClientApp()`
-   - Server: `lib/auth/stack-server.ts` - Stack server utilities
-   - Safe wrappers for auth operations with error handling
+   - Server: `lib/auth/auth-service.ts` - Auth service with Clerk integration
+   - Uses `auth()` and `currentUser()` from `@clerk/nextjs/server` for server-side auth
+   - Client: `useUser()` and `useClerk()` hooks from `@clerk/nextjs` for client-side auth
 
 2. **Organization Access**
    - Invite code system for joining organizations
@@ -112,9 +112,8 @@ Required in `.env.local`:
 
 ```
 DATABASE_URL                              # Neon PostgreSQL connection
-NEXT_PUBLIC_STACK_PROJECT_ID             # Stack Auth project ID
-NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY # Stack Auth public key
-STACK_SECRET_SERVER_KEY                   # Stack Auth server key (if needed)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY         # Clerk publishable key
+CLERK_SECRET_KEY                          # Clerk secret key
 ```
 
 ## Build Configuration

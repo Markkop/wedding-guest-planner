@@ -8,7 +8,7 @@ import React, {
   useRef,
   useEffect,
 } from "react";
-import { useUser } from "@stackframe/stack";
+import { useUser } from "@clerk/nextjs";
 import type { Guest } from "@/lib/types";
 
 interface OnlineUser {
@@ -84,7 +84,7 @@ export function CollaborationProvider({
   // Broadcast a guest update to all connected users
   const broadcastGuestUpdate = useCallback(
     async (update: Omit<GuestUpdate, "userId" | "userName" | "timestamp">) => {
-      if (!organizationId || !user) return;
+      if (!organizationId || !user?.id) return;
 
       try {
         await fetch(`/api/organizations/${organizationId}/broadcast`, {
@@ -103,7 +103,7 @@ export function CollaborationProvider({
         console.error("Failed to broadcast update:", error);
       }
     },
-    [organizationId, user]
+    [organizationId, user?.id, user?.displayName, user?.primaryEmail]
   );
 
   // Register callback for guest updates
@@ -116,6 +116,12 @@ export function CollaborationProvider({
     },
     []
   );
+
+  // Store user ID in a ref to avoid recreating callbacks
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    userIdRef.current = user?.id || null;
+  }, [user?.id]);
 
   // Handle incoming SSE messages
   const handleMessage = useCallback(
@@ -139,7 +145,7 @@ export function CollaborationProvider({
             break;
 
           case "user_connected":
-            if (data.user.id !== user?.id) {
+            if (data.user.id !== userIdRef.current) {
               setOnlineUsers((prev) => {
                 const exists = prev.some((u) => u.id === data.user.id);
                 if (!exists) {
@@ -165,7 +171,7 @@ export function CollaborationProvider({
           case "guest_moved":
           case "guests_swapped":
             // Don't process our own updates, unless they're AI-initiated
-            if (data.userId !== user?.id || data.isAI) {
+            if (data.userId !== userIdRef.current || data.isAI) {
               updateCallbacks.current.forEach((callback) => callback(data));
             }
             break;
@@ -181,16 +187,19 @@ export function CollaborationProvider({
         console.error("Error parsing SSE message:", error);
       }
     },
-    [user]
+    [] // No dependencies - uses ref instead
   );
 
   // Connect to SSE stream
   useEffect(() => {
-    if (!organizationId || !user) {
+    const userId = user?.id;
+    if (!organizationId || !userId) {
       console.log(
         "🔌 SSE connection skipped - missing organizationId or user:",
-        { organizationId, userId: user?.id }
+        { organizationId, userId }
       );
+      setIsConnected(false);
+      setOnlineUsers([]);
       return;
     }
 
@@ -254,7 +263,7 @@ export function CollaborationProvider({
           );
 
           reconnectTimeoutRef.current = setTimeout(() => {
-            if (organizationId && user) {
+            if (organizationId && userIdRef.current) {
               // Make sure we still need to connect
               connectSSE();
             }
@@ -286,7 +295,8 @@ export function CollaborationProvider({
       setOnlineUsers([]);
       reconnectAttemptRef.current = 0; // Reset reconnection attempts
     };
-  }, [organizationId, user, handleMessage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId, user?.id]); // handleMessage is stable (no dependencies)
 
   return (
     <CollaborationContext.Provider

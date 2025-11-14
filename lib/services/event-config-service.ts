@@ -1,5 +1,4 @@
 import { sql } from '@/lib/db';
-import { safeRequireUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
 import type { EventTypePreset, EventConfiguration } from '@/lib/types';
 
@@ -26,14 +25,15 @@ export class EventConfigService {
     description: string,
     configuration: EventConfiguration
   ) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
 
     const result = await sql`
@@ -50,20 +50,25 @@ export class EventConfigService {
     eventType: string,
     configuration: EventConfiguration
   ) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await AuthService.getEffectiveUserId(user.id, emails) || user.id;
 
     // Check if user is admin of the organization
     const memberCheck = await sql`
       SELECT role FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${effectiveUserId}
     `;
 
     if (memberCheck.length === 0 || memberCheck[0].role !== 'admin') {
@@ -84,19 +89,24 @@ export class EventConfigService {
   }
 
   static async getOrganizationConfiguration(organizationId: string) {
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName ?? undefined,
-      profileImageUrl: user.profileImageUrl ?? undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
+
+    // Get effective user ID with email fallback
+    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const effectiveUserId = await AuthService.getEffectiveUserId(user.id, emails) || user.id;
 
     const memberCheck = await sql`
       SELECT * FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${user.id}
+      WHERE organization_id = ${organizationId} AND user_id = ${effectiveUserId}
     `;
 
     if (memberCheck.length === 0) {

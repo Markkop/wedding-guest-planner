@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@stackframe/stack';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,7 +59,7 @@ export default function InvitePage({ params }: InvitePageProps) {
     const { code } = await params;
     if (!user) {
       // Redirect to sign up with invite code preserved
-      router.push(`/handler/sign-up?invite=${code}`);
+      router.push(`/signup?invite=${code}`);
       return;
     }
 
@@ -213,7 +213,7 @@ export default function InvitePage({ params }: InvitePageProps) {
                 className="p-0 h-auto"
                 onClick={async () => {
                   const { code } = await params;
-                  router.push(`/handler/sign-in?invite=${code}`);
+                  router.push(`/login?invite=${code}`);
                 }}
               >
                 Sign in instead

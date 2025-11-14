@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStackServerApp } from "@/lib/auth/safe-stack";
+import { auth } from "@clerk/nextjs/server";
 import { broadcastToOrganization } from "../stream/route";
 
 export async function POST(
@@ -7,8 +7,8 @@ export async function POST(
   { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const user = await getStackServerApp().getUser();
-    if (!user) {
+    const authResult = await auth();
+    if (!authResult.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

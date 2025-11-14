@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack';
+import { auth } from '@clerk/nextjs/server';
 import { Client } from 'pg';
 
 export async function POST(
@@ -9,8 +9,8 @@ export async function POST(
   let client: Client | null = null;
   
   try {
-    const user = await stackServerApp.getUser();
-    if (!user) {
+    const authResult = await auth();
+    if (!authResult.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -25,7 +25,7 @@ export async function POST(
     // Check if user is admin of this organization
     const memberResult = await client.query(
       'SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2',
-      [organizationId, user.id]
+      [organizationId, authResult.userId]
     );
 
     if (memberResult.rows.length === 0) {

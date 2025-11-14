@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack';
+import { auth } from '@clerk/nextjs/server';
 import { Client } from 'pg';
 
 export async function GET(
@@ -32,11 +32,11 @@ export async function GET(
     // Check if user is authenticated and already a member
     let alreadyMember = false;
     try {
-      const user = await stackServerApp.getUser();
-      if (user) {
+      const authResult = await auth();
+      if (authResult.userId) {
         const memberResult = await client.query(
           'SELECT id FROM organization_members WHERE organization_id = $1 AND user_id = $2',
-          [organization.id, user.id]
+          [organization.id, authResult.userId]
         );
         alreadyMember = memberResult.rows.length > 0;
       }

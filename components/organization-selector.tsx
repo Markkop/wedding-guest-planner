@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import type { Organization, EventTypePreset } from '@/lib/types';
 import { LoadingContent, InlineSpinner } from '@/components/ui/loading-spinner';
-import { useUser } from "@stackframe/stack";
+import { useUser } from "@clerk/nextjs";
 
 const createOrgSchema = z.object({
   name: z.string().min(1, 'Organization name is required'),
@@ -147,18 +147,28 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
       });
 
       // Step 2: Log current user info
+      const clerkUserId = user.user?.id;
+      const userEmail = user.user?.emailAddresses?.[0]?.emailAddress;
       console.log('👤 Current User:', {
-        user: user ? {
-          id: user.id,
-          email: user.primaryEmail,
-          displayName: user.displayName,
-          isSignedIn: user.isSignedIn
+        user: user.user ? {
+          id: clerkUserId,
+          email: userEmail,
+          firstName: user.user.firstName,
+          lastName: user.user.lastName,
+          isSignedIn: !!user.user
         } : 'No user',
-        stackAuth: {
-          projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
-          hasPublishableKey: !!process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY
+        clerkAuth: {
+          hasPublishableKey: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
         }
       });
+      
+      // Log Clerk User ID prominently for migration purposes
+      if (clerkUserId) {
+        console.log('🔑 Clerk User ID (for migration):', clerkUserId);
+        console.log('📧 User Email:', userEmail);
+      } else {
+        console.warn('⚠️ No Clerk User ID found!');
+      }
 
       // Step 3: Test API connectivity
       console.log('🌐 Testing API connectivity...');
@@ -289,6 +299,19 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
               </div>
             </div>
           ) : null}
+
+          {/* Clerk User ID Display */}
+          {user.user?.id && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <h3 className="text-xs font-medium text-blue-800 mb-1">🔑 Clerk User Information</h3>
+              <p className="text-xs text-blue-700">
+                <strong>User ID:</strong> <code className="bg-blue-100 px-1 rounded text-[10px]">{user.user.id}</code>
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                <strong>Email:</strong> {user.user.emailAddresses?.[0]?.emailAddress || 'N/A'}
+              </p>
+            </div>
+          )}
 
           {/* Debug Button */}
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">

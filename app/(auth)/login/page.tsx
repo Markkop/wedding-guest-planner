@@ -1,5 +1,9 @@
-import { SignIn } from '@stackframe/stack';
+import { SignIn } from '@clerk/nextjs';
 
 export default function LoginPage() {
-  return <SignIn />;
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <SignIn />
+    </div>
+  );
 }

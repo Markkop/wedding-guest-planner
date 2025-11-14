@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getStackServerApp } from "@/lib/auth/safe-stack";
+import { auth } from "@clerk/nextjs/server";
 
 interface ConnectedClient {
   userId: string;
@@ -67,8 +67,8 @@ export async function GET(
   { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const user = await getStackServerApp().getUser();
-    if (!user) {
+    const authResult = await auth();
+    if (!authResult.userId) {
       return new Response("Unauthorized", { status: 401 });
     }
 

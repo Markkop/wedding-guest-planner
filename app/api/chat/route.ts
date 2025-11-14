@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { GuestService } from '@/lib/services/guest-service';
 import { OrganizationService } from '@/lib/services/organization-service';
-import { safeRequireUser, getStackServerApp } from '@/lib/auth/safe-stack';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { EventConfiguration, Guest } from '@/lib/types';
 import type { UIMessage } from 'ai';
 import { broadcastToOrganization } from '@/app/api/organizations/[organizationId]/stream/route';
@@ -122,7 +122,10 @@ async function analyzeImage(imageData: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
-    await safeRequireUser();
+    const authResult = await auth();
+    if (!authResult.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     // Standard JSON request from useChat
     const body = await request.json();
@@ -300,12 +303,14 @@ Be helpful, conversational, and informative. When users provide lists of names o
               const newGuest = await GuestService.createGuest(organizationId, guest);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               if (user) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_added",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guest: newGuest,
                   timestamp: new Date().toISOString(),
                   isAI: true,
@@ -335,7 +340,9 @@ Be helpful, conversational, and informative. When users provide lists of names o
                 await broadcastToOrganization(organizationId, {
                   type: "guest_updated",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   updates,
@@ -373,7 +380,9 @@ Be helpful, conversational, and informative. When users provide lists of names o
                 await broadcastToOrganization(organizationId, {
                   type: "guest_deleted",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   timestamp: new Date().toISOString(),
@@ -445,7 +454,9 @@ Be helpful, conversational, and informative. When users provide lists of names o
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   action: `moved to position ${position}`,
@@ -477,7 +488,9 @@ Be helpful, conversational, and informative. When users provide lists of names o
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   action: "moved to beginning",
@@ -509,7 +522,9 @@ Be helpful, conversational, and informative. When users provide lists of names o
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guestId,
                   guestName: existingGuest?.name || "Unknown",
                   action: "moved to end",
@@ -542,7 +557,9 @@ Be helpful, conversational, and informative. When users provide lists of names o
                 await broadcastToOrganization(organizationId, {
                   type: "guests_swapped",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guest1Id: guestId1,
                   guest1Name: guest1?.name || "Unknown",
                   guest2Id: guestId2,
@@ -572,7 +589,9 @@ Be helpful, conversational, and informative. When users provide lists of names o
                 await broadcastToOrganization(organizationId, {
                   type: "guests_reordered",
                   userId: user.id,
-                  userName: user.displayName || user.primaryEmail || "AI Assistant",
+                  userName: user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.emailAddresses?.[0]?.emailAddress || "AI Assistant",
                   guestIds,
                   guestCount: guestIds.length,
                   action: "reordered guest list",

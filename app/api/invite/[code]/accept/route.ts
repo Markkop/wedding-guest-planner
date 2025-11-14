@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stackServerApp } from '@/stack';
+import { auth } from '@clerk/nextjs/server';
 import { Client } from 'pg';
 
 export async function POST(
@@ -9,8 +9,8 @@ export async function POST(
   let client: Client | null = null;
   
   try {
-    const user = await stackServerApp.getUser();
-    if (!user) {
+    const authResult = await auth();
+    if (!authResult.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -37,7 +37,7 @@ export async function POST(
     // Check if user is already a member
     const memberCheck = await client.query(
       'SELECT id FROM organization_members WHERE organization_id = $1 AND user_id = $2',
-      [organization.id, user.id]
+      [organization.id, authResult.userId]
     );
     
     if (memberCheck.rows.length > 0) {
@@ -47,7 +47,7 @@ export async function POST(
     // Add user to organization
     await client.query(
       'INSERT INTO organization_members (organization_id, user_id, role, joined_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
-      [organization.id, user.id, 'member']
+      [organization.id, authResult.userId, 'member']
     );
 
     return NextResponse.json({ 

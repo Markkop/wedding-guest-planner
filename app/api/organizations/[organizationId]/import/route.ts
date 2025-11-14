@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { safeRequireUser } from '@/lib/auth/safe-stack';
 import { AuthService } from '@/lib/auth/auth-service';
 import { z } from 'zod';
 
@@ -38,14 +37,15 @@ export async function POST(
 ) {
   try {
     const { organizationId } = await params;
-    const user = await safeRequireUser();
+    const user = await AuthService.requireUserFull();
 
-    // Sync Stack Auth user to local database first
+    // Sync Clerk user to local database first
     await AuthService.syncUserToDatabase({
       id: user.id,
-      primaryEmail: user.primaryEmail || '',
-      displayName: user.displayName || undefined,
-      profileImageUrl: user.profileImageUrl || undefined
+      emailAddresses: user.emailAddresses,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      imageUrl: user.imageUrl
     });
 
     // Check if user has access to this organization
