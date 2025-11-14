@@ -6,9 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LocalGuestProvider } from "@/lib/local-guest-context";
 import { GuestTable } from "@/components/guest-table";
+import { GuestGrid } from "@/components/guest-grid";
 import { StatsCards } from "@/components/stats-cards";
 import { LoadingContent } from "@/components/ui/loading-spinner";
-import { Sparkles, ArrowRight, Users, Calendar, Settings } from "lucide-react";
+import {
+  Sparkles,
+  ArrowRight,
+  Users,
+  Calendar,
+  UserPlus,
+  Copy,
+  GripVertical,
+  Table,
+  LayoutGrid,
+  RefreshCw,
+  Wifi,
+  FileText,
+  UtensilsCrossed,
+  CheckCircle,
+  Download,
+  BarChart,
+  MessageSquare,
+  Mic,
+  Image,
+  Mail,
+} from "lucide-react";
 import Link from "next/link";
 
 function LandingContent() {
@@ -87,16 +109,72 @@ function LandingContent() {
 
           <div className="flex flex-wrap items-center justify-center gap-6 mb-12">
             <div className="flex items-center gap-2 text-gray-600">
+              <UserPlus className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Add/Edit/Delete Guests</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Copy className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Clone/Guest's +1</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <GripVertical className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Reorder Guests</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Table className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Table and Grid View</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <LayoutGrid className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">View Toggle</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <RefreshCw className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Live Updates</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Wifi className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Online Users</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <FileText className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Custom Fields</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
               <Users className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Unlimited Guests</span>
+              <span className="text-sm sm:text-base">Age Groups</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
-              <Settings className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Drag & Drop</span>
+              <UtensilsCrossed className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Food Preferences</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Real-time Updates</span>
+              <CheckCircle className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Confirmation Stages</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Download className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Import/Export</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <BarChart className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Statistics Cards</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <MessageSquare className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">AI Chatbot</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Mic className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Voice Input</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Image className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Image Support</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <Mail className="h-5 w-5 text-indigo-600" />
+              <span className="text-sm sm:text-base">Invite System</span>
             </div>
           </div>
         </div>
@@ -106,45 +184,6 @@ function LandingContent() {
       <section className="pb-16">
         <div className="mx-auto max-w-7xl px-4">
           <LocalGuestProvider>
-            {/* Demo Instructions */}
-            <div className="bg-white rounded-lg shadow-sm border p-6 mb-4">
-              <h3 className="text-lg font-semibold mb-4 text-center">
-                🎯 Try These Features
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
-                <div className="text-center">
-                  <div className="h-2 w-2 bg-blue-500 rounded-full mx-auto mb-2"></div>
-                  <strong>Drag & Drop</strong>
-                  <p className="text-gray-600">Reorder guests</p>
-                </div>
-                <div className="text-center">
-                  <div className="h-2 w-2 bg-green-500 rounded-full mx-auto mb-2"></div>
-                  <strong>Edit Names</strong>
-                  <p className="text-gray-600">Click edit icon</p>
-                </div>
-                <div className="text-center">
-                  <div className="h-2 w-2 bg-purple-500 rounded-full mx-auto mb-2"></div>
-                  <strong>Categories</strong>
-                  <p className="text-gray-600">Click B/G/M buttons</p>
-                </div>
-                <div className="text-center">
-                  <div className="h-2 w-2 bg-orange-500 rounded-full mx-auto mb-2"></div>
-                  <strong>Food Prefs</strong>
-                  <p className="text-gray-600">Click food icons</p>
-                </div>
-                <div className="text-center">
-                  <div className="h-2 w-2 bg-red-500 rounded-full mx-auto mb-2"></div>
-                  <strong>Add Guests</strong>
-                  <p className="text-gray-600">Type name below</p>
-                </div>
-                <div className="text-center">
-                  <div className="h-2 w-2 bg-gray-500 rounded-full mx-auto mb-2"></div>
-                  <strong>Settings</strong>
-                  <p className="text-gray-600">Toggle columns</p>
-                </div>
-              </div>
-            </div>
-
             {/* Stats Cards */}
             <div className="mb-4">
               <StatsCards
@@ -212,6 +251,71 @@ function LandingContent() {
             {/* Original Guest Table */}
             <div className="mb-12">
               <GuestTable
+                organizationId="demo-org-1"
+                organization={{
+                  id: "demo-org-1",
+                  name: "Sarah & Michael's Wedding",
+                  invite_code: "DEMO2024",
+                  admin_id: "demo-admin",
+                  event_type: "wedding",
+                  configuration: {
+                    categories: [
+                      {
+                        id: "bride",
+                        label: "Bride's Side",
+                        initial: "B",
+                        color: "#EC4899",
+                      },
+                      {
+                        id: "groom",
+                        label: "Groom's Side",
+                        initial: "G",
+                        color: "#3B82F6",
+                      },
+                      {
+                        id: "mutual",
+                        label: "Mutual Friends",
+                        initial: "M",
+                        color: "#10B981",
+                      },
+                    ],
+                    ageGroups: {
+                      enabled: true,
+                      groups: [
+                        { id: "adult", label: "Adult", minAge: 18 },
+                        { id: "child", label: "Child (7-17)", minAge: 7 },
+                        { id: "infant", label: "Infant (0-6)", minAge: 0 },
+                      ],
+                    },
+                    foodPreferences: {
+                      enabled: true,
+                      options: [
+                        { id: "none", label: "No restrictions" },
+                        { id: "vegetarian", label: "Vegetarian" },
+                        { id: "vegan", label: "Vegan" },
+                        { id: "gluten_free", label: "Gluten-free" },
+                        { id: "dairy_free", label: "Dairy-free" },
+                      ],
+                    },
+                    confirmationStages: {
+                      enabled: true,
+                      stages: [
+                        { id: "invited", label: "Invited", order: 1 },
+                        { id: "confirmed", label: "Confirmed", order: 2 },
+                        { id: "declined", label: "Declined", order: 3 },
+                      ],
+                    },
+                  },
+                  created_at: new Date("2024-01-01"),
+                  updated_at: new Date(),
+                  role: "admin",
+                }}
+              />
+            </div>
+
+            {/* Guest Grid View */}
+            <div className="mb-12">
+              <GuestGrid
                 organizationId="demo-org-1"
                 organization={{
                   id: "demo-org-1",

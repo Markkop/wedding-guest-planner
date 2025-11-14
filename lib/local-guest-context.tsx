@@ -117,6 +117,71 @@ const DEMO_GUESTS: Guest[] = [
     created_at: new Date("2024-01-19"),
     updated_at: new Date("2024-01-19"),
   },
+  {
+    id: "guest-6",
+    organization_id: "demo-org-1",
+    name: "Michael Brown",
+    categories: ["groom"],
+    age_group: "adult",
+    food_preference: "none",
+    confirmation_stage: "confirmed",
+    custom_fields: {},
+    display_order: 5,
+    created_at: new Date("2024-01-20"),
+    updated_at: new Date("2024-01-20"),
+  },
+  {
+    id: "guest-7",
+    organization_id: "demo-org-1",
+    name: "Sarah Johnson",
+    categories: ["bride"],
+    age_group: "adult",
+    food_preference: "vegetarian",
+    confirmation_stage: "invited",
+    custom_fields: {},
+    display_order: 6,
+    created_at: new Date("2024-01-21"),
+    updated_at: new Date("2024-01-21"),
+  },
+  {
+    id: "guest-8",
+    organization_id: "demo-org-1",
+    name: "David Lee",
+    categories: ["mutual"],
+    age_group: "adult",
+    food_preference: "none",
+    confirmation_stage: "confirmed",
+    custom_fields: {},
+    display_order: 7,
+    created_at: new Date("2024-01-22"),
+    updated_at: new Date("2024-01-22"),
+  },
+  {
+    id: "guest-9",
+    organization_id: "demo-org-1",
+    name: "Rachel Green",
+    categories: ["bride"],
+    age_group: "adult",
+    food_preference: "gluten_free",
+    confirmation_stage: "confirmed",
+    custom_fields: {},
+    display_order: 8,
+    created_at: new Date("2024-01-23"),
+    updated_at: new Date("2024-01-23"),
+  },
+  {
+    id: "guest-10",
+    organization_id: "demo-org-1",
+    name: "Alex Taylor",
+    categories: ["mutual"],
+    age_group: "adult",
+    food_preference: "vegan",
+    confirmation_stage: "invited",
+    custom_fields: {},
+    display_order: 9,
+    created_at: new Date("2024-01-24"),
+    updated_at: new Date("2024-01-24"),
+  },
 ];
 
 // Instead of providing a separate context (which breaks components relying on
@@ -300,7 +365,12 @@ export function LocalGuestProvider({
   );
 
   const reorderGuests = useCallback(
-    async (fromIndex: number, toIndex: number) => {
+    async (
+      fromIndex: number,
+      toIndex: number,
+      includePlusOne: boolean = true,
+      includeFamilyTogether: boolean = false
+    ) => {
       if (fromIndex === toIndex) return;
 
       // Optimistic update

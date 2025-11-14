@@ -14,12 +14,14 @@ interface GridSettingsProps {
   dragFamilyTogether: boolean;
   showFamilyBgColor: boolean;
   showColorPicker: boolean;
+  showConfirmationButton: boolean;
   showDeleteButton: boolean;
   showPlusOneButton: boolean;
   onDragPlusOneChange: (checked: boolean) => void;
   onDragFamilyTogetherChange: (checked: boolean) => void;
   onShowFamilyBgColorChange: (checked: boolean) => void;
   onShowColorPickerChange: (checked: boolean) => void;
+  onShowConfirmationButtonChange: (checked: boolean) => void;
   onShowDeleteButtonChange: (checked: boolean) => void;
   onShowPlusOneButtonChange: (checked: boolean) => void;
 }
@@ -29,12 +31,14 @@ export function GridSettings({
   dragFamilyTogether,
   showFamilyBgColor,
   showColorPicker,
+  showConfirmationButton,
   showDeleteButton,
   showPlusOneButton,
   onDragPlusOneChange,
   onDragFamilyTogetherChange,
   onShowFamilyBgColorChange,
   onShowColorPickerChange,
+  onShowConfirmationButtonChange,
   onShowDeleteButtonChange,
   onShowPlusOneButtonChange,
 }: GridSettingsProps) {
@@ -83,6 +87,15 @@ export function GridSettings({
                 }
               />
               <span className="text-sm">Show Color Picker</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <Checkbox
+                checked={showConfirmationButton}
+                onCheckedChange={(checked) =>
+                  onShowConfirmationButtonChange(!!checked)
+                }
+              />
+              <span className="text-sm">Show Confirmation</span>
             </label>
             <label className="flex items-center space-x-2">
               <Checkbox

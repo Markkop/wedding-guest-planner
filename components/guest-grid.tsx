@@ -59,6 +59,7 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
   const [dragFamilyTogether, setDragFamilyTogether] = useState(true);
   const [showFamilyBgColor, setShowFamilyBgColor] = useState(true);
   const [showColorPicker, setShowColorPicker] = useState(true);
+  const [showConfirmationButton, setShowConfirmationButton] = useState(false);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showPlusOneButton, setShowPlusOneButton] = useState(false);
   const columns = useResponsiveColumns();
@@ -107,12 +108,14 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
             dragFamilyTogether={dragFamilyTogether}
             showFamilyBgColor={showFamilyBgColor}
             showColorPicker={showColorPicker}
+            showConfirmationButton={showConfirmationButton}
             showDeleteButton={showDeleteButton}
             showPlusOneButton={showPlusOneButton}
             onDragPlusOneChange={setDragPlusOne}
             onDragFamilyTogetherChange={setDragFamilyTogether}
             onShowFamilyBgColorChange={setShowFamilyBgColor}
             onShowColorPickerChange={setShowColorPicker}
+            onShowConfirmationButtonChange={setShowConfirmationButton}
             onShowDeleteButtonChange={setShowDeleteButton}
             onShowPlusOneButtonChange={setShowPlusOneButton}
           />
@@ -201,8 +204,10 @@ export function GuestGrid({ organizationId, organization }: GuestGridProps) {
                     organization={organization}
                     showFamilyBgColor={showFamilyBgColor}
                     showColorPicker={showColorPicker}
+                    showConfirmationButton={showConfirmationButton}
                     showDeleteButton={showDeleteButton}
                     showPlusOneButton={showPlusOneButton}
+                    onUpdate={updateGuest}
                   />
                 );
               });
@@ -223,9 +228,11 @@ interface GuestGridItemProps {
   onColorChange: (guestId: string, color: string | null) => void;
   onDelete: (guestId: string) => void;
   onClone: (guest: Guest) => void;
+  onUpdate: (guestId: string, updates: Partial<Guest>) => void;
   organization: Organization;
   showFamilyBgColor: boolean;
   showColorPicker: boolean;
+  showConfirmationButton: boolean;
   showDeleteButton: boolean;
   showPlusOneButton: boolean;
 }
@@ -239,9 +246,11 @@ function GuestGridItem({
   onColorChange,
   onDelete,
   onClone,
+  onUpdate,
   organization,
   showFamilyBgColor,
   showColorPicker,
+  showConfirmationButton,
   showDeleteButton,
   showPlusOneButton,
 }: GuestGridItemProps) {
@@ -250,6 +259,70 @@ function GuestGridItem({
   const itemRef = useRef<HTMLDivElement | null>(null);
 
   const isDeclined = guest.confirmation_stage === "declined";
+
+  // Confirmation stage cycling logic
+  const config = organization.configuration || {
+    categories: [],
+    confirmationStages: { enabled: true, stages: [] },
+  };
+
+  const cycleConfirmationStage = () => {
+    const sortedStages = [...(config.confirmationStages?.stages || [])].sort(
+      (a, b) => a.order - b.order
+    );
+    if (sortedStages.length === 0) return;
+    
+    const currentIndex = sortedStages.findIndex(
+      (stage) => stage.id === guest.confirmation_stage
+    );
+    const nextIndex = (currentIndex + 1) % sortedStages.length;
+    onUpdate(guest.id, { confirmation_stage: sortedStages[nextIndex].id });
+  };
+
+  const getConfirmationStageInfo = (stageId: string) => {
+    const stage = config.confirmationStages?.stages?.find(
+      (s) => s.id === stageId
+    );
+    if (!stage) return { label: stageId, order: 0 };
+    return stage;
+  };
+
+  const getConfirmationStageButtonStyle = (stageId: string) => {
+    switch (stageId) {
+      case "listed":
+        return {
+          variant: "outline" as const,
+          className: "border-gray-400 text-gray-600 hover:bg-gray-50",
+        };
+      case "invited":
+        return {
+          variant: "default" as const,
+          className: "bg-yellow-500 hover:bg-yellow-600 text-white",
+        };
+      case "confirmed_1":
+      case "confirmed_2":
+      case "confirmed_3":
+        return {
+          variant: "default" as const,
+          className:
+            stageId === "confirmed_1"
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : stageId === "confirmed_2"
+              ? "bg-green-600 hover:bg-green-700 text-white"
+              : "bg-green-700 hover:bg-green-800 text-white",
+        };
+      case "declined":
+        return {
+          variant: "outline" as const,
+          className: "border-gray-400 text-gray-500 hover:bg-gray-50",
+        };
+      default:
+        return {
+          variant: "secondary" as const,
+          className: "",
+        };
+    }
+  };
 
   // Get the category color for the number circle
   const getCategoryColor = () => {
@@ -406,6 +479,29 @@ function GuestGridItem({
               disabled={isDeclined}
               size="sm"
             />
+          )}
+
+          {/* Confirmation button */}
+          {showConfirmationButton && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant={getConfirmationStageButtonStyle(guest.confirmation_stage).variant}
+                    onClick={cycleConfirmationStage}
+                    className={cn(
+                      "h-6 px-2 text-xs font-semibold cursor-pointer min-w-[3rem]",
+                      getConfirmationStageButtonStyle(guest.confirmation_stage).className,
+                      isDeclined && "opacity-50"
+                    )}
+                  >
+                    {getConfirmationStageInfo(guest.confirmation_stage).label}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cycle confirmation stage</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* +1 button */}
