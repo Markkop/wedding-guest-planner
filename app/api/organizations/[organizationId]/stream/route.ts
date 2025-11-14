@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 interface ConnectedClient {
   userId: string;
@@ -72,6 +72,11 @@ export async function GET(
       return new Response("Unauthorized", { status: 401 });
     }
 
+    const user = await currentUser();
+    if (!user) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const { organizationId } = await params;
 
     // TODO: Verify user has access to this organization
@@ -99,9 +104,12 @@ export async function GET(
         }
 
         const orgConnections = sessionConnections.get(organizationId)!;
+        const userName = user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user.emailAddresses?.[0]?.emailAddress || "Unknown User";
         const connectedClient: ConnectedClient = {
           userId: user.id,
-          userName: user.displayName || user.primaryEmail || "Unknown User",
+          userName: userName,
           writer: {
             write: async (chunk: Uint8Array) => controller.enqueue(chunk),
           } as WritableStreamDefaultWriter,

@@ -335,7 +335,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
               const updatedGuest = await GuestService.updateGuest(guestId, updates);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               if (user) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_updated",
@@ -373,7 +373,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
               console.log("🤖 AI GuestService.deleteGuest completed successfully");
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               console.log("🤖 AI got user for broadcast:", user?.id);
               if (user) {
                 console.log("🤖 AI broadcasting guest deletion:", guestId);
@@ -449,7 +449,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.moveGuestToPosition(guestId, position);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               if (user) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
@@ -483,7 +483,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.moveGuestToBeginning(guestId);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               if (user) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
@@ -517,7 +517,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.moveGuestToEnd(guestId);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               if (user) {
                 await broadcastToOrganization(organizationId, {
                   type: "guest_moved",
@@ -552,7 +552,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.swapGuestPositions(guestId1, guestId2);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               if (user) {
                 await broadcastToOrganization(organizationId, {
                   type: "guests_swapped",
@@ -584,7 +584,7 @@ Be helpful, conversational, and informative. When users provide lists of names o
               await GuestService.reorderGuests(organizationId, guestIds);
               
               // Broadcast the change to other connected users
-              const user = await getStackServerApp().getUser();
+              const user = await currentUser();
               if (user) {
                 await broadcastToOrganization(organizationId, {
                   type: "guests_reordered",
