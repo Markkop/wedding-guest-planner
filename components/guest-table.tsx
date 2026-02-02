@@ -111,6 +111,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
             <GuestTableHeader
               organization={organization}
               visibleColumns={visibleColumns}
+              guests={guests}
             />
           </TableHeader>
           <TableBody ref={tableBodyRef}>
