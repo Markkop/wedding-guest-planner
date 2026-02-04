@@ -149,8 +149,8 @@ export function GuestTableHeader({ organization, visibleColumns, guests }: Props
                     <div className="flex flex-col gap-1">
                       <button
                         type="button"
-                        disabled
-                        className="w-full rounded px-2 py-1.5 text-left text-sm text-muted-foreground"
+                        onClick={() => handleCopyColumnValues(id)}
+                        className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted transition-colors"
                       >
                         Copy lines (already copied)
                       </button>
@@ -159,7 +159,7 @@ export function GuestTableHeader({ organization, visibleColumns, guests }: Props
                         onClick={() => handleCopyWithPrevious(id)}
                         className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted transition-colors"
                       >
-                        Copy prev. text column + this column
+                        Copy prev + this
                       </button>
                     </div>
                   </PopoverContent>
