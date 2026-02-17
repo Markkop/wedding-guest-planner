@@ -4,6 +4,7 @@ import React, { useContext, useState, useCallback } from "react";
 import { reorder } from "@atlaskit/pragmatic-drag-and-drop/reorder";
 import { toast } from "sonner";
 import type { Guest, Organization, GuestStatistics } from "@/lib/types";
+import { moveGuestAboveListedDeclined as moveGuestAboveListedDeclinedInList } from "@/lib/utils/guest-ordering";
 
 // Demo organization configuration - same as original but for landing page
 const DEMO_ORGANIZATION: Organization = {
@@ -402,6 +403,22 @@ export function LocalGuestProvider({
     [guests, reorderGuests]
   );
 
+  const moveGuestAboveListedDeclined = useCallback(
+    async (guestId: string) => {
+      const newGuests = moveGuestAboveListedDeclinedInList(guests, guestId);
+      if (!newGuests) return;
+
+      setGuests(
+        newGuests.map((guest, index) => ({
+          ...guest,
+          display_order: index,
+          updated_at: new Date(),
+        }))
+      );
+    },
+    [guests]
+  );
+
 
   return (
     /*
@@ -425,6 +442,7 @@ export function LocalGuestProvider({
         deleteGuest,
         reorderGuests,
         moveGuestToEnd,
+        moveGuestAboveListedDeclined,
         remoteUpdatedGuests: new Set<string>(),
       }}
     >
@@ -442,6 +460,7 @@ export function LocalGuestProvider({
           deleteGuest,
           reorderGuests,
           moveGuestToEnd,
+          moveGuestAboveListedDeclined,
           remoteUpdatedGuests: new Set<string>(),
         }}
       >

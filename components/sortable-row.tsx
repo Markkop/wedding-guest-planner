@@ -20,6 +20,7 @@ import { GuestActionsCell } from "./guest-table/guest-actions-cell";
 import { CustomFieldCell } from "./guest-table/custom-field-cell";
 import { useColumnOrder } from "./guest-table/use-column-order";
 import { getFoodIcon } from "@/lib/utils/food-icons";
+import { findFirstListedOrDeclinedIndex } from "@/lib/utils/guest-ordering";
 import type { Guest, VisibleColumns, Organization } from "@/lib/types";
 
 interface SortableRowProps {
@@ -35,6 +36,7 @@ interface SortableRowProps {
   onClone: (guest: Guest) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onMoveToEnd: (guestId: string) => void;
+  onMoveAboveListedDeclined: (guestId: string) => void;
 }
 
 export function SortableRow({
@@ -50,6 +52,7 @@ export function SortableRow({
   onClone,
   onReorder,
   onMoveToEnd,
+  onMoveAboveListedDeclined,
 }: SortableRowProps) {
   const [isDraggedOver, setIsDraggedOver] = useState(false);
   const [isBeingDragged, setIsBeingDragged] = useState(false);
@@ -186,6 +189,10 @@ export function SortableRow({
     onMoveToEnd(guest.id);
   };
 
+  const handleMoveAboveListedDeclined = () => {
+    onMoveAboveListedDeclined(guest.id);
+  };
+
   const getConfirmationStageInfo = (stageId: string) => {
     const stage = config.confirmationStages.stages.find(
       (s) => s.id === stageId
@@ -195,6 +202,15 @@ export function SortableRow({
   };
 
   const isDeclined = guest.confirmation_stage === "declined";
+  const firstListedOrDeclinedIndex = findFirstListedOrDeclinedIndex(guests);
+  const canMoveAboveListedDeclined =
+    firstListedOrDeclinedIndex !== -1 && guestIndex > firstListedOrDeclinedIndex;
+  const moveAboveListedDeclinedTooltip =
+    firstListedOrDeclinedIndex === -1
+      ? "No listed/declined guests to move above"
+      : canMoveAboveListedDeclined
+      ? "Move above listed/declined guests"
+      : "Already above listed/declined guests";
 
   // Get confirmation stage styling
   const getConfirmationStageButtonStyle = (stageId: string) => {
@@ -440,6 +456,9 @@ export function SortableRow({
           return (
             <TableCell key="actions">
               <GuestActionsCell
+                onMoveAboveListedDeclined={handleMoveAboveListedDeclined}
+                canMoveAboveListedDeclined={canMoveAboveListedDeclined}
+                moveAboveListedDeclinedTooltip={moveAboveListedDeclinedTooltip}
                 onMoveToEnd={handleMoveToEnd}
                 onDelete={() => onDelete(guest.id)}
                 onClone={() => onClone(guest)}

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { reorder } from '@atlaskit/pragmatic-drag-and-drop/reorder';
 import { toast } from 'sonner';
 import type { Guest, Organization, GuestStatistics } from '@/lib/types';
+import { moveGuestAboveListedDeclined as moveGuestAboveListedDeclinedInList } from '@/lib/utils/guest-ordering';
 
 // Demo organization configuration
 const DEMO_ORGANIZATION: Organization = {
@@ -131,6 +132,7 @@ interface DemoGuestContextType {
   deleteGuest: (guestId: string) => Promise<void>;
   reorderGuests: (fromIndex: number, toIndex: number) => Promise<void>;
   moveGuestToEnd: (guestId: string) => Promise<void>;
+  moveGuestAboveListedDeclined: (guestId: string) => Promise<void>;
   resetDemo: () => void;
 }
 
@@ -260,6 +262,19 @@ export function DemoGuestProvider({ children }: { children: React.ReactNode }) {
     await reorderGuests(guestIndex, guests.length - 1);
   }, [guests, reorderGuests]);
 
+  const moveGuestAboveListedDeclined = useCallback(async (guestId: string) => {
+    const newGuests = moveGuestAboveListedDeclinedInList(guests, guestId);
+    if (!newGuests) return;
+
+    setGuests(
+      newGuests.map((guest, index) => ({
+        ...guest,
+        display_order: index,
+        updated_at: new Date(),
+      }))
+    );
+  }, [guests]);
+
   const cloneGuest = useCallback(async (guestToClone: Guest) => {
     const clonedName = `${guestToClone.name}'s +1`;
     
@@ -312,6 +327,7 @@ export function DemoGuestProvider({ children }: { children: React.ReactNode }) {
         deleteGuest,
         reorderGuests,
         moveGuestToEnd,
+        moveGuestAboveListedDeclined,
         resetDemo
       }}
     >

@@ -7,19 +7,57 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ArrowDown, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GuestActionsCellProps {
+  onMoveAboveListedDeclined: () => void;
+  canMoveAboveListedDeclined: boolean;
+  moveAboveListedDeclinedTooltip: string;
   onMoveToEnd: () => void;
   onDelete: () => void;
   onClone: () => void;
   isDeclined?: boolean;
 }
 
-export function GuestActionsCell({ onMoveToEnd, onDelete, onClone, isDeclined = false }: GuestActionsCellProps) {
+export function GuestActionsCell({
+  onMoveAboveListedDeclined,
+  canMoveAboveListedDeclined,
+  moveAboveListedDeclinedTooltip,
+  onMoveToEnd,
+  onDelete,
+  onClone,
+  isDeclined = false,
+}: GuestActionsCellProps) {
   return (
-    <div className="flex gap-1">          
+    <div className="flex gap-1">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onMoveAboveListedDeclined}
+                disabled={!canMoveAboveListedDeclined}
+                className={cn(
+                  "h-7 w-7",
+                  canMoveAboveListedDeclined
+                    ? "cursor-pointer"
+                    : "cursor-not-allowed",
+                  isDeclined && "text-gray-400 hover:text-gray-500"
+                )}
+              >
+                <ArrowUp
+                  className={cn("h-4 w-4", isDeclined && "text-gray-400")}
+                />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{moveAboveListedDeclinedTooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -41,7 +79,7 @@ export function GuestActionsCell({ onMoveToEnd, onDelete, onClone, isDeclined = 
           <TooltipContent>Move to end</TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      
+
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -59,7 +97,7 @@ export function GuestActionsCell({ onMoveToEnd, onDelete, onClone, isDeclined = 
           <TooltipContent>Add +1</TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      
+
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

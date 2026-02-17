@@ -12,6 +12,7 @@ import { reorder } from "@atlaskit/pragmatic-drag-and-drop/reorder";
 import { toast } from "sonner";
 import type { Guest, Organization, GuestStatistics } from "@/lib/types";
 import { useCollaboration } from "@/lib/collaboration-context";
+import { moveGuestAboveListedDeclined as moveGuestAboveListedDeclinedInList } from "@/lib/utils/guest-ordering";
 
 type UpdateType = "add" | "update" | "delete" | "reorder";
 
@@ -47,6 +48,7 @@ interface GuestContextType {
     includeFamilyTogether?: boolean
   ) => Promise<void>;
   moveGuestToEnd: (guestId: string) => Promise<void>;
+  moveGuestAboveListedDeclined: (guestId: string) => Promise<void>;
 }
 
 const GuestContext = createContext<GuestContextType | undefined>(undefined);
@@ -1014,6 +1016,39 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     [guests, organization]
   );
 
+  const moveGuestAboveListedDeclined = useCallback(
+    async (guestId: string) => {
+      if (!organization) return;
+
+      const newGuests = moveGuestAboveListedDeclinedInList(guests, guestId);
+      if (!newGuests) return;
+
+      const originalOrder = [...guests];
+
+      // Optimistic update
+      setGuests(newGuests);
+
+      // Add to queue
+      const updateId = `move-up-listed-declined-${guestId}-${Date.now()}`;
+      updateQueue.current.push({
+        id: updateId,
+        type: "reorder",
+        previousState: originalOrder,
+        newState: newGuests,
+        apiCall: () =>
+          fetch(`/api/organizations/${organization.id}/guests/reorder`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ guestIds: newGuests.map((g) => g.id) }),
+          }),
+        timestamp: Date.now(),
+        status: "pending",
+        retryCount: 0,
+      });
+    },
+    [guests, organization]
+  );
+
   return (
     <GuestContext.Provider
       value={{
@@ -1030,6 +1065,7 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
         deleteGuest,
         reorderGuests,
         moveGuestToEnd,
+        moveGuestAboveListedDeclined,
       }}
     >
       {children}

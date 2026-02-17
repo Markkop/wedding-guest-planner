@@ -29,6 +29,7 @@ export function DemoGuestTable() {
     deleteGuest,
     reorderGuests,
     moveGuestToEnd,
+    moveGuestAboveListedDeclined,
   } = useDemoGuests();
 
   const [addingGuest, setAddingGuest] = useState(false);
@@ -92,6 +93,10 @@ export function DemoGuestTable() {
     await moveGuestToEnd(guestId);
   }
 
+  async function handleMoveAboveListedDeclined(guestId: string) {
+    await moveGuestAboveListedDeclined(guestId);
+  }
+
   async function handleCloneGuest(guest: Guest) {
     await cloneGuest(guest);
   }
@@ -130,7 +135,7 @@ export function DemoGuestTable() {
                 organization.configuration?.confirmationStages?.enabled && (
                   <TableHead className="w-32">Status</TableHead>
                 )}
-              <TableHead className="w-32">Actions</TableHead>
+              <TableHead className="w-40">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody ref={tableBodyRef}>
@@ -153,6 +158,7 @@ export function DemoGuestTable() {
                   onClone={handleCloneGuest}
                   onReorder={handleReorder}
                   onMoveToEnd={handleMoveToEnd}
+                  onMoveAboveListedDeclined={handleMoveAboveListedDeclined}
                 />
               ))
             )}

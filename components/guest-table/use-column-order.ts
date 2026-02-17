@@ -17,7 +17,7 @@ export const COLUMN_HEAD_CLASSES: Record<string, string> = {
   age: 'w-24',
   food: 'w-32',
   status: 'w-32',
-  actions: 'w-32',
+  actions: 'w-40',
   custom: 'w-32',
 };
 

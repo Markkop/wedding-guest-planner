@@ -29,6 +29,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     deleteGuest,
     reorderGuests,
     moveGuestToEnd,
+    moveGuestAboveListedDeclined,
     setOrganization,
     remoteUpdatedGuests,
   } = useGuests();
@@ -92,6 +93,10 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
     await moveGuestToEnd(guestId);
   }
 
+  async function handleMoveAboveListedDeclined(guestId: string) {
+    await moveGuestAboveListedDeclined(guestId);
+  }
+
   const columnCount = useColumnCount(visibleColumns, organization);
 
   return (
@@ -137,6 +142,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
                   onClone={handleCloneGuest}
                   onReorder={handleReorder}
                   onMoveToEnd={handleMoveToEnd}
+                  onMoveAboveListedDeclined={handleMoveAboveListedDeclined}
                 />
               ))
             )}
