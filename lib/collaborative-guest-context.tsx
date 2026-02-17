@@ -565,6 +565,157 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
     [organization, guests.length]
   );
 
+  const buildSanitizedCloneData = useCallback(
+    (guestToClone: Guest, clonedName: string, targetPosition: number) => {
+      if (!organization) {
+        return {
+          optimisticFields: {
+            categories: guestToClone.categories,
+            age_group: guestToClone.age_group,
+            food_preference: guestToClone.food_preference,
+            food_preferences: guestToClone.food_preferences,
+            confirmation_stage: guestToClone.confirmation_stage,
+            custom_fields: guestToClone.custom_fields,
+            family_color: guestToClone.family_color,
+          },
+          payload: {
+            name: clonedName,
+            categories: guestToClone.categories,
+            age_group: guestToClone.age_group,
+            food_preferences: guestToClone.food_preferences,
+            food_preference: guestToClone.food_preference,
+            confirmation_stage: guestToClone.confirmation_stage,
+            custom_fields: guestToClone.custom_fields,
+            family_color: guestToClone.family_color,
+            target_position: targetPosition,
+          },
+        };
+      }
+
+      const config = organization.configuration;
+      const unique = (values: string[]) => [...new Set(values)];
+
+      const validCategoryIds = new Set(
+        (config.categories || []).map((category) => category.id)
+      );
+      const defaultCategory = config.categories?.[0]?.id;
+      const filteredCategories = unique(
+        (guestToClone.categories || []).filter((id) => validCategoryIds.has(id))
+      );
+      const categories =
+        filteredCategories.length > 0
+          ? filteredCategories
+          : defaultCategory
+          ? [defaultCategory]
+          : [];
+
+      const ageGroupEnabled = config.ageGroups?.enabled ?? false;
+      const validAgeGroupIds = new Set(
+        (config.ageGroups?.groups || []).map((group) => group.id)
+      );
+      const defaultAgeGroup = config.ageGroups?.groups?.[0]?.id;
+      const ageGroup =
+        ageGroupEnabled && guestToClone.age_group && validAgeGroupIds.has(guestToClone.age_group)
+          ? guestToClone.age_group
+          : ageGroupEnabled
+          ? defaultAgeGroup
+          : undefined;
+
+      const foodEnabled = config.foodPreferences?.enabled ?? false;
+      const validFoodIds = new Set(
+        (config.foodPreferences?.options || []).map((option) => option.id)
+      );
+      const defaultFoodPreference = config.foodPreferences?.options?.[0]?.id;
+      const filteredFoodPreferences = unique(
+        (guestToClone.food_preferences || []).filter((id) => validFoodIds.has(id))
+      );
+      const validSingleFoodPreference =
+        guestToClone.food_preference && validFoodIds.has(guestToClone.food_preference)
+          ? guestToClone.food_preference
+          : undefined;
+      const foodPreference = foodEnabled
+        ? validSingleFoodPreference ||
+          filteredFoodPreferences[0] ||
+          defaultFoodPreference
+        : undefined;
+      const foodPreferences = foodEnabled
+        ? filteredFoodPreferences.length > 0
+          ? filteredFoodPreferences
+          : foodPreference
+          ? [foodPreference]
+          : []
+        : [];
+
+      const validConfirmationStageIds = new Set(
+        (config.confirmationStages?.stages || []).map((stage) => stage.id)
+      );
+      const defaultConfirmationStage =
+        config.confirmationStages?.stages?.[0]?.id || "invited";
+      const confirmationStage =
+        guestToClone.confirmation_stage &&
+        validConfirmationStageIds.has(guestToClone.confirmation_stage)
+          ? guestToClone.confirmation_stage
+          : defaultConfirmationStage;
+
+      const allowedCustomFieldIds = new Set(
+        (config.customFields || []).map((field) => field.id)
+      );
+      const customFields =
+        guestToClone.custom_fields &&
+        typeof guestToClone.custom_fields === "object" &&
+        !Array.isArray(guestToClone.custom_fields)
+          ? Object.fromEntries(
+              Object.entries(guestToClone.custom_fields).filter(([key]) =>
+                allowedCustomFieldIds.has(key)
+              )
+            )
+          : guestToClone.custom_fields;
+
+      const payload: {
+        name: string;
+        categories: string[];
+        confirmation_stage: string;
+        custom_fields: Record<string, unknown> | null;
+        family_color?: string | null;
+        target_position: number;
+        age_group?: string;
+        food_preference?: string;
+        food_preferences?: string[];
+      } = {
+        name: clonedName,
+        categories,
+        confirmation_stage: confirmationStage,
+        custom_fields: customFields,
+        family_color: guestToClone.family_color,
+        target_position: targetPosition,
+      };
+
+      if (ageGroupEnabled && ageGroup) {
+        payload.age_group = ageGroup;
+      }
+      if (foodEnabled) {
+        payload.food_preferences = foodPreferences;
+        if (foodPreference) {
+          payload.food_preference = foodPreference;
+        }
+      }
+
+      return {
+        optimisticFields: {
+          categories,
+          age_group: ageGroup,
+          food_preference: foodPreference,
+          food_preferences: foodPreferences,
+          confirmation_stage: confirmationStage,
+          custom_fields: customFields,
+          family_color: guestToClone.family_color,
+        },
+        payload,
+      };
+    },
+    [organization]
+  );
+
   const cloneGuest = useCallback(
     async (guestToClone: Guest) => {
       if (!organization) return;
@@ -575,13 +726,26 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
       // Find the index of the guest to clone
       const sourceIndex = guests.findIndex((g) => g.id === guestToClone.id);
       const insertPosition = sourceIndex + 1;
+      const targetPosition = insertPosition + 1;
+      const sanitizedClone = buildSanitizedCloneData(
+        guestToClone,
+        clonedName,
+        targetPosition
+      );
 
       // The new guest should be inserted right after the source
       const newGuest: Guest = {
         ...guestToClone,
         id: tempId,
         name: clonedName,
-        display_order: insertPosition + 1, // Use proper integer position
+        categories: sanitizedClone.optimisticFields.categories,
+        age_group: sanitizedClone.optimisticFields.age_group,
+        food_preference: sanitizedClone.optimisticFields.food_preference,
+        food_preferences: sanitizedClone.optimisticFields.food_preferences,
+        confirmation_stage: sanitizedClone.optimisticFields.confirmation_stage,
+        custom_fields: sanitizedClone.optimisticFields.custom_fields,
+        family_color: sanitizedClone.optimisticFields.family_color,
+        display_order: targetPosition,
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -609,24 +773,14 @@ export function GuestProvider({ children }: { children: React.ReactNode }) {
           fetch(`/api/organizations/${organization.id}/guests`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: clonedName,
-              categories: guestToClone.categories,
-              age_group: guestToClone.age_group,
-              food_preferences: guestToClone.food_preferences,
-              food_preference: guestToClone.food_preference,
-              confirmation_stage: guestToClone.confirmation_stage,
-              custom_fields: guestToClone.custom_fields,
-              family_color: guestToClone.family_color,
-              target_position: insertPosition + 1,
-            }),
+            body: JSON.stringify(sanitizedClone.payload),
           }),
         timestamp: Date.now(),
         status: "pending",
         retryCount: 0,
       });
     },
-    [organization, guests]
+    [organization, guests, buildSanitizedCloneData]
   );
 
   const updateGuest = useCallback(

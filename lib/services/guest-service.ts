@@ -4,12 +4,114 @@ import type { Guest } from '@/lib/db';
 import type { EventConfiguration } from '@/lib/types';
 
 export class GuestService {
+  private static unique(values: string[]): string[] {
+    return [...new Set(values)];
+  }
+
+  private static normalizeCreateGuestData(
+    data: {
+      name: string;
+      categories?: string[];
+      age_group?: string;
+      food_preference?: string;
+      food_preferences?: string[];
+      confirmation_stage?: string;
+      custom_fields?: Record<string, unknown> | null;
+      family_color?: string | null;
+      target_position?: number;
+    },
+    config: EventConfiguration
+  ) {
+    const validCategoryIds = new Set(
+      (config.categories || []).map((category) => category.id)
+    );
+    const defaultCategory = config.categories?.[0]?.id;
+    const categories = this.unique(
+      (data.categories || []).filter((id) => validCategoryIds.has(id))
+    );
+    const normalizedCategories =
+      categories.length > 0
+        ? categories
+        : defaultCategory
+        ? [defaultCategory]
+        : [];
+
+    const ageGroupsEnabled = config.ageGroups?.enabled ?? false;
+    const validAgeGroupIds = new Set(
+      (config.ageGroups?.groups || []).map((group) => group.id)
+    );
+    const defaultAgeGroup = config.ageGroups?.groups?.[0]?.id;
+    const normalizedAgeGroup = ageGroupsEnabled
+      ? data.age_group && validAgeGroupIds.has(data.age_group)
+        ? data.age_group
+        : defaultAgeGroup || null
+      : null;
+
+    const foodEnabled = config.foodPreferences?.enabled ?? false;
+    const validFoodIds = new Set(
+      (config.foodPreferences?.options || []).map((option) => option.id)
+    );
+    const defaultFood = config.foodPreferences?.options?.[0]?.id;
+    const filteredFoodPreferences = this.unique(
+      (data.food_preferences || []).filter((id) => validFoodIds.has(id))
+    );
+    const validSingleFoodPreference =
+      data.food_preference && validFoodIds.has(data.food_preference)
+        ? data.food_preference
+        : null;
+    const normalizedFoodPreference = foodEnabled
+      ? validSingleFoodPreference || filteredFoodPreferences[0] || defaultFood || null
+      : null;
+    const normalizedFoodPreferences = foodEnabled
+      ? filteredFoodPreferences.length > 0
+        ? filteredFoodPreferences
+        : normalizedFoodPreference
+        ? [normalizedFoodPreference]
+        : []
+      : [];
+
+    const validConfirmationStageIds = new Set(
+      (config.confirmationStages?.stages || []).map((stage) => stage.id)
+    );
+    const defaultConfirmationStage =
+      config.confirmationStages?.stages?.[0]?.id || 'invited';
+    const normalizedConfirmationStage =
+      data.confirmation_stage &&
+      validConfirmationStageIds.has(data.confirmation_stage)
+        ? data.confirmation_stage
+        : defaultConfirmationStage;
+
+    const allowedCustomFieldIds = new Set(
+      (config.customFields || []).map((field) => field.id)
+    );
+    const normalizedCustomFields =
+      data.custom_fields &&
+      typeof data.custom_fields === 'object' &&
+      !Array.isArray(data.custom_fields)
+        ? Object.fromEntries(
+            Object.entries(data.custom_fields).filter(([key]) =>
+              allowedCustomFieldIds.has(key)
+            )
+          )
+        : {};
+
+    return {
+      categories: normalizedCategories,
+      ageGroup: normalizedAgeGroup,
+      foodPreference: normalizedFoodPreference,
+      foodPreferences: normalizedFoodPreferences,
+      confirmationStage: normalizedConfirmationStage,
+      customFields: normalizedCustomFields,
+      familyColor: data.family_color ?? null,
+    };
+  }
+
   /**
    * Get effective user ID with email fallback for membership checks
    */
   private static async getEffectiveUserIdForCheck(userId: string, emails: string[]): Promise<string> {
     // Try ID-based lookup first
-    let memberCheck = await sql`
+    const memberCheck = await sql`
       SELECT user_id FROM organization_members WHERE user_id = ${userId} LIMIT 1
     `;
     if (memberCheck.length > 0) {
@@ -125,12 +227,7 @@ export class GuestService {
 
     const config = orgResult[0].configuration as EventConfiguration;
 
-    // Set defaults based on configuration
-    const categories = data.categories || [config?.categories?.[0]?.id || ''];
-    const ageGroup = data.age_group || (config?.ageGroups?.enabled ? config?.ageGroups?.groups?.[0]?.id : null);
-    const foodPreference = data.food_preference || (config?.foodPreferences?.enabled ? config?.foodPreferences?.options?.[0]?.id : null);
-    const foodPreferences = data.food_preferences || (config?.foodPreferences?.enabled ? [config?.foodPreferences?.options?.[0]?.id].filter(Boolean) : []);
-    const confirmationStage = data.confirmation_stage || (config?.confirmationStages?.enabled ? config?.confirmationStages?.stages?.[0]?.id : 'invited');
+    const normalizedData = this.normalizeCreateGuestData(data, config);
 
     const result = await sql`
       INSERT INTO guests (
@@ -141,13 +238,13 @@ export class GuestService {
       VALUES (
         ${organizationId},
         ${data.name},
-        ${categories},
-        ${ageGroup},
-        ${foodPreference},
-        ${JSON.stringify(foodPreferences)},
-        ${confirmationStage},
-        ${data.custom_fields ? JSON.stringify(data.custom_fields) : '{}'},
-        ${data.family_color || null},
+        ${normalizedData.categories},
+        ${normalizedData.ageGroup},
+        ${normalizedData.foodPreference},
+        ${JSON.stringify(normalizedData.foodPreferences)},
+        ${normalizedData.confirmationStage},
+        ${JSON.stringify(normalizedData.customFields)},
+        ${normalizedData.familyColor},
         ${nextOrder},
         ${effectiveUserId}
       )
