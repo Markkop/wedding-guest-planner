@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { useGuests } from "@/lib/collaborative-guest-context";
 import { Table, TableBody, TableHeader } from "@/components/ui/table";
@@ -10,6 +10,7 @@ import { AddGuestSection } from "./guest-table/add-guest-section";
 import { TableLoading } from "./guest-table/table-loading";
 import { EmptyState } from "./guest-table/empty-state";
 import { GuestTableHeader } from "./guest-table/guest-table-header";
+import { HorizontalScrollRegion } from "./guest-table/horizontal-scroll-region";
 import { useColumnCount } from "@/lib/hooks/use-column-count";
 import type { VisibleColumns, Guest, Organization } from "@/lib/types";
 
@@ -99,6 +100,12 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
 
   const columnCount = useColumnCount(visibleColumns, organization);
 
+  const tableMeasureKey = useMemo(
+    () =>
+      `${guests.length}-${columnCount}-${JSON.stringify(visibleColumns)}-${loading ? 1 : 0}`,
+    [guests.length, columnCount, visibleColumns, loading]
+  );
+
   return (
     <div className="relative rounded-lg bg-white shadow flex flex-col">
       <div className="flex items-center justify-between border-b p-4">
@@ -110,8 +117,13 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
         />
       </div>
 
-      <div className="overflow-x-auto flex-1">
-        <Table>
+      <HorizontalScrollRegion
+        measureKey={tableMeasureKey}
+        footer={
+          <AddGuestSection onAddGuest={handleAddGuest} loading={loading} />
+        }
+      >
+        <Table enableScrollContainer={false}>
           <TableHeader>
             <GuestTableHeader
               organization={organization}
@@ -148,11 +160,7 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
             )}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="sticky bottom-0 bg-white border-t shadow-lg z-20 rounded-b-lg">
-        <AddGuestSection onAddGuest={handleAddGuest} loading={loading} />
-      </div>
+      </HorizontalScrollRegion>
     </div>
   );
 }

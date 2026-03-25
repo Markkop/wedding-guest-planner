@@ -31,7 +31,7 @@ export function AddGuestSection({ onAddGuest, loading }: AddGuestSectionProps) {
   };
 
   return (
-    <div className="border-t p-4 ">
+    <div className="p-4">
       <div className="flex gap-2">
         <Input
           ref={inputRef}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { useDemoGuests } from "@/lib/demo-guest-context";
 import {
@@ -15,6 +15,7 @@ import { ColumnSettings } from "./guest-table/column-settings";
 import { AddGuestSection } from "./guest-table/add-guest-section";
 import { TableLoading } from "./guest-table/table-loading";
 import { EmptyState } from "./guest-table/empty-state";
+import { HorizontalScrollRegion } from "./guest-table/horizontal-scroll-region";
 import { useColumnCount } from "@/lib/hooks/use-column-count";
 import type { VisibleColumns, Guest } from "@/lib/types";
 
@@ -103,6 +104,12 @@ export function DemoGuestTable() {
 
   const columnCount = useColumnCount(visibleColumns, organization);
 
+  const tableMeasureKey = useMemo(
+    () =>
+      `${guests.length}-${columnCount}-${JSON.stringify(visibleColumns)}-${loading ? 1 : 0}`,
+    [guests.length, columnCount, visibleColumns, loading]
+  );
+
   return (
     <div className="relative rounded-lg bg-white shadow flex flex-col">
       <div className="flex items-center justify-between border-b p-4">
@@ -114,8 +121,13 @@ export function DemoGuestTable() {
         />
       </div>
 
-      <div className="overflow-x-auto flex-1">
-        <Table>
+      <HorizontalScrollRegion
+        measureKey={tableMeasureKey}
+        footer={
+          <AddGuestSection onAddGuest={handleAddGuest} loading={addingGuest} />
+        }
+      >
+        <Table enableScrollContainer={false}>
           <TableHeader>
             <TableRow>
               <TableHead className="w-12 pl-4">#</TableHead>
@@ -164,11 +176,7 @@ export function DemoGuestTable() {
             )}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="sticky bottom-0 bg-white border-t shadow-lg z-20 rounded-b-lg">
-        <AddGuestSection onAddGuest={handleAddGuest} loading={addingGuest} />
-      </div>
+      </HorizontalScrollRegion>
     </div>
   );
 }
