@@ -48,19 +48,23 @@ export function GuestTableHeader({ organization, visibleColumns, guests }: Props
     toast.success("Values copied to clipboard!");
   };
 
-  const handleCopyWithPrevious = async (fieldId: string) => {
+  const handleCopyWithPrevious = async (
+    fieldId: string,
+    includeEmptyCurrent = false
+  ) => {
     const previousTextFieldId = getPreviousTextFieldId(fieldId);
     const values = guests
       .map((g) => {
         const currentValue = getTextValue(g.custom_fields?.[fieldId]);
-        if (!currentValue) return null;
+        if (!currentValue && !includeEmptyCurrent) return null;
 
         const previousValue = previousTextFieldId
           ? getTextValue(g.custom_fields?.[previousTextFieldId])
           : getTextValue(g.name);
         const left = previousValue || "<empty>";
+        const right = currentValue || "<empty>";
 
-        return `${left}: ${currentValue}`;
+        return `${left}: ${right}`;
       })
       .filter((line): line is string => Boolean(line))
       .join("\n");
@@ -160,6 +164,13 @@ export function GuestTableHeader({ organization, visibleColumns, guests }: Props
                         className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted transition-colors"
                       >
                         Copy prev + this
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyWithPrevious(id, true)}
+                        className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted transition-colors"
+                      >
+                        Copy prev + this (empty too)
                       </button>
                     </div>
                   </PopoverContent>
