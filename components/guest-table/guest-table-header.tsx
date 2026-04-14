@@ -14,6 +14,8 @@ interface Props {
   guests: Guest[];
 }
 
+type CopyWithPreviousMode = "skip-empty" | "include-empty-label" | "include-empty-blank";
+
 export function GuestTableHeader({ organization, visibleColumns, guests }: Props) {
   const { keys, customFieldMap } = useColumnOrder(organization, visibleColumns);
   const [openColumnId, setOpenColumnId] = useState<string | null>(null);
@@ -50,21 +52,28 @@ export function GuestTableHeader({ organization, visibleColumns, guests }: Props
 
   const handleCopyWithPrevious = async (
     fieldId: string,
-    includeEmptyCurrent = false
+    mode: CopyWithPreviousMode = "skip-empty"
   ) => {
     const previousTextFieldId = getPreviousTextFieldId(fieldId);
     const values = guests
       .map((g) => {
         const currentValue = getTextValue(g.custom_fields?.[fieldId]);
-        if (!currentValue && !includeEmptyCurrent) return null;
+        if (!currentValue && mode === "skip-empty") return null;
 
         const previousValue = previousTextFieldId
           ? getTextValue(g.custom_fields?.[previousTextFieldId])
           : getTextValue(g.name);
-        const left = previousValue || "<empty>";
-        const right = currentValue || "<empty>";
 
-        return `${left}: ${right}`;
+        const left =
+          mode === "include-empty-label" && !previousValue
+            ? "<empty>"
+            : previousValue;
+        const right =
+          mode === "include-empty-label" && !currentValue
+            ? "<empty>"
+            : currentValue;
+
+        return `${left}\t${right}`;
       })
       .filter((line): line is string => Boolean(line))
       .join("\n");
@@ -167,10 +176,21 @@ export function GuestTableHeader({ organization, visibleColumns, guests }: Props
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleCopyWithPrevious(id, true)}
+                        onClick={() =>
+                          handleCopyWithPrevious(id, "include-empty-label")
+                        }
                         className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted transition-colors"
                       >
-                        Copy prev + this (empty too)
+                        Copy prev + this (include &lt;empty&gt;)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCopyWithPrevious(id, "include-empty-blank")
+                        }
+                        className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted transition-colors"
+                      >
+                        Copy prev + this (include blank empty)
                       </button>
                     </div>
                   </PopoverContent>
