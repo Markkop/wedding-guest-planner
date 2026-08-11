@@ -168,10 +168,11 @@ export class AuthService {
             RETURNING id, email, name, avatar_url, created_at, updated_at
           `;
           return result[0];
-        } catch (insertError: any) {
+        } catch (insertError: unknown) {
+          const databaseError = insertError as { code?: string; constraint?: string };
           // If email conflict, the old user still exists (migration might have failed)
           // Check if it's the same user we just migrated from
-          if (insertError?.code === '23505' && insertError?.constraint === 'users_email_key') {
+          if (databaseError.code === '23505' && databaseError.constraint === 'users_email_key') {
             // Old user still exists - migration might have failed
             // Just return the existing user (migration will happen on next sync)
             const existingUser = await this.getUserByEmail(email);
@@ -180,7 +181,7 @@ export class AuthService {
             }
           }
           // If ID conflict, user already exists with this ID, just update
-          if (insertError?.code === '23505') {
+          if (databaseError.code === '23505') {
             const result = await sql`
               UPDATE users
               SET email = ${email},

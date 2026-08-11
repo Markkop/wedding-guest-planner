@@ -1,0 +1,13 @@
+.git
+.github
+.next
+.next-buildcheck
+node_modules
+.env*
+.vercel
+.clerk
+.ssh-prod
+npm-debug.log*
+pnpm-debug.log*
+coverage
+docs

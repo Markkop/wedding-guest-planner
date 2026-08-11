@@ -79,7 +79,8 @@ export function CollaborationProvider({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionTimeoutRef = useRef<number>(120000); // Default 2 minutes
   const reconnectAttemptRef = useRef<number>(0);
-  const user = useUser();
+  const { user } = useUser();
+  const userDisplayName = user?.fullName || user?.primaryEmailAddress?.emailAddress;
 
   // Broadcast a guest update to all connected users
   const broadcastGuestUpdate = useCallback(
@@ -95,7 +96,7 @@ export function CollaborationProvider({
           body: JSON.stringify({
             ...update,
             userId: user.id,
-            userName: user.displayName || user.primaryEmail || "Unknown User",
+            userName: userDisplayName || "Unknown User",
             timestamp: new Date().toISOString(),
           }),
         });
@@ -103,7 +104,7 @@ export function CollaborationProvider({
         console.error("Failed to broadcast update:", error);
       }
     },
-    [organizationId, user?.id, user?.displayName, user?.primaryEmail]
+    [organizationId, user?.id, userDisplayName]
   );
 
   // Register callback for guest updates

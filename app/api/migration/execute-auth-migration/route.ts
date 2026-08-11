@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { sql } from '@/lib/db';
+import { queryWithClient, sql, withTransaction } from '@/lib/db';
 
 export async function POST() {
   try {
@@ -33,57 +33,35 @@ export async function POST() {
     const preMigration = preCheck[0];
 
     // Execute migration in transaction
-    await sql.begin(async (sql) => {
+    await withTransaction(async (client) => {
       // Update organizations.admin_id
-      await sql`
-        UPDATE organizations
-        SET admin_id = ${clerkUserId}
-        WHERE admin_id = ${oldUserId}
-      `;
+      await queryWithClient(client, 'UPDATE organizations SET admin_id = $1 WHERE admin_id = $2', [clerkUserId, oldUserId]);
 
       // Update organization_members.user_id
-      await sql`
-        UPDATE organization_members
-        SET user_id = ${clerkUserId}
-        WHERE user_id = ${oldUserId}
-      `;
+      await queryWithClient(client, 'UPDATE organization_members SET user_id = $1 WHERE user_id = $2', [clerkUserId, oldUserId]);
 
       // Update guests.created_by
-      await sql`
-        UPDATE guests
-        SET created_by = ${clerkUserId}
-        WHERE created_by = ${oldUserId}
-      `;
+      await queryWithClient(client, 'UPDATE guests SET created_by = $1 WHERE created_by = $2', [clerkUserId, oldUserId]);
 
       // Update active_sessions.user_id (if any)
-      await sql`
-        UPDATE active_sessions
-        SET user_id = ${clerkUserId}
-        WHERE user_id = ${oldUserId}
-      `;
+      await queryWithClient(client, 'UPDATE active_sessions SET user_id = $1 WHERE user_id = $2', [clerkUserId, oldUserId]);
 
       // Create/update user record with Clerk ID
-      await sql`
-        INSERT INTO users (id, email, name, avatar_url, password_hash)
-        VALUES (
-          ${clerkUserId},
-          ${email},
-          (SELECT name FROM users WHERE id = ${oldUserId}),
-          (SELECT avatar_url FROM users WHERE id = ${oldUserId}),
-          'clerk_managed'
-        )
-        ON CONFLICT (id) DO UPDATE SET
-          email = EXCLUDED.email,
-          name = COALESCE(EXCLUDED.name, users.name),
-          avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
-          updated_at = CURRENT_TIMESTAMP
-      `;
+      await queryWithClient(
+        client,
+        `INSERT INTO users (id, email, name, avatar_url, password_hash)
+         VALUES ($1, $2, (SELECT name FROM users WHERE id = $3),
+                 (SELECT avatar_url FROM users WHERE id = $3), 'clerk_managed')
+         ON CONFLICT (id) DO UPDATE SET
+           email = EXCLUDED.email,
+           name = COALESCE(EXCLUDED.name, users.name),
+           avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
+           updated_at = CURRENT_TIMESTAMP`,
+        [clerkUserId, email, oldUserId],
+      );
 
       // Delete old user record (only after all FK references are updated)
-      await sql`
-        DELETE FROM users
-        WHERE id = ${oldUserId}
-      `;
+      await queryWithClient(client, 'DELETE FROM users WHERE id = $1', [oldUserId]);
     });
 
     // Post-migration verification
@@ -122,4 +100,3 @@ export async function POST() {
     }, { status: 500 });
   }
 }
-

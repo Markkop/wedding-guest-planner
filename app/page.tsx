@@ -114,7 +114,7 @@ function LandingContent() {
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Copy className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Clone/Guest's +1</span>
+              <span className="text-sm sm:text-base">Clone/Guest&apos;s +1</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <GripVertical className="h-5 w-5 text-indigo-600" />

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { Client } from 'pg';
+import { query } from '@/lib/db';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  let client: Client | null = null;
-  
   try {
     const authResult = await auth();
     if (!authResult.userId) {
@@ -16,23 +14,17 @@ export async function POST(
 
     const { organizationId } = await params;
 
-    // Connect to database
-    client = new Client({
-      connectionString: process.env.DATABASE_URL,
-    });
-    await client.connect();
-
     // Check if user is admin of this organization
-    const memberResult = await client.query(
+    const members = await query<{ role: string }>(
       'SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2',
       [organizationId, authResult.userId]
     );
 
-    if (memberResult.rows.length === 0) {
+    if (members.length === 0) {
       return NextResponse.json({ error: 'Not a member of this organization' }, { status: 403 });
     }
 
-    if (memberResult.rows[0].role !== 'admin') {
+    if (members[0].role !== 'admin') {
       return NextResponse.json({ error: 'Only admins can refresh invite codes' }, { status: 403 });
     }
 
@@ -40,7 +32,7 @@ export async function POST(
     const newInviteCode = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
     // Update organization with new invite code
-    await client.query(
+    await query(
       'UPDATE organizations SET invite_code = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [newInviteCode, organizationId]
     );
@@ -56,9 +48,5 @@ export async function POST(
       { error: 'Failed to refresh invite code' },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.end();
-    }
   }
 }

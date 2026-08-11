@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Wedding guest planner application with drag-and-drop reordering, organization-based access, and real-time data persistence. Built with Next.js 15.5.0, TypeScript, Tailwind CSS v4, and Neon Database.
+Wedding guest planner application with drag-and-drop reordering, organization-based access, and real-time data persistence. Built with Next.js 15.5, TypeScript, Tailwind CSS v4, and PostgreSQL 17.
 
 ## Development Commands
 
@@ -17,6 +17,7 @@ pnpm start:sandbox     # Start production on port 4000 using sandbox build
 pnpm clean             # Clean all build artifacts
 pnpm lint              # Run ESLint
 pnpm tsc               # Run TypeScript compiler
+pnpm db:migrate        # Apply checked SQL migrations
 ```
 
 **Important**: Use `pnpm build:sandbox` when dev server is running to prevent ENOENT errors. Sandbox builds output to `.next-buildcheck`.
@@ -28,7 +29,7 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 - **Language**: TypeScript with strict mode
 - **Styling**: Tailwind CSS v4 with PostCSS
 - **UI Components**: shadcn/ui (New York style), Lucide React icons
-- **Database**: Neon PostgreSQL (`@neondatabase/serverless`)
+- **Database**: PostgreSQL 17 (`pg` connection pool)
 - **Authentication**: Clerk (`@clerk/nextjs`)
 - **Drag & Drop**: `@atlaskit/pragmatic-drag-and-drop`
 - **AI Integration**: OpenAI SDK with AI SDK React hooks
@@ -36,7 +37,7 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 
 ## Architecture
 
-### Database Schema (Neon)
+### Database schema
 
 ```typescript
 // Core tables in lib/db/index.ts
@@ -111,13 +112,18 @@ Three-stage progression:
 Required in `.env.local`:
 
 ```
-DATABASE_URL                              # Neon PostgreSQL connection
+DATABASE_URL                              # PostgreSQL connection
+DATABASE_SSL                             # false for local/private Coolify network
+DATABASE_POOL_MAX                        # default: 10
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY         # Clerk publishable key
 CLERK_SECRET_KEY                          # Clerk secret key
 ```
 
 ## Build Configuration
 
+- **Production**: standalone Next.js output in a multi-stage Docker image
+- **Startup**: checked SQL migrations run before the application starts
+- **Health**: `/api/health` verifies PostgreSQL connectivity
 - **Sandbox Mode**: `NEXT_BUILD_SANDBOX=1` outputs to `.next-buildcheck`
 - **TypeScript**: Strict mode enabled, build errors ignored for rapid development
 - **ESLint**: Configured but skippable during builds

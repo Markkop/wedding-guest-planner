@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { Client } from 'pg';
+import { query } from '@/lib/db';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
-  let client: Client | null = null;
-  
   try {
     const authResult = await auth();
     if (!authResult.userId) {
@@ -16,36 +14,30 @@ export async function POST(
 
     const { code: inviteCode } = await params;
 
-    // Connect to database
-    client = new Client({
-      connectionString: process.env.DATABASE_URL,
-    });
-    await client.connect();
-
     // Get organization by invite code
-    const orgResult = await client.query(
+    const organizations = await query<{ id: string; name: string }>(
       'SELECT id, name, invite_code, admin_id, event_type FROM organizations WHERE invite_code = $1',
       [inviteCode]
     );
 
-    if (orgResult.rows.length === 0) {
+    if (organizations.length === 0) {
       return NextResponse.json({ error: 'Invalid or expired invite code' }, { status: 404 });
     }
 
-    const organization = orgResult.rows[0];
+    const organization = organizations[0];
 
     // Check if user is already a member
-    const memberCheck = await client.query(
+    const memberCheck = await query(
       'SELECT id FROM organization_members WHERE organization_id = $1 AND user_id = $2',
       [organization.id, authResult.userId]
     );
     
-    if (memberCheck.rows.length > 0) {
+    if (memberCheck.length > 0) {
       return NextResponse.json({ error: 'You are already a member of this organization' }, { status: 400 });
     }
 
     // Add user to organization
-    await client.query(
+    await query(
       'INSERT INTO organization_members (organization_id, user_id, role, joined_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
       [organization.id, authResult.userId, 'member']
     );
@@ -62,9 +54,5 @@ export async function POST(
       { error: 'Failed to join organization' },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.end();
-    }
   }
 }

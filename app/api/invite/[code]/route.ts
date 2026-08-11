@@ -1,57 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { Client } from 'pg';
+import { query } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
-  let client: Client | null = null;
-  
   try {
     const { code: inviteCode } = await params;
-    
-    // Connect to database
-    client = new Client({
-      connectionString: process.env.DATABASE_URL,
-    });
-    await client.connect();
 
     // Get organization by invite code
-    const orgResult = await client.query(
+    const organizations = await query<{
+      id: string;
+      name: string;
+      admin_id: string;
+      event_type: string | null;
+    }>(
       'SELECT id, name, invite_code, admin_id, event_type FROM organizations WHERE invite_code = $1',
       [inviteCode]
     );
     
-    if (orgResult.rows.length === 0) {
+    if (organizations.length === 0) {
       return NextResponse.json({ error: 'Invalid or expired invite code' }, { status: 404 });
     }
 
-    const organization = orgResult.rows[0];
+    const organization = organizations[0];
 
     // Check if user is authenticated and already a member
     let alreadyMember = false;
     try {
       const authResult = await auth();
       if (authResult.userId) {
-        const memberResult = await client.query(
+        const members = await query(
           'SELECT id FROM organization_members WHERE organization_id = $1 AND user_id = $2',
           [organization.id, authResult.userId]
         );
-        alreadyMember = memberResult.rows.length > 0;
+        alreadyMember = members.length > 0;
       }
     } catch {
       // User not authenticated, continue
     }
 
     // Get admin info and member count
-    const [adminResult, memberCountResult] = await Promise.all([
-      client.query('SELECT name, email FROM users WHERE id = $1', [organization.admin_id]),
-      client.query('SELECT COUNT(*) as count FROM organization_members WHERE organization_id = $1', [organization.id])
+    const [admins, memberCounts] = await Promise.all([
+      query<{ name: string | null; email: string }>('SELECT name, email FROM users WHERE id = $1', [organization.admin_id]),
+      query<{ count: string }>('SELECT COUNT(*) as count FROM organization_members WHERE organization_id = $1', [organization.id])
     ]);
 
-    const admin = adminResult.rows[0];
-    const memberCount = parseInt(memberCountResult.rows[0].count);
+    const admin = admins[0];
+    const memberCount = parseInt(memberCounts[0].count);
 
     return NextResponse.json({
       organization: {
@@ -70,9 +67,5 @@ export async function GET(
       { error: 'Failed to load invite information' },
       { status: 500 }
     );
-  } finally {
-    if (client) {
-      await client.end();
-    }
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { queryWithClient, sql, withTransaction } from '@/lib/db';
 import { AuthService } from '@/lib/auth/auth-service';
 import { z } from 'zod';
 
@@ -68,64 +68,69 @@ export async function POST(
     // Validate the import data
     const validatedData = importDataSchema.parse(body.data);
 
-    // Start a transaction for data consistency
-    await sql`BEGIN`;
-    
-    try {
+    await withTransaction(async (client) => {
       // Update organization settings
-      await sql`
-        UPDATE organizations
-        SET 
-          name = ${validatedData.organization.name},
-          event_type = ${validatedData.organization.event_type},
-          configuration = ${JSON.stringify(validatedData.organization.configuration)},
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${organizationId}
-      `;
+      await queryWithClient(
+        client,
+        `UPDATE organizations
+         SET name = $1, event_type = $2, configuration = $3, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $4`,
+        [
+          validatedData.organization.name,
+          validatedData.organization.event_type,
+          JSON.stringify(validatedData.organization.configuration),
+          organizationId,
+        ],
+      );
 
       // Clear existing guests
-      await sql`DELETE FROM guests WHERE organization_id = ${organizationId}`;
+      await queryWithClient(
+        client,
+        'DELETE FROM guests WHERE organization_id = $1',
+        [organizationId],
+      );
 
       // Import guests
       for (const [index, guest] of validatedData.guests.entries()) {
         const displayOrder = guest.display_order ?? (index + 1);
         
-        await sql`
-          INSERT INTO guests (
-            organization_id, name, categories, age_group, 
-            food_preference, confirmation_stage, custom_fields, 
-            display_order, created_by
-          )
-          VALUES (
-            ${organizationId},
-            ${guest.name},
-            ${guest.categories},
-            ${guest.age_group || null},
-            ${guest.food_preference || null},
-            ${guest.confirmation_stage},
-            ${guest.custom_fields ? JSON.stringify(guest.custom_fields) : '{}'},
-            ${displayOrder},
-            ${user.id}
-          )
-        `;
+        await queryWithClient(
+          client,
+          `INSERT INTO guests (
+             organization_id, name, categories, age_group,
+             food_preference, confirmation_stage, custom_fields,
+             display_order, created_by
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            organizationId,
+            guest.name,
+            guest.categories,
+            guest.age_group || null,
+            guest.food_preference || null,
+            guest.confirmation_stage,
+            JSON.stringify(guest.custom_fields ?? {}),
+            displayOrder,
+            user.id,
+          ],
+        );
       }
 
       // Update invite code if provided
       if (validatedData.invite_code) {
         // Check if the invite code already exists for another organization
-        const existingInviteCode = await sql`
-          SELECT id FROM organizations 
-          WHERE invite_code = ${validatedData.invite_code} 
-          AND id != ${organizationId}
-        `;
+        const existingInviteCode = await queryWithClient(
+          client,
+          'SELECT id FROM organizations WHERE invite_code = $1 AND id != $2',
+          [validatedData.invite_code, organizationId],
+        );
         
         if (existingInviteCode.length === 0) {
           // Only update if the invite code is not used by another organization
-          await sql`
-            UPDATE organizations
-            SET invite_code = ${validatedData.invite_code}
-            WHERE id = ${organizationId}
-          `;
+          await queryWithClient(
+            client,
+            'UPDATE organizations SET invite_code = $1 WHERE id = $2',
+            [validatedData.invite_code, organizationId],
+          );
         } else {
           // Generate a new unique invite code if there's a conflict
           const { nanoid } = await import('nanoid');
@@ -134,28 +139,26 @@ export async function POST(
           
           do {
             newInviteCode = nanoid(8).toUpperCase();
-            const existing = await sql`
-              SELECT id FROM organizations WHERE invite_code = ${newInviteCode}
-            `;
+            const existing = await queryWithClient(
+              client,
+              'SELECT id FROM organizations WHERE invite_code = $1',
+              [newInviteCode],
+            );
             if (existing.length === 0) break;
             attempts++;
           } while (attempts < 10);
           
           if (newInviteCode) {
-            await sql`
-              UPDATE organizations
-              SET invite_code = ${newInviteCode}
-              WHERE id = ${organizationId}
-            `;
+            await queryWithClient(
+              client,
+              'UPDATE organizations SET invite_code = $1 WHERE id = $2',
+              [newInviteCode, organizationId],
+            );
           }
         }
       }
 
-      await sql`COMMIT`;
-    } catch (transactionError) {
-      await sql`ROLLBACK`;
-      throw transactionError;
-    }
+    });
 
     // Return summary of imported data
     const summary = {

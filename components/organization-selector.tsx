@@ -317,7 +317,7 @@ export function OrganizationSelector({ onOrganizationSelect }: OrganizationSelec
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
             <h3 className="text-sm font-medium text-yellow-800 mb-2">🔧 Debug Mode</h3>
             <p className="text-xs text-yellow-700 mb-3">
-              If you should have organizations but don't see them, click this button to debug the issue.
+              If you should have organizations but don&apos;t see them, click this button to debug the issue.
               Check your browser console for detailed logs.
             </p>
             <Button 

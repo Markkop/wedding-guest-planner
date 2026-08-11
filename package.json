@@ -1,5 +1,5 @@
 {
-  "name": "my-app",
+  "name": "wedding-guest-planner",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,8 @@
     "start:sandbox": "NEXT_BUILD_SANDBOX=1 next start -p 4000",
     "clean": "rimraf .next .next-buildcheck .turbo",
     "lint": "eslint",
-    "tsc": "tsc --noEmit"
+    "tsc": "tsc --noEmit",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.19",
@@ -18,7 +19,6 @@
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.4",
     "@clerk/nextjs": "^6.35.1",
     "@hookform/resolvers": "^5.2.1",
-    "@neondatabase/serverless": "^1.0.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -64,5 +64,6 @@
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.7",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "pnpm@10.32.1"
 }

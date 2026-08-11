@@ -1,10 +1,98 @@
-import { neon } from '@neondatabase/serverless';
+import {
+  Pool,
+  type PoolClient,
+  type QueryResultRow,
+} from 'pg';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not defined');
+const DEFAULT_POOL_SIZE = 10;
+
+declare global {
+  // Reuse the pool during Next.js development hot reloads.
+  var weddingGuestPlannerPool: Pool | undefined;
 }
 
-export const sql = neon(process.env.DATABASE_URL);
+function databaseUrl(): string {
+  const value = process.env.DATABASE_URL;
+
+  if (!value) {
+    throw new Error('DATABASE_URL is not defined');
+  }
+
+  return value;
+}
+
+function poolSize(): number {
+  const configured = Number(process.env.DATABASE_POOL_MAX ?? DEFAULT_POOL_SIZE);
+  return Number.isInteger(configured) && configured > 0
+    ? configured
+    : DEFAULT_POOL_SIZE;
+}
+
+function createPool(): Pool {
+  return new Pool({
+    connectionString: databaseUrl(),
+    max: poolSize(),
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 30_000,
+    ssl: process.env.DATABASE_SSL === 'false' ? false : undefined,
+  });
+}
+
+export function getPool(): Pool {
+  if (!globalThis.weddingGuestPlannerPool) {
+    globalThis.weddingGuestPlannerPool = createPool();
+  }
+
+  return globalThis.weddingGuestPlannerPool;
+}
+
+export async function query<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  values: unknown[] = [],
+): Promise<T[]> {
+  const result = await getPool().query<T>(text, values);
+  return result.rows;
+}
+
+export async function queryWithClient<T extends QueryResultRow = QueryResultRow>(
+  client: PoolClient,
+  text: string,
+  values: unknown[] = [],
+): Promise<T[]> {
+  const result = await client.query<T>(text, values);
+  return result.rows;
+}
+
+export async function sql<T extends QueryResultRow = QueryResultRow>(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+): Promise<T[]> {
+  const text = strings.reduce(
+    (statement, part, index) =>
+      statement + part + (index < values.length ? `$${index + 1}` : ''),
+    '',
+  );
+
+  return query<T>(text, values);
+}
+
+export async function withTransaction<T>(
+  callback: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await getPool().connect();
+
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 export type User = {
   id: string;
