@@ -27,6 +27,10 @@ Deployments clone `main` from Forgejo and build the root `Dockerfile`. The image
 
 Never print connection URLs or database passwords into logs, commits, or shell history.
 
+Run `scripts/verify-database.sql` against both endpoints to produce deterministic
+row counts, per-table content digests, and a schema fingerprint without printing
+guest or account data. The output must match exactly.
+
 ## Verification gates
 
 Before retiring the old providers, verify all of the following:
