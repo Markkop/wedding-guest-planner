@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth/auth-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LocalGuestProvider } from "@/lib/local-guest-context";
@@ -28,25 +28,40 @@ import {
   BarChart,
   MessageSquare,
   Mic,
-  Image,
+  Image as ImageIcon,
   Mail,
 } from "lucide-react";
 import Link from "next/link";
 
 function LandingContent() {
-  const user = useUser();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!mounted || isPending) {
     return <LoadingContent text="Loading..." className="min-h-screen" />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "Guest Planner",
+            url: "https://guests.markkop.dev",
+            applicationCategory: "LifestyleApplication",
+            operatingSystem: "Web",
+            description: "Collaborative wedding and event guest-list, RSVP, and dietary-preference organizer.",
+          }).replace(/</g, "\\u003c"),
+        }}
+      />
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="mx-auto max-w-7xl px-4 py-4">
@@ -68,12 +83,12 @@ function LandingContent() {
                 </Link>
               ) : (
                 <>
-                  <Link href="/handler/sign-in">
+                  <Link href="/login">
                     <Button variant="outline" size="sm" className="text-sm">
                       Login
                     </Button>
                   </Link>
-                  <Link href="/handler/sign-up">
+                  <Link href="/login">
                     <Button size="sm" className="text-sm">
                       <span className="hidden sm:inline">Get Started Free</span>
                       <span className="sm:hidden">Sign Up</span>
@@ -169,7 +184,7 @@ function LandingContent() {
               <span className="text-sm sm:text-base">Voice Input</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
-              <Image className="h-5 w-5 text-indigo-600" />
+              <ImageIcon className="h-5 w-5 text-indigo-600" />
               <span className="text-sm sm:text-base">Image Support</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
@@ -405,7 +420,7 @@ function LandingContent() {
               </Link>
             ) : (
               <>
-                <Link href="/handler/sign-up">
+                <Link href="/login">
                   <Button
                     size="lg"
                     variant="secondary"
@@ -415,7 +430,7 @@ function LandingContent() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/handler/sign-in">
+                <Link href="/login">
                   <Button
                     size="lg"
                     variant="outline"
@@ -432,8 +447,13 @@ function LandingContent() {
 
       {/* Footer */}
       <footer className="bg-gray-900 py-8">
-        <div className="mx-auto max-w-7xl px-4 text-center text-gray-400">
-          <p>&copy; 2024 Guest Planner. Made for special events.</p>
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-center text-sm text-gray-400 sm:flex-row sm:text-left">
+          <p>&copy; {new Date().getFullYear()} Guest Planner. Made for special events.</p>
+          <nav aria-label="Legal" className="flex flex-wrap justify-center gap-4">
+            <Link href="/privacy" className="hover:text-white">Privacy</Link>
+            <Link href="/terms" className="hover:text-white">Terms</Link>
+            <Link href="/data-deletion" className="hover:text-white">Data deletion</Link>
+          </nav>
         </div>
       </footer>
     </div>

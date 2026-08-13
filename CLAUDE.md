@@ -30,7 +30,7 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 - **Styling**: Tailwind CSS v4 with PostCSS
 - **UI Components**: shadcn/ui (New York style), Lucide React icons
 - **Database**: PostgreSQL 17 (`pg` connection pool)
-- **Authentication**: Clerk (`@clerk/nextjs`)
+- **Authentication**: Better Auth with Google OAuth (`better-auth`)
 - **Drag & Drop**: `@atlaskit/pragmatic-drag-and-drop`
 - **AI Integration**: OpenAI SDK with AI SDK React hooks
   Note: when using ShadCn Cli, always use the `-y` and `-o` flags to avoid getting stuck asking you questions.
@@ -49,11 +49,12 @@ No need to always run build, lint and tsc should be enough to catch errors, try 
 
 ### Authentication Flow
 
-1. **Clerk Integration** (`lib/auth/`)
+1. **Better Auth Integration** (`lib/auth/`)
 
-   - Server: `lib/auth/auth-service.ts` - Auth service with Clerk integration
-   - Uses `auth()` and `currentUser()` from `@clerk/nextjs/server` for server-side auth
-   - Client: `useUser()` and `useClerk()` hooks from `@clerk/nextjs` for client-side auth
+   - Server: `lib/auth/auth.ts` and `lib/auth/auth-service.ts`
+   - Client: `lib/auth/auth-client.ts` with `useSession()`, Google sign-in, and sign-out
+   - OAuth handler: `app/api/auth/[...all]/route.ts`
+   - Better Auth shares the existing `users` table so application ownership IDs remain stable
 
 2. **Organization Access**
    - Invite code system for joining organizations
@@ -115,8 +116,11 @@ Required in `.env.local`:
 DATABASE_URL                              # PostgreSQL connection
 DATABASE_SSL                             # false for local/private Coolify network
 DATABASE_POOL_MAX                        # default: 10
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY         # Clerk publishable key
-CLERK_SECRET_KEY                          # Clerk secret key
+BETTER_AUTH_SECRET                        # High-entropy session/auth secret
+BETTER_AUTH_URL                           # Canonical app origin
+BETTER_AUTH_TRUSTED_ORIGINS               # Comma-separated allowed origins
+GOOGLE_CLIENT_ID                          # Google OAuth web client ID
+GOOGLE_CLIENT_SECRET                      # Google OAuth web client secret
 ```
 
 ## Build Configuration

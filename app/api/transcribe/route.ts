@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { AuthService } from '@/lib/auth/auth-service';
 
 async function transcribeAudio(audioData: Buffer | ArrayBuffer): Promise<string> {
   try {
@@ -31,10 +31,7 @@ async function transcribeAudio(audioData: Buffer | ArrayBuffer): Promise<string>
 
 export async function POST(request: Request) {
   try {
-    const authResult = await auth();
-    if (!authResult.userId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+    await AuthService.requireUser();
     
     const body = await request.json();
     const { audioData } = body;

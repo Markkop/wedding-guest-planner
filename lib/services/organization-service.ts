@@ -16,15 +16,6 @@ export class OrganizationService {
   ) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     const inviteCode = this.generateInviteCode();
 
     // Get the preset configuration for the event type
@@ -66,15 +57,6 @@ export class OrganizationService {
   static async joinOrganization(inviteCode: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     const orgResult = await sql`
       SELECT * FROM organizations WHERE invite_code = ${inviteCode}
     `;
@@ -103,98 +85,25 @@ export class OrganizationService {
   }
 
   static async getUserOrganizations() {
-    try {
-      const authResult = await AuthService.getCurrentUser();
-      if (!authResult.userId) return [];
-
-      // Sync Clerk user to local database first (this will migrate if needed)
-      const clerkUser = await AuthService.getCurrentUserFull();
-      if (!clerkUser) {
-        console.error('No Clerk user found');
-        return [];
-      }
-
-      try {
-        await AuthService.syncUserToDatabase({
-          id: clerkUser.id,
-          emailAddresses: clerkUser.emailAddresses,
-          firstName: clerkUser.firstName,
-          lastName: clerkUser.lastName,
-          imageUrl: clerkUser.imageUrl
-        });
-      } catch (syncError) {
-        console.error('Error syncing user to database:', syncError);
-        // Continue with lookup even if sync fails
-      }
-
-      // Try ID-based lookup first (backward compatibility)
-      // After sync, the Clerk ID should be in the database (either existing or migrated)
-      let userId = authResult.userId;
-      let result = await sql`
-        SELECT o.*, om.role
-        FROM organizations o
-        JOIN organization_members om ON o.id = om.organization_id
-        WHERE om.user_id = ${userId}
-        ORDER BY o.created_at DESC
-      `;
-
-      // If no results, try email-based fallback
-      if (result.length === 0) {
-        try {
-          const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
-          const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
-          if (effectiveUserId && effectiveUserId !== userId) {
-            userId = effectiveUserId;
-            result = await sql`
-              SELECT o.*, om.role
-              FROM organizations o
-              JOIN organization_members om ON o.id = om.organization_id
-              WHERE om.user_id = ${userId}
-              ORDER BY o.created_at DESC
-            `;
-          }
-        } catch (fallbackError) {
-          console.error('Error in email fallback:', fallbackError);
-          // Return empty array if fallback fails
-        }
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Error in getUserOrganizations:', error);
-      throw error;
-    }
+    const { userId } = await AuthService.requireUser();
+    return sql`
+      SELECT o.*, om.role
+      FROM organizations o
+      JOIN organization_members om ON o.id = om.organization_id
+      WHERE om.user_id = ${userId}
+      ORDER BY o.created_at DESC
+    `;
   }
 
   static async getOrganization(organizationId: string) {
     const authResult = await AuthService.requireUser();
 
-    // Try ID-based lookup first (backward compatibility)
-    let userId = authResult.userId;
-    let result = await sql`
+    const result = await sql`
       SELECT o.*, om.role
       FROM organizations o
       JOIN organization_members om ON o.id = om.organization_id
-      WHERE o.id = ${organizationId} AND om.user_id = ${userId}
+      WHERE o.id = ${organizationId} AND om.user_id = ${authResult.userId}
     `;
-
-    // If no results and we have Clerk user, try email-based fallback
-    if (result.length === 0) {
-      const clerkUser = await AuthService.getCurrentUserFull();
-      if (clerkUser) {
-        const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
-        const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
-        if (effectiveUserId && effectiveUserId !== userId) {
-          userId = effectiveUserId;
-          result = await sql`
-            SELECT o.*, om.role
-            FROM organizations o
-            JOIN organization_members om ON o.id = om.organization_id
-            WHERE o.id = ${organizationId} AND om.user_id = ${userId}
-          `;
-        }
-      }
-    }
 
     if (result.length === 0) {
       throw new Error('Organization not found or access denied');
@@ -213,28 +122,10 @@ export class OrganizationService {
   ) {
     const authResult = await AuthService.requireUser();
 
-    // Try ID-based lookup first (backward compatibility)
-    let userId = authResult.userId;
-    let memberCheck = await sql`
+    const memberCheck = await sql`
       SELECT role FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${userId}
+      WHERE organization_id = ${organizationId} AND user_id = ${authResult.userId}
     `;
-
-    // If no results and we have Clerk user, try email-based fallback
-    if (memberCheck.length === 0) {
-      const clerkUser = await AuthService.getCurrentUserFull();
-      if (clerkUser) {
-        const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
-        const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
-        if (effectiveUserId && effectiveUserId !== userId) {
-          userId = effectiveUserId;
-          memberCheck = await sql`
-            SELECT role FROM organization_members
-            WHERE organization_id = ${organizationId} AND user_id = ${userId}
-          `;
-        }
-      }
-    }
 
     if (memberCheck.length === 0 || memberCheck[0].role !== 'admin') {
       throw new Error('Only admins can update organization settings');
@@ -261,28 +152,10 @@ export class OrganizationService {
   static async getOrganizationMembers(organizationId: string) {
     const authResult = await AuthService.requireUser();
 
-    // Try ID-based lookup first (backward compatibility)
-    let userId = authResult.userId;
-    let memberCheck = await sql`
+    const memberCheck = await sql`
       SELECT * FROM organization_members
-      WHERE organization_id = ${organizationId} AND user_id = ${userId}
+      WHERE organization_id = ${organizationId} AND user_id = ${authResult.userId}
     `;
-
-    // If no results and we have Clerk user, try email-based fallback
-    if (memberCheck.length === 0) {
-      const clerkUser = await AuthService.getCurrentUserFull();
-      if (clerkUser) {
-        const emails = clerkUser.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
-        const effectiveUserId = await AuthService.getEffectiveUserId(clerkUser.id, emails);
-        if (effectiveUserId && effectiveUserId !== userId) {
-          userId = effectiveUserId;
-          memberCheck = await sql`
-            SELECT * FROM organization_members
-            WHERE organization_id = ${organizationId} AND user_id = ${userId}
-          `;
-        }
-      }
-    }
 
     if (memberCheck.length === 0) {
       throw new Error('Access denied');
@@ -314,15 +187,6 @@ export class OrganizationService {
   static async updateActiveSession(organizationId: string) {
     const user = await AuthService.getCurrentUserFull();
     if (!user) return;
-
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
 
     await sql`
       INSERT INTO active_sessions (user_id, organization_id, last_activity)

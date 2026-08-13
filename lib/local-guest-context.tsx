@@ -372,6 +372,8 @@ export function LocalGuestProvider({
       includePlusOne: boolean = true,
       includeFamilyTogether: boolean = false
     ) => {
+      void includePlusOne;
+      void includeFamilyTogether;
       if (fromIndex === toIndex) return;
 
       // Optimistic update

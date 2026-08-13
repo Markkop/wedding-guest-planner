@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/auth/auth-service";
+import { query } from "@/lib/db";
 
 interface ConnectedClient {
   userId: string;
@@ -67,20 +68,16 @@ export async function GET(
   { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const authResult = await auth();
-    if (!authResult.userId) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    const user = await currentUser();
-    if (!user) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
+    const user = await AuthService.requireUserFull();
     const { organizationId } = await params;
 
-    // TODO: Verify user has access to this organization
-    // For now, we'll trust the user is authorized since they're logged in
+    const membership = await query(
+      "SELECT 1 FROM organization_members WHERE organization_id = $1 AND user_id = $2",
+      [organizationId, user.id],
+    );
+    if (membership.length === 0) {
+      return new Response("Forbidden", { status: 403 });
+    }
 
     let cleanupTimer: NodeJS.Timeout | null = null;
     let heartbeatTimer: NodeJS.Timeout | null = null;
@@ -104,9 +101,7 @@ export async function GET(
         }
 
         const orgConnections = sessionConnections.get(organizationId)!;
-        const userName = user.firstName && user.lastName
-          ? `${user.firstName} ${user.lastName}`
-          : user.emailAddresses?.[0]?.emailAddress || "Unknown User";
+        const userName = user.name || user.email || "Unknown User";
         const connectedClient: ConnectedClient = {
           userId: user.id,
           userName: userName,
@@ -214,6 +209,9 @@ export async function GET(
     });
   } catch (error) {
     console.error("SSE stream error:", error);
+    if (error instanceof Error && error.message === "Not authenticated") {
+      return new Response("Unauthorized", { status: 401 });
+    }
     return new Response("Internal Server Error", { status: 500 });
   }
 }

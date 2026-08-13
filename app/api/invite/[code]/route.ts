@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { AuthService } from '@/lib/auth/auth-service';
 import { query } from '@/lib/db';
 
 export async function GET(
@@ -29,7 +29,7 @@ export async function GET(
     // Check if user is authenticated and already a member
     let alreadyMember = false;
     try {
-      const authResult = await auth();
+      const authResult = await AuthService.getCurrentUser();
       if (authResult.userId) {
         const members = await query(
           'SELECT id FROM organization_members WHERE organization_id = $1 AND user_id = $2',

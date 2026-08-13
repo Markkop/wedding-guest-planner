@@ -39,15 +39,6 @@ export async function POST(
     const { organizationId } = await params;
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Check if user has access to this organization
     const memberCheck = await sql`
       SELECT role FROM organization_members

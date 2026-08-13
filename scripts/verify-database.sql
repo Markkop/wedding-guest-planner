@@ -2,7 +2,11 @@
 \pset format unaligned
 
 WITH checks AS (
-  SELECT 'active_sessions' AS table_name, count(*) AS row_count,
+  SELECT 'accounts' AS table_name, count(*) AS row_count,
+    md5(coalesce(string_agg(to_jsonb(t)::text, '|' ORDER BY id::text), '')) AS digest
+    FROM public.accounts t
+  UNION ALL
+  SELECT 'active_sessions', count(*),
     md5(coalesce(string_agg(to_jsonb(t)::text, '|' ORDER BY id::text), '')) AS digest
     FROM public.active_sessions t
   UNION ALL
@@ -22,9 +26,17 @@ WITH checks AS (
     md5(coalesce(string_agg(to_jsonb(t)::text, '|' ORDER BY id::text), ''))
     FROM public.organizations t
   UNION ALL
+  SELECT 'sessions', count(*),
+    md5(coalesce(string_agg(to_jsonb(t)::text, '|' ORDER BY id::text), ''))
+    FROM public.sessions t
+  UNION ALL
   SELECT 'users', count(*),
     md5(coalesce(string_agg(to_jsonb(t)::text, '|' ORDER BY id::text), ''))
     FROM public.users t
+  UNION ALL
+  SELECT 'verifications', count(*),
+    md5(coalesce(string_agg(to_jsonb(t)::text, '|' ORDER BY id::text), ''))
+    FROM public.verifications t
 )
 SELECT 'DATA|' || table_name || '|' || row_count || '|' || digest
 FROM checks

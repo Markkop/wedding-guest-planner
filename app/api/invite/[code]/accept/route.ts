@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { AuthService } from '@/lib/auth/auth-service';
 import { query } from '@/lib/db';
 
 export async function POST(
@@ -7,10 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const authResult = await auth();
-    if (!authResult.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authResult = await AuthService.requireUser();
 
     const { code: inviteCode } = await params;
 
@@ -50,6 +47,9 @@ export async function POST(
 
   } catch (error) {
     console.error('Error accepting invite:', error);
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json(
       { error: 'Failed to join organization' },
       { status: 500 }

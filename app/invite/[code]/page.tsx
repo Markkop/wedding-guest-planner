@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useSession } from '@/lib/auth/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,8 @@ interface OrganizationInfo {
 
 export default function InvitePage({ params }: InvitePageProps) {
   const router = useRouter();
-  const user = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);

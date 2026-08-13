@@ -1,11 +1,11 @@
 {
-  "name": "Guest Planner - Wedding Guest Management",
+  "name": "Guest Planner - Wedding Guest List & RSVP Organizer",
   "short_name": "Guest Planner",
-  "description": "Organize your wedding or event guests with ease",
+  "description": "Organize guest lists, RSVPs, dietary preferences, and event planning updates together.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "theme_color": "#4f46e5",
   "icons": [
     {
       "src": "/favicon-16x16.png",

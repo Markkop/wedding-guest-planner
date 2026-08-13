@@ -8,7 +8,7 @@ import React, {
   useRef,
   useEffect,
 } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth/auth-client";
 import type { Guest } from "@/lib/types";
 
 interface OnlineUser {
@@ -79,8 +79,9 @@ export function CollaborationProvider({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionTimeoutRef = useRef<number>(120000); // Default 2 minutes
   const reconnectAttemptRef = useRef<number>(0);
-  const { user } = useUser();
-  const userDisplayName = user?.fullName || user?.primaryEmailAddress?.emailAddress;
+  const { data: session } = useSession();
+  const user = session?.user;
+  const userDisplayName = user?.name || user?.email;
 
   // Broadcast a guest update to all connected users
   const broadcastGuestUpdate = useCallback(

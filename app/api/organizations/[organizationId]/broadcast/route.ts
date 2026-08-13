@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/auth/auth-service";
+import { query } from "@/lib/db";
 import { broadcastToOrganization } from "../stream/route";
 
 export async function POST(
@@ -7,23 +8,34 @@ export async function POST(
   { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const authResult = await auth();
-    if (!authResult.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await AuthService.requireUserFull();
+    const { organizationId } = await params;
+
+    const membership = await query(
+      "SELECT 1 FROM organization_members WHERE organization_id = $1 AND user_id = $2",
+      [organizationId, user.id],
+    );
+    if (membership.length === 0) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { organizationId } = await params;
     const body = await request.json();
 
-    // TODO: Verify user has access to this organization
-    // For now, we'll trust the user is authorized since they're logged in
-
     // Broadcast the update to all connected users in this organization
-    await broadcastToOrganization(organizationId, body);
+    await broadcastToOrganization(organizationId, {
+      ...body,
+      userId: user.id,
+      userName: user.name || user.email,
+      timestamp: new Date().toISOString(),
+      isAI: false,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Broadcast error:", error);
+    if (error instanceof Error && error.message === "Not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: "Failed to broadcast update" },
       { status: 500 }

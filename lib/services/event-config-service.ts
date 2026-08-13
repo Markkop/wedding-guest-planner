@@ -25,16 +25,7 @@ export class EventConfigService {
     description: string,
     configuration: EventConfiguration
   ) {
-    const user = await AuthService.requireUserFull();
-
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
+    await AuthService.requireUserFull();
 
     const result = await sql`
       INSERT INTO event_type_presets (name, description, default_config)
@@ -52,17 +43,8 @@ export class EventConfigService {
   ) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await AuthService.getEffectiveUserId(user.id, emails) || user.id;
 
     // Check if user is admin of the organization
@@ -91,17 +73,8 @@ export class EventConfigService {
   static async getOrganizationConfiguration(organizationId: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await AuthService.getEffectiveUserId(user.id, emails) || user.id;
 
     const memberCheck = await sql`

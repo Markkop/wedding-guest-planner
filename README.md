@@ -14,7 +14,9 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Add valid Clerk and OpenAI credentials to `.env.local`. The development database is exposed only on `127.0.0.1:54329`.
+Set `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and any OpenAI credentials in `.env.local`. The development database is exposed only on `127.0.0.1:54329`.
+
+Create a Google OAuth web client with `http://localhost:3000` as an authorized JavaScript origin and `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI. Production uses `https://guests.markkop.dev` and `https://guests.markkop.dev/api/auth/callback/google` respectively.
 
 Quality checks:
 

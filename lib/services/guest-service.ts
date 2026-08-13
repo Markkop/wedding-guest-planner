@@ -126,17 +126,8 @@ export class GuestService {
   static async getGuests(organizationId: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`
@@ -173,17 +164,8 @@ export class GuestService {
   ) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`
@@ -269,17 +251,8 @@ export class GuestService {
   ) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const guestCheck = await sql`
@@ -321,17 +294,8 @@ export class GuestService {
   static async deleteGuest(guestId: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const guestCheck = await sql`
@@ -353,17 +317,8 @@ export class GuestService {
   static async reorderGuests(organizationId: string, guestIds: string[]) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`
@@ -389,17 +344,8 @@ export class GuestService {
   static async moveGuestToEnd(guestId: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const guestCheck = await sql`
@@ -435,15 +381,6 @@ export class GuestService {
   static async moveGuestToBeginning(guestId: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     const guestCheck = await sql`
       SELECT g.*, om.user_id
       FROM guests g
@@ -476,15 +413,6 @@ export class GuestService {
 
   static async moveGuestToPosition(guestId: string, targetPosition: number) {
     const user = await AuthService.requireUserFull();
-
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
 
     const guestCheck = await sql`
       SELECT g.*, om.user_id
@@ -553,17 +481,8 @@ export class GuestService {
   static async swapGuestPositions(guestId1: string, guestId2: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     // Get both guests and verify access
@@ -611,17 +530,8 @@ export class GuestService {
   static async getGuestStatistics(organizationId: string) {
     const user = await AuthService.requireUserFull();
 
-    // Sync Clerk user to local database first
-    await AuthService.syncUserToDatabase({
-      id: user.id,
-      emailAddresses: user.emailAddresses,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      imageUrl: user.imageUrl
-    });
-
     // Get effective user ID with email fallback
-    const emails = user.emailAddresses?.map(e => e.emailAddress).filter(Boolean) || [];
+    const emails = [user.email];
     const effectiveUserId = await this.getEffectiveUserIdForCheck(user.id, emails);
 
     const memberCheck = await sql`

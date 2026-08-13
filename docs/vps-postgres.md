@@ -9,9 +9,14 @@ Coolify owns the secrets. The application needs:
 - `DATABASE_URL`: private PostgreSQL URL supplied by the managed database
 - `DATABASE_SSL=false`: private Docker-network connections do not use TLS
 - `DATABASE_POOL_MAX=10`
-- `CLERK_SECRET_KEY`
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (also available at build time)
+- `BETTER_AUTH_SECRET`: a high-entropy application secret
+- `BETTER_AUTH_URL=https://guests.markkop.dev`
+- `BETTER_AUTH_TRUSTED_ORIGINS=https://guests.markkop.dev`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
 - `OPENAI_API_KEY`
+
+The Google OAuth web client must allow `https://guests.markkop.dev` as a JavaScript origin and `https://guests.markkop.dev/api/auth/callback/google` as a redirect URI. Configure the consent screen with the public homepage, privacy policy, terms, and `markkop.dev` as an authorized domain.
 
 Deployments clone `main` from Forgejo and build the root `Dockerfile`. The image runs migrations before `server.js`; a failed migration prevents an unhealthy release from replacing the active one.
 
@@ -39,7 +44,8 @@ Before retiring the old providers, verify all of the following:
 - The TLS certificate is trusted and the hostname redirects HTTP to HTTPS.
 - Production counts match the source: users, organizations, organization members, guests, event presets, and active sessions.
 - Foreign keys, unique constraints, indexes, and the schema fingerprint match the source.
-- Clerk sign-in and an authenticated organization/guest read work.
+- Google sign-in and an authenticated organization/guest read work.
+- An existing user signing in with the same verified Google email retains the original user ID, organizations, memberships, and guests.
 - A native B2 backup completes successfully.
 - A restore drill into a disposable PostgreSQL database produces the same row counts and schema fingerprint.
 

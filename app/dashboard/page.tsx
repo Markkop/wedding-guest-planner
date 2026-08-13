@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { signOut, useSession } from "@/lib/auth/auth-client";
 import { useRouter } from "next/navigation";
 import { GuestTable } from "@/components/guest-table";
 import { GuestGrid } from "@/components/guest-grid";
@@ -23,8 +23,8 @@ import { OnlineUsersCompact } from "@/components/online-users-compact";
 import { Chatbot } from "@/components/chatbot";
 
 export default function DashboardPage() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
   const router = useRouter();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,23 +45,15 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Log Clerk user ID for debugging
   useEffect(() => {
-    if (user?.id) {
-      console.log('🔑 Clerk User ID:', user.id);
-      console.log('📧 User Email:', user.emailAddresses?.[0]?.emailAddress);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (isLoaded && !user) {
+    if (!isPending && !user) {
       router.push("/login");
       return;
     }
     if (user) {
       loadOrganizations();
     }
-  }, [user, isLoaded, loadOrganizations, router]);
+  }, [user, isPending, loadOrganizations, router]);
 
   async function handleLogout() {
     try {
@@ -72,7 +64,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (!isLoaded || loading) {
+  if (isPending || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <LoadingContent text="Loading dashboard..." className="min-h-screen" />
@@ -90,27 +82,13 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-3xl font-bold">
-              Welcome, {user?.firstName && user?.lastName 
-                ? `${user.firstName} ${user.lastName}` 
-                : user?.emailAddresses?.[0]?.emailAddress || 'User'}
+              Welcome, {user.name || user.email}
             </h1>
             <Button onClick={handleLogout} variant="outline" size="sm">
               <LogOut className="sm:mr-2 h-4 w-4" />
               <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
-
-          {/* Clerk User ID Debug Info */}
-          {user?.id && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-xs text-blue-800">
-                <strong>🔑 Clerk User ID:</strong> <code className="bg-blue-100 px-1 rounded">{user.id}</code>
-              </p>
-              <p className="text-xs text-blue-700 mt-1">
-                <strong>📧 Email:</strong> {user.emailAddresses?.[0]?.emailAddress || 'N/A'}
-              </p>
-            </div>
-          )}
 
           <OrganizationSelector onOrganizationSelect={setOrganization} />
         </div>

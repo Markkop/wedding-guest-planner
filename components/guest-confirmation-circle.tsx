@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Mail, CheckCircle, X, Circle, Calendar, MailCheck, Clock } from "lucide-react";
+import { Mail, CheckCircle, X, Circle, Clock } from "lucide-react";
 import type { Guest, Organization } from "@/lib/types";
 
 interface GuestConfirmationCircleProps {
@@ -138,13 +138,6 @@ export function GuestConfirmationCircle({
     lg: "text-sm",
   };
 
-  // Icon sizes for non-tally icons
-  const iconSizes = {
-    sm: "h-3 w-3",
-    md: "h-4 w-4",
-    lg: "h-5 w-5",
-  };
-
   const stageIcon = getConfirmationStageIcon(guest.confirmation_stage, textSizes[size]);
   // Use the stage color directly for the icon
   const iconColor = stageColor;
@@ -153,6 +146,8 @@ export function GuestConfirmationCircle({
     <Button
       variant="ghost"
       size="icon"
+      aria-label={`Change confirmation status from ${stageLabel}`}
+      title={stageLabel}
       disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
@@ -171,4 +166,3 @@ export function GuestConfirmationCircle({
     </Button>
   );
 }
-
