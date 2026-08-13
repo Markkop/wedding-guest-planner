@@ -37,6 +37,10 @@ function createAuth() {
         createdAt: "created_at",
         updatedAt: "updated_at",
       },
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ["google"],
+      },
     },
     session: {
       modelName: "sessions",
