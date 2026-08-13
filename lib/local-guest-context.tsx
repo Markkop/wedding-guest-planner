@@ -29,6 +29,7 @@ const DEMO_ORGANIZATION: Organization = {
     },
     foodPreferences: {
       enabled: true,
+      allowMultiple: true,
       options: [
         { id: "none", label: "No restrictions" },
         { id: "vegetarian", label: "Vegetarian" },
@@ -242,7 +243,12 @@ export function LocalGuestProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [guests, setGuests] = useState<Guest[]>(DEMO_GUESTS);
+  const [guests, setGuests] = useState<Guest[]>(
+    DEMO_GUESTS.map((guest) => ({
+      ...guest,
+      food_preferences: guest.food_preference ? [guest.food_preference] : [],
+    }))
+  );
   const [loading] = useState(false); // Always false since we use optimistic updates
   const [organization] = useState<Organization>(DEMO_ORGANIZATION);
 
@@ -272,6 +278,10 @@ export function LocalGuestProvider({
         food_preference: config.foodPreferences.enabled
           ? config.foodPreferences.options[0]?.id
           : undefined,
+        food_preferences: config.foodPreferences.enabled &&
+          config.foodPreferences.options[0]?.id
+          ? [config.foodPreferences.options[0].id]
+          : [],
         confirmation_stage: config.confirmationStages.enabled
           ? config.confirmationStages.stages[0]?.id
           : "invited",

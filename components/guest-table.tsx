@@ -17,9 +17,14 @@ import type { VisibleColumns, Guest, Organization } from "@/lib/types";
 interface GuestTableProps {
   organizationId: string;
   organization: Organization;
+  persistColumnSettings?: boolean;
 }
 
-export function GuestTable({ organizationId, organization }: GuestTableProps) {
+export function GuestTable({
+  organizationId,
+  organization,
+  persistColumnSettings = true,
+}: GuestTableProps) {
   const {
     guests,
     loading,
@@ -47,15 +52,21 @@ export function GuestTable({ organizationId, organization }: GuestTableProps) {
   useEffect(() => {
     setOrganization(organization);
     loadGuests(organizationId);
+    if (!persistColumnSettings) {
+      return;
+    }
     const savedColumns = localStorage.getItem("visibleColumns");
     if (savedColumns) {
       setVisibleColumns(JSON.parse(savedColumns));
     }
-  }, [organizationId, organization, loadGuests, setOrganization]);
+  }, [organizationId, organization, loadGuests, setOrganization, persistColumnSettings]);
 
   useEffect(() => {
+    if (!persistColumnSettings) {
+      return;
+    }
     localStorage.setItem("visibleColumns", JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
+  }, [visibleColumns, persistColumnSettings]);
 
   async function handleAddGuest(name: string) {
     await addGuest(name);

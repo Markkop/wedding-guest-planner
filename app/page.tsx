@@ -3,34 +3,12 @@
 import { useState, useEffect } from "react";
 import { useSession } from "@/lib/auth/auth-client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { LocalGuestProvider } from "@/lib/local-guest-context";
 import { GuestTable } from "@/components/guest-table";
 import { GuestGrid } from "@/components/guest-grid";
 import { StatsCards } from "@/components/stats-cards";
 import { LoadingContent } from "@/components/ui/loading-spinner";
-import {
-  Sparkles,
-  ArrowRight,
-  Users,
-  Calendar,
-  UserPlus,
-  Copy,
-  GripVertical,
-  Table,
-  LayoutGrid,
-  RefreshCw,
-  Wifi,
-  FileText,
-  UtensilsCrossed,
-  CheckCircle,
-  Download,
-  BarChart,
-  MessageSquare,
-  Mic,
-  Image as ImageIcon,
-  Mail,
-} from "lucide-react";
+import { ArrowRight, Calendar } from "lucide-react";
 import Link from "next/link";
 
 function LandingContent() {
@@ -105,93 +83,17 @@ function LandingContent() {
       {/* Hero Section */}
       <section className="pt-16 pb-12">
         <div className="mx-auto max-w-7xl px-4 text-center">
-          <Badge variant="secondary" className="mb-6">
-            <Sparkles className="mr-1 h-3 w-3" />
-            Interactive Demo Below
-          </Badge>
-
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-            Wedding Guest Management
+            Guest Management
             <br />
             <span className="text-indigo-600">Made Simple</span>
           </h1>
 
-          <p className="text-xl text-gray-600 mb-4 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
             Organize your special event with ease. Manage RSVPs, dietary
             preferences, seating arrangements, and more. Try the interactive
             demo below!
           </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-6 mb-12">
-            <div className="flex items-center gap-2 text-gray-600">
-              <UserPlus className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Add/Edit/Delete Guests</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Copy className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Clone/Guest&apos;s +1</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <GripVertical className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Reorder Guests</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Table className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Table and Grid View</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <LayoutGrid className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">View Toggle</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <RefreshCw className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Live Updates</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Wifi className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Online Users</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <FileText className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Custom Fields</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Users className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Age Groups</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <UtensilsCrossed className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Food Preferences</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <CheckCircle className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Confirmation Stages</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Download className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Import/Export</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <BarChart className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Statistics Cards</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <MessageSquare className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">AI Chatbot</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Mic className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Voice Input</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <ImageIcon className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Image Support</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Mail className="h-5 w-5 text-indigo-600" />
-              <span className="text-sm sm:text-base">Invite System</span>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -239,6 +141,7 @@ function LandingContent() {
                     },
                     foodPreferences: {
                       enabled: true,
+                      allowMultiple: true,
                       options: [
                         { id: "none", label: "No restrictions" },
                         { id: "vegetarian", label: "Vegetarian" },
@@ -267,6 +170,7 @@ function LandingContent() {
             <div className="mb-12">
               <GuestTable
                 organizationId="demo-org-1"
+                persistColumnSettings={false}
                 organization={{
                   id: "demo-org-1",
                   name: "Sarah & Michael's Wedding",
@@ -304,6 +208,7 @@ function LandingContent() {
                     },
                     foodPreferences: {
                       enabled: true,
+                      allowMultiple: true,
                       options: [
                         { id: "none", label: "No restrictions" },
                         { id: "vegetarian", label: "Vegetarian" },
@@ -369,6 +274,7 @@ function LandingContent() {
                     },
                     foodPreferences: {
                       enabled: true,
+                      allowMultiple: true,
                       options: [
                         { id: "none", label: "No restrictions" },
                         { id: "vegetarian", label: "Vegetarian" },
