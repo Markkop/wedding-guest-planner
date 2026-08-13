@@ -1,10 +1,10 @@
 import { headers } from "next/headers";
-import { auth, type AuthUser } from "@/lib/auth/auth";
+import { getAuth, type AuthUser } from "@/lib/auth/auth";
 import { sql } from "@/lib/db";
 
 export class AuthService {
   private static async getSession() {
-    return auth.api.getSession({ headers: await headers() });
+    return getAuth().api.getSession({ headers: await headers() });
   }
 
   static async getCurrentUser() {
